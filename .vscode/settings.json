@@ -1,0 +1,27 @@
+{
+  "liveServer.settings.CustomBrowser": "chrome",
+  "liveServer.settings.port": 5500,
+  "liveServer.settings.root": "/",
+  "liveServer.settings.useWebExt": false,
+  "liveServer.settings.https": {
+    "enable": false,
+    "cert": "",
+    "key": "",
+    "passphrase": ""
+  },
+  "liveServer.settings.middleware": [
+    {
+      "middleware": "(req, res, next) => { res.setHeader('Cross-Origin-Opener-Policy', 'same-origin'); res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp'); next(); }"
+    }
+  ],
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "eslint.enable": true,
+  "eslint.run": "onSave",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  }
+}

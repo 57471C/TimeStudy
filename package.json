@@ -1,0 +1,39 @@
+{
+  "name": "timestudy",
+  "version": "0.3.0-beta",
+  "description": "A web application for time study analysis with video editing capabilities using ffmpeg.wasm",
+  "private": true,
+  "type": "module",
+  "main": "js/functions.js",
+  "scripts": {
+    "lint": "eslint js/**/*.js",
+    "lint:fix": "eslint js/**/*.js --fix",
+    "format": "prettier --write .",
+    "check-format": "prettier --check .",
+    "start": "http-server -p 8080 --cors"
+  },
+  "devDependencies": {
+    "eslint": "8.57.0",
+    "prettier": "3.3.3",
+    "eslint-plugin-prettier": "5.4.0",
+    "eslint-config-prettier": "10.1.5",
+    "eslint-config-standard": "17.1.0",
+    "http-server": "14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/57471C/TimeStudy.git"
+  },
+  "keywords": [
+    "timestudy",
+    "video-analysis",
+    "ffmpeg-wasm",
+    "javascript"
+  ],
+  "author": "Your Name",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/57471C/TimeStudy/issues"
+  },
+  "homepage": "https://github.com/57471C/TimeStudy#readme"
+}
