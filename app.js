@@ -27,7 +27,7 @@ let yama = [];
 let opNames = [];
 let opStartTimes = [];
 let taktTime = null;
-let useFormattedDuration = true;
+let durationMode = "hhmmssms"; // Options: "hhmmssms", "ms", "decimalMinutes"
 let playerReady = false;
 let zoomLevel = 1;
 let translateX = 0;
@@ -146,8 +146,17 @@ const initializePlayer = () => {
     document.getElementById("videoFileInput").click();
   });
   toggleFormatButton.addEventListener("click", () => {
-    useFormattedDuration = !useFormattedDuration;
-    toggleFormatButton.textContent = `Format (${useFormattedDuration ? "MM:SS:MS" : "ms"})`;
+    // Cycle through the three modes: hhmmssms -> ms -> decimalMinutes
+    if (durationMode === "hhmmssms") {
+      durationMode = "ms";
+    } else if (durationMode === "ms") {
+      durationMode = "decimalMinutes";
+    } else {
+      durationMode = "hhmmssms";
+    }
+    toggleFormatButton.textContent = `Format (${
+      durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "ms" : "min"
+    })`;
     updateTaskList();
     drawTable();
   });
@@ -816,16 +825,24 @@ const editTask = (opIndex, taskIndex) => {
 // eslint-disable-next-line no-unused-vars
 const editTaskDuration = (opIndex, taskIndex) => {
   const task = yama[opIndex][taskIndex];
-  const currentDuration = useFormattedDuration ? formatDuration(task.taskHeight) : task.taskHeight;
-  const promptMessage = useFormattedDuration
-    ? "Enter new duration (MM:SS:MS, e.g., 01:30:50 for 1m 30s 50ms)"
-    : "Enter new duration (milliseconds, e.g., 90500 for 90.5s)";
+  const currentDuration =
+    durationMode === "hhmmssms"
+      ? formatDuration(task.taskHeight)
+      : durationMode === "ms"
+        ? `${task.taskHeight.toFixed(3)} ms`
+        : `${formatDecimalMinutes(task.taskHeight)} min`;
+  const promptMessage =
+    durationMode === "hhmmssms"
+      ? "Enter new duration (MM:SS:MS, e.g., 01:30:50 for 1m 30s 50ms)"
+      : durationMode === "ms"
+        ? "Enter new duration (milliseconds, e.g., 90500 for 90.5s)"
+        : "Enter new duration (decimal minutes, e.g., 1.51 for 1.51 min)";
   const newDurationInput = prompt(promptMessage, currentDuration);
   if (newDurationInput === null) {
     return;
   }
   let newDurationMs;
-  if (useFormattedDuration) {
+  if (durationMode === "hhmmssms") {
     const parts = newDurationInput.split(":");
     if (parts.length !== 3) {
       alert("Invalid format. Please use MM:SS:MS (e.g., 01:30:50).");
@@ -845,12 +862,20 @@ const editTaskDuration = (opIndex, taskIndex) => {
       return;
     }
     newDurationMs = minutes * 60 * 1000 + seconds * 1000 + milliseconds;
-  } else {
+  } else if (durationMode === "ms") {
     newDurationMs = parseFloat(newDurationInput);
     if (isNaN(newDurationMs) || newDurationMs < 0) {
       alert("Invalid duration. Please enter a non-negative number.");
       return;
     }
+  } else {
+    // decimalMinutes mode
+    const decimalMinutes = parseFloat(newDurationInput);
+    if (isNaN(decimalMinutes) || decimalMinutes < 0) {
+      alert("Invalid duration. Please enter a non-negative number.");
+      return;
+    }
+    newDurationMs = decimalMinutes * 60 * 1000; // Convert minutes to milliseconds
   }
   yama[opIndex][taskIndex].taskHeight = newDurationMs;
   yama[opIndex][taskIndex].taskEnd = yama[opIndex][taskIndex].taskStart + newDurationMs;
@@ -923,6 +948,13 @@ const formatDuration = ms => {
   return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}:${milliseconds.toString().padStart(2, "0")}`;
 };
 
+const formatDecimalMinutes = ms => {
+  if (!ms || ms <= 0) return "0.00";
+  const minutes = ms / (60 * 1000); // Convert milliseconds to minutes
+  // Round to 2 decimal places (e.g., "1.51", "10.00")
+  return minutes.toFixed(2);
+};
+
 const updateTaskList = () => {
   const taskList = document.getElementById("taskList");
   let html = "";
@@ -944,9 +976,12 @@ const updateTaskList = () => {
     `;
     for (let j = 0; j < yama[i].length; j += 1) {
       const task = yama[i][j];
-      const duration = useFormattedDuration
-        ? formatDuration(task.taskHeight)
-        : `${task.taskHeight} ms`;
+      const duration =
+        durationMode === "hhmmssms"
+          ? formatDuration(task.taskHeight)
+          : durationMode === "ms"
+            ? `${task.taskHeight.toFixed(3)} ms`
+            : `${formatDecimalMinutes(task.taskHeight)} min`;
       html += `<li class="list-group-item">
         Task: ${task.taskName}, Duration: ${duration}, Status: ${task.taskStatus}
         <button onclick="editTask(${i}, ${j})" class="btn btn-sm btn-outline-primary">Edit</button>
@@ -1250,11 +1285,21 @@ const drawTable = () => {
     xAxis: { categories: opNames },
     yAxis: {
       title: {
-        text: `Duration (${useFormattedDuration ? "MM:SS:MS" : "Milliseconds"})`,
+        text: `Duration (${
+          durationMode === "hhmmssms"
+            ? "MM:SS:MS"
+            : durationMode === "ms"
+              ? "Milliseconds"
+              : "Minutes"
+        })`,
       },
       labels: {
         formatter() {
-          return useFormattedDuration ? formatDuration(this.value) : this.value;
+          return durationMode === "hhmmssms"
+            ? formatDuration(this.value)
+            : durationMode === "ms"
+              ? this.value.toFixed(3)
+              : formatDecimalMinutes(this.value);
         },
       },
       plotLines: [
@@ -1263,7 +1308,13 @@ const drawTable = () => {
           color: "#0000FF",
           width: 2,
           label: {
-            text: `Takt: ${useFormattedDuration ? formatDuration(taktTime) : `${taktTime} ms`}`,
+            text: `Takt: ${
+              durationMode === "hhmmssms"
+                ? formatDuration(taktTime)
+                : durationMode === "ms"
+                  ? `${taktTime.toFixed(3)} ms`
+                  : `${formatDecimalMinutes(taktTime)} min`
+            }`,
             align: "right",
             style: { color: "#0000FF" },
           },
@@ -1272,7 +1323,12 @@ const drawTable = () => {
     },
     tooltip: {
       formatter() {
-        const duration = useFormattedDuration ? formatDuration(this.y) : `${this.y} ms`;
+        const duration =
+          durationMode === "hhmmssms"
+            ? formatDuration(this.y)
+            : durationMode === "ms"
+              ? `${this.y.toFixed(3)} ms`
+              : `${formatDecimalMinutes(this.y)} min`;
         return `<b>Operation: ${this.x}</b><br>Task: ${this.series.name}<br>Duration: ${duration}`;
       },
     },
@@ -1284,7 +1340,13 @@ const drawTable = () => {
         dataLabels: {
           enabled: true,
           formatter() {
-            return this.y > 0 ? (useFormattedDuration ? formatDuration(this.y) : this.y) : "";
+            return this.y > 0
+              ? durationMode === "hhmmssms"
+                ? formatDuration(this.y)
+                : durationMode === "ms"
+                  ? this.y.toFixed(3)
+                  : formatDecimalMinutes(this.y)
+              : "";
           },
         },
       },
@@ -1306,13 +1368,25 @@ const drawTable = () => {
     }
     outputRow += `<tr><td>${opNames[i]}</td>`;
     outputRow += `<td>${
-      useFormattedDuration ? formatDuration(statusDurations.VA) : statusDurations.VA
+      durationMode === "hhmmssms"
+        ? formatDuration(statusDurations.VA)
+        : durationMode === "ms"
+          ? `${statusDurations.VA.toFixed(3)} ms`
+          : `${formatDecimalMinutes(statusDurations.VA)} min`
     }</td>`;
     outputRow += `<td>${
-      useFormattedDuration ? formatDuration(statusDurations.NVA) : statusDurations.NVA
+      durationMode === "hhmmssms"
+        ? formatDuration(statusDurations.NVA)
+        : durationMode === "ms"
+          ? `${statusDurations.NVA.toFixed(3)} ms`
+          : `${formatDecimalMinutes(statusDurations.NVA)} min`
     }</td>`;
     outputRow += `<td>${
-      useFormattedDuration ? formatDuration(statusDurations.W) : statusDurations.W
+      durationMode === "hhmmssms"
+        ? formatDuration(statusDurations.W)
+        : durationMode === "ms"
+          ? `${statusDurations.W.toFixed(3)} ms`
+          : `${formatDecimalMinutes(statusDurations.W)} min`
     }</td>`;
     outputRow += "</tr>";
   }
@@ -1360,7 +1434,12 @@ const drawTable = () => {
       title: { text: `${opNames[i]} Duration by Status` },
       tooltip: {
         pointFormatter() {
-          const duration = useFormattedDuration ? formatDuration(this.y) : `${this.y} ms`;
+          const duration =
+            durationMode === "hhmmssms"
+              ? formatDuration(this.y)
+              : durationMode === "ms"
+                ? `${this.y.toFixed(3)} ms`
+                : `${formatDecimalMinutes(this.y)} min`;
           return `Duration: <b>${duration} (${this.percentage.toFixed(1)}%)</b>`;
         },
       },
@@ -1372,7 +1451,11 @@ const drawTable = () => {
             enabled: true,
             formatter() {
               return `${this.point.name}: ${
-                useFormattedDuration ? formatDuration(this.y) : this.y
+                durationMode === "hhmmssms"
+                  ? formatDuration(this.y)
+                  : durationMode === "ms"
+                    ? this.y.toFixed(3)
+                    : formatDecimalMinutes(this.y)
               }`;
             },
           },
