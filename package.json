@@ -1,13 +1,12 @@
 {
   "name": "timestudy",
-  "version": "0.2.1-beta",
+  "version": "0.2.2-beta",
   "description": "A web-based application for conducting time and motion studies.",
   "main": "index.html",
   "scripts": {
     "lint": "eslint \"**/*.{html,js}\"",
     "lint:fix": "eslint \"**/*.{html,js}\" --fix",
-    "format": "prettier --write \"**/*.{html,js,css,md}\"",
-    "prepare": "husky install"
+    "format": "prettier --write \"**/*.{html,js,css,md}\""
   },
   "keywords": ["timestudy", "time-motion", "manufacturing", "process-analysis"],
   "author": "Terry Minett",
