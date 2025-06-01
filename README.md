@@ -1,6 +1,6 @@
 # TimeStudy
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/57471C/TimeStudy?label=Version)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/57471C/TimeStudy?label=v0.2.0-beta)
 ![GitHub license](https://img.shields.io/github/license/57471C/TimeStudy)
 
 TimeStudy is a web-based application designed for conducting time and motion studies, particularly in manufacturing, logistics, and other process-driven industries. It allows users to analyze videos of processes, segment them into operations and tasks, categorize tasks as Value-Added (VA), Non-Value-Added (NVA), or Waste (W), and visualize task durations using interactive charts. The app supports CSV import/export for data persistence and is built with modern web technologies for a responsive, user-friendly experience.
