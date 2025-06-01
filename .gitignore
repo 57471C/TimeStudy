@@ -1,0 +1,21 @@
+# Prettier and ESLint cache
+.prettierrc
+.eslintcache
+
+# Node modules
+node_modules/
+
+dist/
+
+.DS_Store
+
+oldfiles/
+
+# Logs
+*.logs
+
+
+*.bak
+*.zip
+
+description
