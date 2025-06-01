@@ -22,6 +22,8 @@ TimeStudy is a web-based application designed for conducting time and motion stu
 
 This is a beta version, actively under development. Feedback and contributions are welcome!
 
+**Note**: The GitHub repository was wiped and reset with v0.2.0-beta on June 1, 2025, to start fresh with a clean history.
+
 ## Installation
 
 To run TimeStudy locally, follow these steps:
