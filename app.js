@@ -187,7 +187,7 @@ const initializePlayer = () => {
   });
 
   // Mute button event listener
-  muteButton.addEventListener("click", () => {
+  toggleFormatButton.addEventListener("click", () => {
     player.muted = !player.muted;
     muteButton.textContent = player.muted ? "Unmute" : "Mute";
     toConsole("Mute toggled", player.muted);

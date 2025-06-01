@@ -230,8 +230,8 @@
 }
 .marquee-rect {
   position: absolute;
-  border: 2px dashed #0000FF;
-  background: rgba(0, 0, 255, .1);
+  border: 2px dashed #0000ff;
+  background: rgba(0, 0, 255, 0.1);
   pointer-events: none;
   display: none;
 }
