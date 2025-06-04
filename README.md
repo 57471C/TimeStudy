@@ -18,7 +18,7 @@ TimeStudy is a web-based application designed for conducting time and motion stu
 
 ## Current Version
 
-**v0.2.0-beta** (Beta Release)
+**v0.2.3-beta** (Beta Release)
 
 This is a beta version, actively under development. Feedback and contributions are welcome!
 
