@@ -33,7 +33,7 @@ let zoomLevel = 1;
 let translateX = 0;
 let translateY = 0;
 let processEndTime = 0; // Store process end time in seconds
-const APP_VERSION = "0.2.0-beta";
+const APP_VERSION = "0.2.2";
 
 // Marquee variables
 let isDrawing = false;
@@ -51,6 +51,9 @@ const initializePlayer = () => {
   // Marquee elements
   marqueeOverlay = document.getElementById("marqueeOverlay");
   marqueeRect = document.getElementById("marqueeRect");
+
+  // Video placeholder element
+  const videoPlaceholder = document.getElementById("videoPlaceholder");
 
   // Event listeners for video
   player.addEventListener("timeupdate", seektimeupdate);
@@ -145,6 +148,13 @@ const initializePlayer = () => {
   loadVideoButton.addEventListener("click", () => {
     document.getElementById("videoFileInput").click();
   });
+
+  // Make the video placeholder clickable to trigger "Load Video"
+  videoPlaceholder.addEventListener("click", () => {
+    document.getElementById("videoFileInput").click();
+    toConsole("Video placeholder clicked", "Triggered Load Video");
+  });
+
   toggleFormatButton.addEventListener("click", () => {
     // Cycle through the three modes: hhmmssms -> ms -> decimalMinutes
     if (durationMode === "hhmmssms") {
@@ -187,7 +197,7 @@ const initializePlayer = () => {
   });
 
   // Mute button event listener
-  toggleFormatButton.addEventListener("click", () => {
+  muteButton.addEventListener("click", () => {
     player.muted = !player.muted;
     muteButton.textContent = player.muted ? "Unmute" : "Mute";
     toConsole("Mute toggled", player.muted);
@@ -268,8 +278,8 @@ const initializePlayer = () => {
     document.getElementById("taskList").innerHTML = "";
     document.getElementById("pieChartContainer").innerHTML = "";
     document.getElementById("chartContainer").innerHTML = "";
-    document.getElementById("chartFoot").innerHTML = "";
-    document.querySelector(".highchart").style.display = "none";
+    document.getElementById("taskTableFoot").innerHTML = "";
+    document.querySelector(".task-table").style.display = "none";
     addTaskButton.disabled = true; // Disable Add Task button after clearing data
     toConsole("Cleared all previous data and charts");
 
@@ -957,23 +967,40 @@ const formatDecimalMinutes = ms => {
 
 const updateTaskList = () => {
   const taskList = document.getElementById("taskList");
-  let html = "";
+  let html = `
+    <table class="table table-bordered task-table">
+      <thead>
+        <tr>
+          <th scope="col">Operation</th>
+          <th scope="col">Task</th>
+          <th scope="col">Duration</th>
+          <th scope="col">Status</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
   for (let i = 0; i < yama.length; i += 1) {
     const opTimeInputId = `opTimeInput-${i}`;
     const formattedTime = formatTimeToHHMMSSMS(opStartTimes[i]);
+    // Operation row spanning all columns except the last (Actions)
     html += `
-      <h4 class="mt-3">
-        <a href="javascript:void(0)" onclick="jumpToOperationTime('${opTimeInputId}')">
-          Operation: ${opNames[i]}
-        </a>
-        <span class="op-time-container">
-          <label for="${opTimeInputId}" class="form-label" style="width: auto;">Start:</label>
-          <input type="text" id="${opTimeInputId}" class="form-control op-time-input" value="${formattedTime}">
-          <button onclick="deleteOperation(${i})" class="btn btn-danger" style="margin-left: 10px;">Delete Operation</button>
-        </span>
-      </h4>
-      <ul class="list-group mb-3">
+      <tr>
+        <td colspan="4">
+          <a href="javascript:void(0)" onclick="jumpToOperationTime('${opTimeInputId}')">
+            Operation: ${opNames[i]}
+          </a>
+          <span class="op-time-container">
+            <label for="${opTimeInputId}" class="form-label" style="width: auto;">Start:</label>
+            <input type="text" id="${opTimeInputId}" class="form-control op-time-input" value="${formattedTime}">
+          </span>
+        </td>
+        <td>
+          <button onclick="deleteOperation(${i})" class="btn btn-danger">Delete Operation</button>
+        </td>
+      </tr>
     `;
+    // Task rows under each operation
     for (let j = 0; j < yama[i].length; j += 1) {
       const task = yama[i][j];
       const duration =
@@ -982,20 +1009,31 @@ const updateTaskList = () => {
           : durationMode === "ms"
             ? `${task.taskHeight.toFixed(3)} ms`
             : `${formatDecimalMinutes(task.taskHeight)} min`;
-      html += `<li class="list-group-item">
-        Task: ${task.taskName}, Duration: ${duration}, Status: ${task.taskStatus}
-        <button onclick="editTask(${i}, ${j})" class="btn btn-sm btn-outline-primary">Edit</button>
-        <button onclick="editTaskDuration(${i}, ${j})" class="btn btn-sm btn-outline-primary">Edit Duration</button>
-        <button onclick="deleteTask(${i}, ${j})" class="btn btn-sm btn-outline-danger">Delete</button>
-        <button onclick="insertTask(${i}, ${j})" class="btn btn-sm btn-outline-secondary">Split Task</button>
-      </li>`;
+      html += `
+        <tr>
+          <td></td> <!-- Empty cell under Operation -->
+          <td>${task.taskName}</td>
+          <td>${duration}</td>
+          <td>${task.taskStatus}</td>
+          <td>
+            <button onclick="editTask(${i}, ${j})" class="btn btn-sm btn-outline-primary">Edit</button>
+            <button onclick="editTaskDuration(${i}, ${j})" class="btn btn-sm btn-outline-primary">Edit Duration</button>
+            <button onclick="deleteTask(${i}, ${j})" class="btn btn-sm btn-outline-danger">Delete</button>
+            <button onclick="insertTask(${i}, ${j})" class="btn btn-sm btn-outline-secondary">Split Task</button>
+          </td>
+        </tr>
+      `;
     }
-    html += "</ul>";
   }
+  html += `
+      </tbody>
+      <tfoot id="taskTableFoot"></tfoot>
+    </table>
+  `;
   taskList.innerHTML = html;
 
   // Show the table if there are operations
-  const table = document.querySelector(".highchart");
+  const table = document.querySelector(".task-table");
   if (yama.length > 0) {
     table.style.display = "table";
     updateProcessTimes();
@@ -1024,7 +1062,7 @@ const updateTaskList = () => {
 const updateProcessTimes = () => {
   if (yama.length === 0) return;
 
-  const chartFoot = document.getElementById("chartFoot");
+  const taskTableFoot = document.getElementById("taskTableFoot");
   const formattedEndTime = formatTimeToHHMMSSMS(processEndTime);
   let totalProcessTime = "00:00:00:00";
   if (opStartTimes.length > 0) {
@@ -1032,9 +1070,9 @@ const updateProcessTimes = () => {
     totalProcessTime = formatTimeToHHMMSSMS(durationSeconds);
   }
 
-  chartFoot.innerHTML = `
+  taskTableFoot.innerHTML = `
     <tr>
-      <td colspan="4" class="table-foot">
+      <td colspan="5" class="table-foot">
         <span class="process-time-container">
           <label for="processEndTimeInput" class="form-label" style="width: auto;">Process end time:</label>
           <input type="text" id="processEndTimeInput" class="form-control process-time-input" value="${formattedEndTime}">
@@ -1391,7 +1429,12 @@ const drawTable = () => {
     outputRow += "</tr>";
   }
   document.getElementById("chartBody").innerHTML = outputRow;
-  updateProcessTimes();
+  const chartTable = document.querySelector(".highchart");
+  if (yama.length > 0) {
+    chartTable.style.display = "table";
+  } else {
+    chartTable.style.display = "none";
+  }
   const pieChartContainer = document.getElementById("pieChartContainer");
   pieChartContainer.innerHTML = "";
   for (let i = 0; i < yama.length; i += 1) {

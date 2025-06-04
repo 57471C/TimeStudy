@@ -40,6 +40,7 @@
   top: 0;
   left: 0;
   z-index: 5;
+  cursor: pointer; /* Indicate clickable area */
 }
 #videoWrapper {
   width: 100%;
@@ -161,6 +162,18 @@
 }
 .table-foot {
   padding: 10px;
+}
+/* Style for task table */
+.task-table {
+  margin-top: 20px;
+  width: 100%;
+}
+.task-table th,
+.task-table td {
+  vertical-align: middle;
+}
+.task-table .btn-sm {
+  margin-right: 5px;
 }
 /* Custom button colors */
 .btn-orange {
