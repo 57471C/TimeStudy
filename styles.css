@@ -80,6 +80,7 @@
   flex-grow: 0;
   position: relative;
   z-index: 0;
+  box-sizing: border-box;
 }
 #video_controls_bar {
   width: 100%;
@@ -97,6 +98,7 @@
 /* Center the button row */
 .control-row.button-row {
   justify-content: center;
+  flex-wrap: wrap; /* Allow wrapping for smaller screens */
 }
 /* Stack sliders vertically */
 .control-row.slider-row {
@@ -104,9 +106,10 @@
   align-items: flex-start;
 }
 /* Center the functions row */
-.control-row.functionsRow {
+.control-row.functions-row {
   justify-content: center;
   flex-wrap: wrap;
+  gap: 10px;
 }
 /* Add padding to slider labels */
 .control-row.slider-row label {
@@ -175,26 +178,28 @@
 .task-table .btn-sm {
   margin-right: 5px;
 }
-/* Custom button colors */
-.btn-orange {
+/* Custom button colors with higher specificity to override Bootstrap */
+.btn.btn-orange {
   background-color: #ff6200 !important;
   border-color: #ff6200 !important;
+  color: #fff !important;
 }
-.btn-yellow {
+.btn.btn-yellow {
   background-color: #ffd700 !important;
   border-color: #ffd700 !important;
+  color: #000 !important;
 }
-.btn-light-green {
+.btn.btn-light-green {
   background-color: #28a745 !important;
   border-color: #28a745 !important;
-  color: #fff !important; /* White text */
+  color: #fff !important;
 }
-.btn-lighter-green {
+.btn.btn-lighter-green {
   background-color: #48c774 !important;
   border-color: #48c774 !important;
-  color: #fff !important; /* White text */
+  color: #fff !important;
 }
-.btn-dark-gray {
+.btn.btn-dark-gray {
   background-color: #343a40 !important;
   border-color: #343a40 !important;
   color: #fff !important;
@@ -267,8 +272,10 @@
   .play-button {
     margin-left: 5%;
   }
-  .control-row.functionsRow {
+  .control-row.button-row,
+  .control-row.functions-row {
     gap: 5px;
+    justify-content: center;
   }
   #taktTimeInput,
   .op-time-input,
@@ -280,6 +287,15 @@
   }
   .volume-slider {
     width: 80px;
+  }
+  .task-table th,
+  .task-table td {
+    font-size: 0.9rem;
+    padding: 0.5rem;
+  }
+  .task-table .btn-sm {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
   }
 }
 @media (min-width: 1200px) {

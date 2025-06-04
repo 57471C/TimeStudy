@@ -101,9 +101,9 @@
               </div>
               <div class="control-row button-row">
                 <button id="loadVideoButton" class="btn btn-yellow">Load Video</button>
-                <button id="playPauseButton" class="btn btn-light-green play-button">Play</button>
                 <button id="rewind5sButton" class="btn btn-lighter-green nudge-button">-5s</button>
                 <button id="rewind1sButton" class="btn btn-lighter-green nudge-button">-1s</button>
+                <button id="playPauseButton" class="btn btn-light-green play-button">Play</button>
                 <button id="forward1sButton" class="btn btn-lighter-green nudge-button">+1s</button>
                 <button id="forward5sButton" class="btn btn-lighter-green nudge-button">+5s</button>
                 <button id="muteButton" class="btn btn-dark-gray mute-button">Mute</button>
@@ -139,24 +139,26 @@
 
         <!-- Right Column: Controls and Charts -->
         <div class="col-lg-6">
-          <div class="control-row functionsRow">
-            <div class="takt-time-container">
-              <label for="taktTimeInput" class="form-label">Takt Time:</label>
-              <input
-                type="text"
-                class="form-control"
-                id="taktTimeInput"
-                value="00:00:00:00"
-                placeholder="HH:MM:SS:MS"
-              />
+          <div class="controls-container">
+            <div class="control-row functions-row">
+              <div class="takt-time-container">
+                <label for="taktTimeInput" class="form-label">Takt Time:</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="taktTimeInput"
+                  value="00:00:00:00"
+                  placeholder="HH:MM:SS:MS"
+                />
+              </div>
+              <button id="addOpButton" class="btn btn-light-green">Add Operation</button>
+              <button id="addTaskButton" class="btn btn-light-green" disabled>Add Task</button>
+              <button id="addChartButton" class="btn btn-light-green">Chart</button>
+              <button id="toggleFormatButton" class="btn btn-light-green">Format (MM:SS:MS)</button>
+              <button id="csvExportButton" class="btn btn-light-green">Export CSV</button>
+              <button id="csvImportButton" class="btn btn-light-green">Load CSV</button>
+              <input type="file" id="csvFileInput" accept=".csv" style="display: none" />
             </div>
-            <button id="addOpButton" class="btn btn-primary">Add Operation</button>
-            <button id="addTaskButton" class="btn btn-primary" disabled>Add Task</button>
-            <button id="addChartButton" class="btn btn-primary">Chart</button>
-            <button id="toggleFormatButton" class="btn btn-primary">Format (MM:SS:MS)</button>
-            <button id="csvExportButton" class="btn btn-primary">Export CSV</button>
-            <button id="csvImportButton" class="btn btn-primary">Load CSV</button>
-            <input type="file" id="csvFileInput" accept=".csv" style="display: none" />
           </div>
 
           <!-- Task List Table -->
