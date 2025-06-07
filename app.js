@@ -34,7 +34,7 @@ let zoomLevel = 1;
 let translateX = 0;
 let translateY = 0;
 let processEndTime = 0; // Store process end time in seconds
-const APP_VERSION = "0.2.5-beta"; // Updated to match package.json
+const APP_VERSION = "0.2.7-beta"; // Updated to match package.json
 
 // Marquee variables
 let isDrawing = false;
