@@ -22,9 +22,10 @@ module.exports = [
       ...prettier.rules,
       semi: ["error", "always"],
       quotes: ["error", "double"],
-      indent: "off", // Disable ESLint's indent rule to avoid conflicts with Prettier
+      indent: "off",
       "require-jsdoc": "off",
       "valid-jsdoc": "off",
+      "max-len": "off", // Disable max-len to prevent line length conflicts
       "prettier/prettier": [
         "error",
         {
@@ -32,6 +33,9 @@ module.exports = [
           singleQuote: false,
           tabWidth: 2,
           trailingComma: "es5",
+          printWidth: 120, // Match .prettierrc
+          bracketSpacing: true,
+          arrowParens: "avoid",
         },
       ],
     },

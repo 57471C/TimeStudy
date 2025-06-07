@@ -13,6 +13,7 @@ oldfiles/
 
 # Logs
 *.logs
+*.log
 
 
 *.bak

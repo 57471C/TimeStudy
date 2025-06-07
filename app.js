@@ -19,6 +19,7 @@ let volumeSlider;
 let taktTimeInput;
 
 // State variables
+// State variables
 const debuggin = 1;
 let opCount = 0;
 let firstOp = "y";
@@ -33,7 +34,7 @@ let zoomLevel = 1;
 let translateX = 0;
 let translateY = 0;
 let processEndTime = 0; // Store process end time in seconds
-const APP_VERSION = "0.2.5";
+const APP_VERSION = "0.2.5-beta"; // Updated to match package.json
 
 // Marquee variables
 let isDrawing = false;
@@ -54,6 +55,28 @@ const initializePlayer = () => {
 
   // Video placeholder element
   const videoPlaceholder = document.getElementById("videoPlaceholder");
+
+  // Dark mode toggle elements
+  const darkModeToggle = document.getElementById("darkModeToggle");
+  const darkModeIcon = document.getElementById("darkModeIcon");
+
+  // Check for saved dark mode preference
+  const isDarkMode = localStorage.getItem("darkMode") === "true";
+  if (isDarkMode) {
+    document.body.classList.add("dark-mode");
+    darkModeIcon.textContent = "🌙";
+  } else {
+    darkModeIcon.textContent = "☀️";
+  }
+
+  // Dark mode toggle event listener
+  darkModeToggle.addEventListener("click", () => {
+    document.body.classList.toggle("dark-mode");
+    const isDark = document.body.classList.contains("dark-mode");
+    darkModeIcon.textContent = isDark ? "🌙" : "☀️";
+    localStorage.setItem("darkMode", isDark);
+    toConsole("Dark mode toggled", isDark ? "On" : "Off");
+  });
 
   // Event listeners for video
   player.addEventListener("timeupdate", seektimeupdate);
@@ -861,13 +884,7 @@ const editTaskDuration = (opIndex, taskIndex) => {
     const minutes = parseInt(parts[0], 10);
     const seconds = parseInt(parts[1], 10);
     const milliseconds = parseInt(parts[2], 10) * 10;
-    if (
-      isNaN(minutes) ||
-      isNaN(seconds) ||
-      isNaN(milliseconds) ||
-      seconds >= 60 ||
-      milliseconds >= 1000
-    ) {
+    if (isNaN(minutes) || isNaN(seconds) || isNaN(milliseconds) || seconds >= 60 || milliseconds >= 1000) {
       alert("Invalid duration. Ensure minutes, seconds (<60), and milliseconds (<100) are valid.");
       return;
     }
@@ -941,10 +958,7 @@ const deleteOperation = opIndex => {
     }
     // Adjust taskCount if the deleted operation was the last one
     taskCount = yama[opCount] ? yama[opCount].length : 0;
-    toConsole(
-      `Deleted operation at index ${opIndex}`,
-      `opCount: ${opCount}, taskCount: ${taskCount}`
-    );
+    toConsole(`Deleted operation at index ${opIndex}`, `opCount: ${opCount}, taskCount: ${taskCount}`);
     updateTaskList();
     drawTable();
   }
@@ -1092,10 +1106,8 @@ const updateProcessTimes = () => {
     if (newEndTime !== null) {
       processEndTime = newEndTime;
       toConsole("Process end time updated", processEndTime);
-      const durationSeconds =
-        opStartTimes.length > 0 ? Math.max(0, processEndTime - opStartTimes[0]) : 0;
-      document.getElementById("totalProcessTimeInput").value =
-        formatTimeToHHMMSSMS(durationSeconds);
+      const durationSeconds = opStartTimes.length > 0 ? Math.max(0, processEndTime - opStartTimes[0]) : 0;
+      document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
     } else {
       alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
       processEndTimeInput.value = formatTimeToHHMMSSMS(processEndTime);
@@ -1179,10 +1191,7 @@ const importFromCSV = csvText => {
   // Parse task data starting from line 3
   const taskHeaders = lines[2].split(",").map(h => h.trim());
   const expectedTaskHeaders = ["Operation", "Task", "VA", "NVA", "W"];
-  if (
-    taskHeaders.length !== expectedTaskHeaders.length ||
-    !taskHeaders.every((h, i) => h === expectedTaskHeaders[i])
-  ) {
+  if (taskHeaders.length !== expectedTaskHeaders.length || !taskHeaders.every((h, i) => h === expectedTaskHeaders[i])) {
     alert("Invalid CSV format. Expected task headers: Operation,Task,VA,NVA,W");
     return;
   }
@@ -1324,11 +1333,7 @@ const drawTable = () => {
     yAxis: {
       title: {
         text: `Duration (${
-          durationMode === "hhmmssms"
-            ? "MM:SS:MS"
-            : durationMode === "ms"
-              ? "Milliseconds"
-              : "Minutes"
+          durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
         })`,
       },
       labels: {
