@@ -31,7 +31,7 @@ let zoomLevel = 1;
 let translateX = 0;
 let translateY = 0;
 let processEndTime = 0;
-const APP_VERSION = "0.2.9-beta";
+const APP_VERSION = "0.3.0";
 
 let isDrawing = false;
 let startX;
