@@ -161,7 +161,7 @@ a {
   display: flex;
   align-items: center;
   gap: 5px;
-  white-space: nowrap; /* Prevent text wrapping */
+  white-space: nowrap;
 }
 
 /* Custom styles for Highcharts containers */
@@ -298,14 +298,16 @@ body.dark-mode .video-placeholder {
   width: 100%;
   box-sizing: border-box;
 }
+.volume-slider {
+  width: 70px;
+  padding-left: 30px;
+  padding-right: 30px;
+}
 /* Style for volume slider */
 .volume-control-container {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-}
-.volume-slider {
-  width: 70px;
 }
 /* Style for load button */
 .load-button {
@@ -410,7 +412,9 @@ body.dark-mode .video-placeholder {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 0; /* Remove all margins */
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box; /* Ensure no extra space */
 }
 /* Nudge buttons */
 .nudge-button {
@@ -471,7 +475,9 @@ body.dark-mode .video-placeholder {
     padding-left: 5%;
   }
   .play-button {
-    margin: 0; /* Override any margin at smaller screens */
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
   .control-row.button-row,
   .control-row.functions-row {
@@ -488,6 +494,8 @@ body.dark-mode .video-placeholder {
   }
   .volume-slider {
     width: 60px;
+    padding-left: 25px;
+    padding-right: 25px;
   }
   .task-table th,
   .task-table td {
