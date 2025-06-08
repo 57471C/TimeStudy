@@ -413,8 +413,8 @@ body.dark-mode .video-placeholder {
   justify-content: center;
   align-items: center;
   margin: 0;
-  padding: 0;
-  box-sizing: border-box; /* Ensure no extra space */
+  padding: 0.375rem 0.5rem; /* Restore vertical padding, reduce horizontal */
+  box-sizing: border-box;
 }
 /* Nudge buttons */
 .nudge-button {
@@ -476,7 +476,7 @@ body.dark-mode .video-placeholder {
   }
   .play-button {
     margin: 0;
-    padding: 0;
+    padding: 0.375rem 0.5rem;
     box-sizing: border-box;
   }
   .control-row.button-row,
