@@ -13,16 +13,43 @@ TimeStudy is a web-based application designed for conducting time and motion stu
 - **Takt Time Analysis**: Set and compare task durations against a configurable Takt Time.
 - **CSV Import/Export**: Save and load study data in CSV format for easy sharing and backup.
 - **Responsive Design**: Built with Bootstrap for compatibility across desktops and tablets.
+- **Dark Mode**: Toggle between light and dark themes with a consistent UI.
 - **Keyboard Shortcuts**: Streamline workflows with shortcuts for playback, zooming, and task management.
 - **Debug Logging**: Detailed console logs for troubleshooting (configurable via `debuggin` flag).
 
 ## Current Version
 
-**v0.2.7-beta** (Beta Release)
+**v0.2.8-beta** (Beta Release)
 
 This is a beta version, actively under development. Feedback and contributions are welcome!
 
 **Note**: The GitHub repository was wiped and reset with v0.2.0-beta on June 1, 2025, to start fresh with a clean history.
+
+## Release Notes
+
+### v0.2.8-beta
+- **Dark Mode Enhancements**:
+  - Moved dark/light mode toggle to the Current/Duration row, aligned right.
+  - Fixed video placeholder text visibility in dark mode (white text).
+  - Added a border to the video placeholder in dark mode (`#374151`).
+  - Applied dark mode theme to the task table (background: `#1c2526`, text: `#d1d5db`).
+- **UI Layout Improvements**:
+  - Added a 30px fixed header with "TimeStudy" title.
+  - Shortened "Load Video" button to "Load" to save space.
+  - Reduced volume slider width to 80px (70px at <992px) to fit in the button row.
+  - Reduced nudge button width to 45px and mute button to 55px.
+  - Centered functions row (Takt Time input, Add Operation, etc.).
+  - Fixed playback speed display to show "Playback Speed: 1x" inline.
+  - Increased playback speed slider maximum to 8x.
+- **Code Cleanup and Bug Fixes**:
+  - Removed duplicate Prettier config (`prettierrc.json`) and updated `.gitignore`.
+  - Resolved ESLint/Prettier conflict for single-line function calls (`printWidth: 120`).
+  - Removed obsolete `highchart` table and its `app.js` references to fix CSV import error.
+- **Version Consistency**:
+  - Aligned `APP_VERSION` in `app.js` with `package.json`.
+
+### v0.2.7-beta
+- Initial beta release with core functionality (details in prior commits).
 
 ## Installation
 
@@ -39,7 +66,7 @@ To run TimeStudy locally, follow these steps:
 1. **Clone the Repository**:
 
    ```bash
-   git clone https://github.com/YourUsername/TimeStudy.git
+   git clone https://github.com/57471C/TimeStudy.git
    cd TimeStudy
    ```
 
@@ -65,7 +92,7 @@ To run TimeStudy locally, follow these steps:
 
 1. **Load a Video**:
 
-   - Click “Load Video” and select a video file (e.g., MP4, WebM).
+   - Click “Load” and select a video file (e.g., MP4, WebM).
    - Use the video controls to navigate (play/pause, nudge ±1s/±5s, zoom, marquee selection).
 
 2. **Define Operations and Tasks**:
@@ -108,6 +135,7 @@ TimeStudy uses the Google JavaScript style guide with Prettier formatting:
 - Quotes: Double quotes (`singleQuote: false`)
 - Tab Width: 2 spaces
 - Trailing Commas: ES5
+- Print Width: 120
 
 To lint and format code:
 
@@ -128,7 +156,7 @@ TimeStudy/
 ├── app.js            # Application JavaScript logic
 ├── styles.css        # Application styles
 ├── .eslintrc.json    # ESLint configuration
-├── .prettierrc.json  # Prettier configuration
+├── .prettierrc       # Prettier configuration
 ├── .gitignore        # Git ignore file
 ├── README.md         # This file
 ├── package.json      # Development dependencies
@@ -186,7 +214,7 @@ Please include a clear description of your changes and reference any related iss
 
 ## Issues
 
-Found a bug or have a feature request? [Open an issue](https://github.com/YourUsername/TimeStudy/issues/new) on GitHub. Provide:
+Found a bug or have a feature request? [Open an issue](https://github.com/57471C/TimeStudy/issues/new) on GitHub. Provide:
 
 - A clear title and description.
 - Steps to reproduce the issue.

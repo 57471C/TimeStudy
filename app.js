@@ -19,7 +19,6 @@ let volumeSlider;
 let taktTimeInput;
 
 // State variables
-// State variables
 const debuggin = 1;
 let opCount = 0;
 let firstOp = "y";
@@ -34,7 +33,7 @@ let zoomLevel = 1;
 let translateX = 0;
 let translateY = 0;
 let processEndTime = 0; // Store process end time in seconds
-const APP_VERSION = "0.2.7-beta"; // Updated to match package.json
+const APP_VERSION = "0.2.8-beta";
 
 // Marquee variables
 let isDrawing = false;
@@ -106,7 +105,7 @@ const initializePlayer = () => {
   player.addEventListener("error", () => {
     toConsole("Video load error", "Failed to load video from URL");
     alert(
-      "Failed to load the video from the provided URL. Please use the 'Load Video' button to select a video file manually."
+      "Failed to load the video from the provided URL. Please use the 'Load' button to select a video file manually."
     );
     toggleVideoPlaceholder(true);
     updateLoadButtonColor();
@@ -297,7 +296,6 @@ const initializePlayer = () => {
     taskCount = 0;
     firstOp = "y";
     taktTime = parseTaktTime(taktTimeInput.value);
-    document.getElementById("chartBody").innerHTML = "";
     document.getElementById("taskList").innerHTML = "";
     document.getElementById("pieChartContainer").innerHTML = "";
     document.getElementById("chartContainer").innerHTML = "";
@@ -1188,6 +1186,11 @@ const importFromCSV = csvText => {
   firstOp = "y";
   taktTime = parseTaktTime(taktTimeInput.value);
 
+  // Clear charts and task list
+  document.getElementById("taskList").innerHTML = "";
+  document.getElementById("pieChartContainer").innerHTML = "";
+  document.getElementById("chartContainer").innerHTML = "";
+
   // Parse task data starting from line 3
   const taskHeaders = lines[2].split(",").map(h => h.trim());
   const expectedTaskHeaders = ["Operation", "Task", "VA", "NVA", "W"];
@@ -1246,8 +1249,6 @@ const importFromCSV = csvText => {
     alert("No valid tasks found in CSV.");
     return;
   }
-  document.getElementById("chartBody").innerHTML = "";
-  document.getElementById("pieChartContainer").innerHTML = "";
   updateTaskList();
   toConsole("CSV imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`);
 };
@@ -1396,50 +1397,7 @@ const drawTable = () => {
     },
     series,
   });
-  const outputHead = "<tr><th>Operation</th><th>VA</th><th>NVA</th><th>W</th></tr>";
-  document.getElementById("chartHead").innerHTML = outputHead;
-  let outputRow = "";
-  for (let i = 0; i < yama.length; i += 1) {
-    const statusDurations = { VA: 0, NVA: 0, W: 0 };
-    if (yama[i] && Array.isArray(yama[i])) {
-      for (let j = 0; j < yama[i].length; j += 1) {
-        const status = yama[i][j].taskStatus.toUpperCase();
-        if (status in statusDurations) {
-          statusDurations[status] += yama[i][j].taskHeight;
-        }
-      }
-    }
-    outputRow += `<tr><td>${opNames[i]}</td>`;
-    outputRow += `<td>${
-      durationMode === "hhmmssms"
-        ? formatDuration(statusDurations.VA)
-        : durationMode === "ms"
-          ? `${statusDurations.VA.toFixed(3)} ms`
-          : `${formatDecimalMinutes(statusDurations.VA)} min`
-    }</td>`;
-    outputRow += `<td>${
-      durationMode === "hhmmssms"
-        ? formatDuration(statusDurations.NVA)
-        : durationMode === "ms"
-          ? `${statusDurations.NVA.toFixed(3)} ms`
-          : `${formatDecimalMinutes(statusDurations.NVA)} min`
-    }</td>`;
-    outputRow += `<td>${
-      durationMode === "hhmmssms"
-        ? formatDuration(statusDurations.W)
-        : durationMode === "ms"
-          ? `${statusDurations.W.toFixed(3)} ms`
-          : `${formatDecimalMinutes(statusDurations.W)} min`
-    }</td>`;
-    outputRow += "</tr>";
-  }
-  document.getElementById("chartBody").innerHTML = outputRow;
-  const chartTable = document.querySelector(".highchart");
-  if (yama.length > 0) {
-    chartTable.style.display = "table";
-  } else {
-    chartTable.style.display = "none";
-  }
+
   const pieChartContainer = document.getElementById("pieChartContainer");
   pieChartContainer.innerHTML = "";
   for (let i = 0; i < yama.length; i += 1) {
