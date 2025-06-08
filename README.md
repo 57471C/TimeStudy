@@ -10,7 +10,7 @@ TimeStudy is a web-based application designed for conducting time and motion stu
 - **Video Player**: Load and analyze videos with precise controls (play/pause, seek, nudge, zoom, marquee selection).
 - **Task and Operation Management**: Define operations and tasks, assign start times, durations, and statuses (VA, NVA, W).
 - **Interactive Charts**: Visualize task durations with Highcharts, including stacked column charts and pie charts per operation.
-- **Takt Time Analysis**: Set and compare task durations against a configurable Takt Time.
+- **Takt Time Analysis**: Set and compare task durations against a configurable Takt Time (default: 1 minute).
 - **CSV Import/Export**: Save and load study data in CSV format for easy sharing and backup.
 - **Responsive Design**: Built with Bootstrap for compatibility across desktops and tablets.
 - **Dark Mode**: Toggle between light and dark themes with a consistent UI.
@@ -19,13 +19,19 @@ TimeStudy is a web-based application designed for conducting time and motion stu
 
 ## Current Version
 
-**v0.2.8-beta** (Beta Release)
+**v0.2.9-beta** (Beta Release)
 
 This is a beta version, actively under development. Feedback and contributions are welcome!
 
 **Note**: The GitHub repository was wiped and reset with v0.2.0-beta on June 1, 2025, to start fresh with a clean history.
 
 ## Release Notes
+
+### v0.2.9-beta
+- **UI Enhancements**:
+  - Set default Takt Time to 1 minute (`00:01:00:00`).
+  - Made charts (`chartContainer`, `pieChartContainer`) span both columns at >992px screen width.
+  - Restored `functions-row` button styling to `v0.2.0` (Bootstrap `btn-primary` blue buttons).
 
 ### v0.2.8-beta
 - **Dark Mode Enhancements**:
@@ -103,7 +109,7 @@ To run TimeStudy locally, follow these steps:
 
 3. **Set Takt Time**:
 
-   - Enter a Takt Time in `HH:MM:SS:MS` format (e.g., `00:01:00:00`) to compare against task durations.
+   - Default Takt Time is 1 minute (`00:01:00:00`). Adjust in `HH:MM:SS:MS` format to compare against task durations.
 
 4. **Visualize Data**:
 
