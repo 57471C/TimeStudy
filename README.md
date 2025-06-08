@@ -1,4 +1,6 @@
 # TimeStudy
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/57471C/TimeStudy?label=Version)
+![GitHub license](https://img.shields.io/github/license/57471C/TimeStudy)
 
 TimeStudy is a web application designed for analyzing video-based time studies, allowing users to load videos, mark operations and tasks, and visualize task durations through charts. It supports features like video playback control, task categorization (VA, NVA, W), CSV import/export, and dark/light mode theming.
 
