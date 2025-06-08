@@ -1,3 +1,168 @@
+/* Define CSS Variables for Light and Dark Modes */
+:root {
+  --background-color: #ffffff;
+  --container-bg-color: #f8f9fa;
+  --text-color: #212529;
+  --table-border-color: #dee2e6;
+  --input-bg-color: #ffffff;
+  --input-text-color: #212529;
+  --link-color: #0d6efd;
+  --placeholder-text-color: #ffffff;
+  --chart-bg-color: #ffffff;
+  --btn-orange-bg: #ff6200;
+  --btn-orange-border: #ff6200;
+  --btn-orange-text: #fff;
+  --btn-yellow-bg: #ffd700;
+  --btn-yellow-border: #ffd700;
+  --btn-yellow-text: #000;
+  --btn-light-green-bg: #28a745;
+  --btn-light-green-border: #28a745;
+  --btn-light-green-text: #fff;
+  --btn-lighter-green-bg: #48c774;
+  --btn-lighter-green-border: #48c774;
+  --btn-lighter-green-text: #fff;
+  --btn-dark-gray-bg: #343a40;
+  --btn-dark-gray-border: #343a40;
+  --btn-dark-gray-text: #fff;
+}
+
+body.dark-mode {
+  --background-color: #000000;
+  --container-bg-color: #1c2526;
+  --text-color: #d1d5db;
+  --table-border-color: #374151;
+  --input-bg-color: #2d3748;
+  --input-text-color: #d1d5db;
+  --link-color: #60a5fa;
+  --placeholder-text-color: #ffffff;
+  --chart-bg-color: #1c2526;
+  --btn-orange-bg: #e65b00;
+  --btn-orange-border: #e65b00;
+  --btn-orange-text: #fff;
+  --btn-yellow-bg: #d4af37;
+  --btn-yellow-border: #d4af37;
+  --btn-yellow-text: #000;
+  --btn-light-green-bg: #218838;
+  --btn-light-green-border: #218838;
+  --btn-light-green-text: #fff;
+  --btn-lighter-green-bg: #3ab961;
+  --btn-lighter-green-border: #3ab961;
+  --btn-lighter-green-text: #fff;
+  --btn-dark-gray-bg: #4a5568;
+  --btn-dark-gray-border: #4a5568;
+  --btn-dark-gray-text: #fff;
+}
+
+/* Apply Variables */
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+  padding-top: 30px;
+}
+
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 30px;
+  background-color: var(--container-bg-color);
+  border-bottom: 1px solid var(--table-border-color);
+  z-index: 999;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.header-title {
+  margin: 0;
+  padding: 5px 15px;
+  font-size: 1.2rem;
+  color: var(--text-color);
+  line-height: 20px;
+}
+
+.main-content {
+  padding-top: 10px;
+}
+
+.controls-container {
+  background-color: var(--container-bg-color);
+  border-color: var(--table-border-color);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.form-control,
+.form-range {
+  background-color: var(--input-bg-color);
+  color: var(--input-text-color);
+  border-color: var(--table-border-color);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+a {
+  color: var(--link-color);
+  transition: color 0.3s ease;
+}
+
+.table-bordered {
+  border-color: var(--table-border-color);
+  transition: border-color 0.3s ease;
+}
+
+.table-bordered th,
+.table-bordered td {
+  border-color: var(--table-border-color);
+  transition: border-color 0.3s ease;
+}
+
+#chartContainer,
+.highchart {
+  background-color: var(--chart-bg-color);
+  transition: background-color 0.3s ease;
+}
+
+/* Dark Mode Toggle Button */
+.btn-dark-mode-toggle {
+  background-color: transparent;
+  border: none;
+  font-size: 1.5rem;
+  padding: 5px;
+  cursor: pointer;
+  color: var(--text-color);
+  transition: color 0.3s ease;
+}
+
+.btn-dark-mode-toggle:hover {
+  opacity: 0.8;
+}
+
+/* Time Row with Dark Mode Toggle */
+.control-row.time-row {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.time-display {
+  display: flex;
+  gap: 20px;
+}
+
+/* Speed Display */
+.speed-display {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 /* Custom styles for Highcharts containers */
 #chartContainer,
 #pieChartContainer {
@@ -27,7 +192,7 @@
   height: 100%;
   max-height: 100vh;
   background: #000;
-  color: #fff;
+  color: var(--placeholder-text-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -40,7 +205,13 @@
   top: 0;
   left: 0;
   z-index: 5;
-  cursor: pointer; /* Indicate clickable area */
+  cursor: pointer;
+  transition:
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+body.dark-mode .video-placeholder {
+  border: 1px solid var(--table-border-color);
 }
 #videoWrapper {
   width: 100%;
@@ -70,8 +241,8 @@
 .controls-container {
   width: 100%;
   padding: 10px;
-  background: #f8f9fa;
-  border: 1px solid #ced4da;
+  background: var(--container-bg-color);
+  border: 1px solid var(--table-border-color);
   margin: 0;
   display: flex;
   flex-wrap: wrap;
@@ -81,6 +252,9 @@
   position: relative;
   z-index: 0;
   box-sizing: border-box;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 #video_controls_bar {
   width: 100%;
@@ -98,7 +272,7 @@
 /* Center the button row */
 .control-row.button-row {
   justify-content: center;
-  flex-wrap: wrap; /* Allow wrapping for smaller screens */
+  flex-wrap: wrap;
 }
 /* Stack sliders vertically */
 .control-row.slider-row {
@@ -129,7 +303,7 @@
   gap: 5px;
 }
 .volume-slider {
-  width: 100px;
+  width: 80px;
 }
 /* Style for Takt Time input */
 .takt-time-container {
@@ -170,6 +344,11 @@
 .task-table {
   margin-top: 20px;
   width: 100%;
+  background-color: var(--container-bg-color);
+  color: var(--text-color);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 .task-table th,
 .task-table td {
@@ -180,29 +359,49 @@
 }
 /* Custom button colors with higher specificity to override Bootstrap */
 .btn.btn-orange {
-  background-color: #ff6200 !important;
-  border-color: #ff6200 !important;
-  color: #fff !important;
+  background-color: var(--btn-orange-bg);
+  border-color: var(--btn-orange-border);
+  color: var(--btn-orange-text);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
 }
 .btn.btn-yellow {
-  background-color: #ffd700 !important;
-  border-color: #ffd700 !important;
-  color: #000 !important;
+  background-color: var(--btn-yellow-bg);
+  border-color: var(--btn-yellow-border);
+  color: var(--btn-yellow-text);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
 }
 .btn.btn-light-green {
-  background-color: #28a745 !important;
-  border-color: #28a745 !important;
-  color: #fff !important;
+  background-color: var(--btn-light-green-bg);
+  border-color: var(--btn-light-green-border);
+  color: var(--btn-light-green-text);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
 }
 .btn.btn-lighter-green {
-  background-color: #48c774 !important;
-  border-color: #48c774 !important;
-  color: #fff !important;
+  background-color: var(--btn-lighter-green-bg);
+  border-color: var(--btn-lighter-green-border);
+  color: var(--btn-lighter-green-text);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
 }
 .btn.btn-dark-gray {
-  background-color: #343a40 !important;
-  border-color: #343a40 !important;
-  color: #fff !important;
+  background-color: var(--btn-dark-gray-bg);
+  border-color: var(--btn-dark-gray-border);
+  color: var(--btn-dark-gray-text);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
 }
 /* Play button width and centering */
 .play-button {
@@ -213,14 +412,14 @@
 }
 /* Nudge buttons */
 .nudge-button {
-  min-width: 50px;
+  min-width: 45px;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 /* Mute button */
 .mute-button {
-  min-width: 60px;
+  min-width: 55px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -254,7 +453,7 @@
   display: none;
 }
 /* Responsive adjustments */
-@media (max-width: 990px) {
+@media (max-width: 991px) {
   .video-container {
     height: 500px;
   }
@@ -286,7 +485,7 @@
     margin-right: 10px;
   }
   .volume-slider {
-    width: 80px;
+    width: 70px;
   }
   .task-table th,
   .task-table td {
@@ -298,7 +497,7 @@
     padding: 0.2rem 0.4rem;
   }
 }
-@media (min-width: 1200px) {
+@media (min-width: 992px) {
   .video-container {
     height: 500px;
   }
