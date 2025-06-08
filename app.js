@@ -979,8 +979,9 @@ const formatDecimalMinutes = ms => {
 
 const updateTaskList = () => {
   const taskList = document.getElementById("taskList");
+  const isDarkMode = document.body.classList.contains("dark-mode");
   let html = `
-    <table class="table table-bordered task-table">
+    <table class="table table-bordered task-table${isDarkMode ? " table-dark" : ""}">
       <thead>
         <tr>
           <th scope="col">Operation</th>
@@ -1304,6 +1305,7 @@ const drawTable = () => {
     alert("Invalid Takt Time. Please set a valid Takt Time (HH:MM:SS:MS).");
     return;
   }
+  const isDarkMode = document.body.classList.contains("dark-mode");
   const series = [];
   for (let j = 0; j < yama.length; j += 1) {
     if (yama[j] && Array.isArray(yama[j])) {
@@ -1327,15 +1329,25 @@ const drawTable = () => {
   toConsole("Generated series", JSON.stringify(series));
   toConsole("xAxis categories", JSON.stringify(opNames));
   Highcharts.chart("chartContainer", {
-    chart: { type: "column" },
+    chart: {
+      type: "column",
+      backgroundColor: isDarkMode ? "#1c2526" : "#ffffff",
+    },
     accessibility: { enabled: false },
-    title: { text: "Operation Task Durations by Status" },
-    xAxis: { categories: opNames },
+    title: {
+      text: "Operation Task Durations by Status",
+      style: { color: isDarkMode ? "#d1d5db" : "#212529" },
+    },
+    xAxis: {
+      categories: opNames,
+      labels: { style: { color: isDarkMode ? "#d1d5db" : "#212529" } },
+    },
     yAxis: {
       title: {
         text: `Duration (${
           durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
         })`,
+        style: { color: isDarkMode ? "#d1d5db" : "#212529" },
       },
       labels: {
         formatter() {
@@ -1345,6 +1357,7 @@ const drawTable = () => {
               ? this.value.toFixed(3)
               : formatDecimalMinutes(this.value);
         },
+        style: { color: isDarkMode ? "#d1d5db" : "#212529" },
       },
       plotLines: [
         {
@@ -1375,6 +1388,9 @@ const drawTable = () => {
               : `${formatDecimalMinutes(this.y)} min`;
         return `<b>Operation: ${this.x}</b><br>Task: ${this.series.name}<br>Duration: ${duration}`;
       },
+      backgroundColor: isDarkMode ? "#1c2526" : "#ffffff",
+      borderColor: isDarkMode ? "#374151" : "#dee2e6",
+      style: { color: isDarkMode ? "#d1d5db" : "#212529" },
     },
     plotOptions: {
       column: {
@@ -1392,6 +1408,7 @@ const drawTable = () => {
                   : formatDecimalMinutes(this.y)
               : "";
           },
+          style: { color: isDarkMode ? "#d1d5db" : "#212529" },
         },
       },
     },
@@ -1435,9 +1452,16 @@ const drawTable = () => {
     pieDiv.className = "pieChart";
     pieChartContainer.appendChild(pieDiv);
     Highcharts.chart(`pieChart${i}`, {
-      chart: { type: "pie", height: 200 },
+      chart: {
+        type: "pie",
+        height: 200,
+        backgroundColor: isDarkMode ? "#1c2526" : "#ffffff",
+      },
       accessibility: { enabled: false },
-      title: { text: `${opNames[i]} Duration by Status` },
+      title: {
+        text: `${opNames[i]} Duration by Status`,
+        style: { color: isDarkMode ? "#d1d5db" : "#212529" },
+      },
       tooltip: {
         pointFormatter() {
           const duration =
@@ -1448,6 +1472,9 @@ const drawTable = () => {
                 : `${formatDecimalMinutes(this.y)} min`;
           return `Duration: <b>${duration} (${this.percentage.toFixed(1)}%)</b>`;
         },
+        backgroundColor: isDarkMode ? "#1c2526" : "#ffffff",
+        borderColor: isDarkMode ? "#374151" : "#dee2e6",
+        style: { color: isDarkMode ? "#d1d5db" : "#212529" },
       },
       plotOptions: {
         pie: {
@@ -1464,6 +1491,7 @@ const drawTable = () => {
                     : formatDecimalMinutes(this.y)
               }`;
             },
+            style: { color: isDarkMode ? "#d1d5db" : "#212529" },
           },
         },
       },

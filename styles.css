@@ -15,6 +15,9 @@
   --btn-yellow-bg: #ffd700;
   --btn-yellow-border: #ffd700;
   --btn-yellow-text: #000;
+  --btn-light-green-bg: #28a745;
+  --btn-light-green-border: #28a745;
+  --btn-light-green-text: #fff;
   --btn-lighter-green-bg: #48c774;
   --btn-lighter-green-border: #48c774;
   --btn-lighter-green-text: #fff;
@@ -39,6 +42,9 @@ body.dark-mode {
   --btn-yellow-bg: #d4af37;
   --btn-yellow-border: #d4af37;
   --btn-yellow-text: #000;
+  --btn-light-green-bg: #218838;
+  --btn-light-green-border: #218838;
+  --btn-light-green-text: #fff;
   --btn-lighter-green-bg: #3ab961;
   --btn-lighter-green-border: #3ab961;
   --btn-lighter-green-text: #fff;
@@ -51,7 +57,9 @@ body.dark-mode {
 body {
   background-color: var(--background-color);
   color: var(--text-color);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
   padding-top: 30px;
 }
 
@@ -64,7 +72,9 @@ body {
   background-color: var(--container-bg-color);
   border-bottom: 1px solid var(--table-border-color);
   z-index: 999;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .header-title {
@@ -82,7 +92,9 @@ body {
 .controls-container {
   background-color: var(--container-bg-color);
   border-color: var(--table-border-color);
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .form-control,
@@ -90,7 +102,10 @@ body {
   background-color: var(--input-bg-color);
   color: var(--input-text-color);
   border-color: var(--table-border-color);
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 a {
@@ -146,6 +161,7 @@ a {
   display: flex;
   align-items: center;
   gap: 5px;
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 /* Custom styles for Highcharts containers */
@@ -191,7 +207,9 @@ a {
   left: 0;
   z-index: 5;
   cursor: pointer;
-  transition: color 0.3s ease, border-color 0.3s ease;
+  transition:
+    color 0.3s ease,
+    border-color 0.3s ease;
 }
 body.dark-mode .video-placeholder {
   border: 1px solid var(--table-border-color);
@@ -235,7 +253,9 @@ body.dark-mode .video-placeholder {
   position: relative;
   z-index: 0;
   box-sizing: border-box;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 #video_controls_bar {
   width: 100%;
@@ -248,12 +268,13 @@ body.dark-mode .video-placeholder {
   margin-top: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
 }
 /* Center the button row */
 .control-row.button-row {
   justify-content: center;
   flex-wrap: wrap;
+  margin-top: 10px;
 }
 /* Stack sliders vertically */
 .control-row.slider-row {
@@ -284,7 +305,11 @@ body.dark-mode .video-placeholder {
   gap: 5px;
 }
 .volume-slider {
-  width: 80px;
+  width: 70px;
+}
+/* Style for load button */
+.load-button {
+  margin-right: 10px;
 }
 /* Style for Takt Time input */
 .takt-time-container {
@@ -325,9 +350,6 @@ body.dark-mode .video-placeholder {
 .task-table {
   margin-top: 20px;
   width: 100%;
-  background-color: var(--container-bg-color);
-  color: var(--text-color);
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 .task-table th,
 .task-table td {
@@ -341,25 +363,46 @@ body.dark-mode .video-placeholder {
   background-color: var(--btn-orange-bg);
   border-color: var(--btn-orange-border);
   color: var(--btn-orange-text);
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
 }
 .btn.btn-yellow {
   background-color: var(--btn-yellow-bg);
   border-color: var(--btn-yellow-border);
   color: var(--btn-yellow-text);
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
+}
+.btn.btn-light-green {
+  background-color: var(--btn-light-green-bg);
+  border-color: var(--btn-light-green-border);
+  color: var(--btn-light-green-text);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
 }
 .btn.btn-lighter-green {
   background-color: var(--btn-lighter-green-bg);
   border-color: var(--btn-lighter-green-border);
   color: var(--btn-lighter-green-text);
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
 }
 .btn.btn-dark-gray {
   background-color: var(--btn-dark-gray-bg);
   border-color: var(--btn-dark-gray-border);
   color: var(--btn-dark-gray-text);
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
 }
 /* Play button width and centering */
 .play-button {
@@ -367,6 +410,7 @@ body.dark-mode .video-placeholder {
   display: flex;
   justify-content: center;
   align-items: center;
+  margin: 0; /* Remove all margins */
 }
 /* Nudge buttons */
 .nudge-button {
@@ -405,7 +449,7 @@ body.dark-mode .video-placeholder {
 }
 .marquee-rect {
   position: absolute;
-  border: 2px dashed #0000FF;
+  border: 2px dashed #0000ff;
   background: rgba(0, 0, 255, 0.1);
   pointer-events: none;
   display: none;
@@ -427,7 +471,7 @@ body.dark-mode .video-placeholder {
     padding-left: 5%;
   }
   .play-button {
-    margin-left: 5%;
+    margin: 0; /* Override any margin at smaller screens */
   }
   .control-row.button-row,
   .control-row.functions-row {
@@ -443,7 +487,7 @@ body.dark-mode .video-placeholder {
     margin-right: 10px;
   }
   .volume-slider {
-    width: 70px;
+    width: 60px;
   }
   .task-table th,
   .task-table td {
