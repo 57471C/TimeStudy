@@ -32,25 +32,44 @@ TimeStudy is a web application designed for analyzing video-based time studies, 
 ## Installation
 
 1. **Clone the Repository**:
+   <<<<<<< HEAD
 
-   ```bash
-   git clone https://github.com/57471C/TimeStudy.git
-   cd TimeStudy
-   ```
+=======
+
+> > > > > > > a32b3fb1e7198a18f7d6ea84b9921205da5cbdab
+
+```bash
+git clone https://github.com/57471C/TimeStudy.git
+cd TimeStudy
+```
 
 2. **Install Dependencies** (if using Node.js for linting/formatting):
+   <<<<<<< HEAD
 
-   ```bash
-   npm install
-   ```
+=======
+
+> > > > > > > a32b3fb1e7198a18f7d6ea84b9921205da5cbdab
+
+```bash
+npm install
+```
 
 3. **Serve the Application**:
+   <<<<<<< HEAD
 
    ```bash
    python -m http.server 8000
    ```
 
-   - Open `http://localhost:8000` in a browser.
+=======
+
+```bash
+python -m http.server 8000
+```
+
+> > > > > > > a32b3fb1e7198a18f7d6ea84b9921205da5cbdab
+
+- Open `http://localhost:8000` in a browser.
 
 4. **Linting and Formatting** (optional):
    ```bash
@@ -61,18 +80,29 @@ TimeStudy is a web application designed for analyzing video-based time studies, 
 ## Usage
 
 1. **Load a Video**:
+   <<<<<<< HEAD
 
-   - Click the “Load” button or video placeholder to select an MP4 file.
-   - Use playback controls (Play/Pause, nudge, speed slider, mute, volume).
-   - Zoom in/out or reset zoom using the top-right controls.
+=======
+
+> > > > > > > a32b3fb1e7198a18f7d6ea84b9921205da5cbdab
+
+- Click the “Load” button or video placeholder to select an MP4 file.
+- Use playback controls (Play/Pause, nudge, speed slider, mute, volume).
+- Zoom in/out or reset zoom using the top-right controls.
 
 2. **Add Operations and Tasks**:
+   <<<<<<< HEAD
 
-   - Click “Add Operation” to start a new operation, naming it and setting its start time.
-   - Click “Add Task” to add tasks within the current operation, specifying name, status (VA, NVA, W), and duration based on video time.
-   - Edit, split, or delete tasks via the task table.
+=======
+
+> > > > > > > a32b3fb1e7198a18f7d6ea84b9921205da5cbdab
+
+- Click “Add Operation” to start a new operation, naming it and setting its start time.
+- Click “Add Task” to add tasks within the current operation, specifying name, status (VA, NVA, W), and duration based on video time.
+- Edit, split, or delete tasks via the task table.
 
 3. **Set Takt Time**:
+   <<<<<<< HEAD
 
    - Enter a takt time (HH:MM:SS:MS) in the input field to display as a reference line in charts.
 
@@ -81,6 +111,18 @@ TimeStudy is a web application designed for analyzing video-based time studies, 
    - Click “Chart” to generate column and pie charts showing task durations by operation and status.
 
 5. **Import/Export Data**:
+
+=======
+
+- Enter a takt time (HH:MM:SS:MS) in the input field to display as a reference line in charts.
+
+4. **Visualize Data**:
+
+   - Click “Chart” to generate column and pie charts showing task durations by operation and status.
+
+5. **Import/Export Data**:
+
+   > > > > > > > a32b3fb1e7198a18f7d6ea84b9921205da5cbdab
 
    - Use “Load CSV” to import task data.
    - Use “Export CSV” to save operations and tasks.
@@ -92,20 +134,30 @@ TimeStudy is a web application designed for analyzing video-based time studies, 
 ## Development
 
 - **Project Structure**:
+  <<<<<<< HEAD
 
-  - `index.html`: Main HTML file
-  - `styles.css`: Custom styles with light/dark mode variables
-  - `app.js`: Application logic
-  - `package.json`: Node.js dependencies and scripts
-  - `.eslintrc.json`: ESLint configuration
-  - `.prettierrc`: Prettier configuration
-  - `.gitignore`: Git ignore patterns
+=======
+
+> > > > > > > a32b3fb1e7198a18f7d6ea84b9921205da5cbdab
+
+- `index.html`: Main HTML file
+- `styles.css`: Custom styles with light/dark mode variables
+- `app.js`: Application logic
+- `package.json`: Node.js dependencies and scripts
+- `.eslintrc.json`: ESLint configuration
+- `.prettierrc`: Prettier configuration
+- `.gitignore`: Git ignore patterns
 
 - **Coding Standards**:
+  <<<<<<< HEAD
 
-  - Follow Google’s JavaScript style guide (2-space indentation, semicolons).
-  - Use ESLint (`eslint-config-google`, `eslint-config-prettier`) and Prettier (`printWidth: 120`).
-  - Commit changes with descriptive messages.
+=======
+
+> > > > > > > a32b3fb1e7198a18f7d6ea84b9921205da5cbdab
+
+- Follow Google’s JavaScript style guide (2-space indentation, semicolons).
+- Use ESLint (`eslint-config-google`, `eslint-config-prettier`) and Prettier (`printWidth: 120`).
+- Commit changes with descriptive messages.
 
 - **Contributing**:
   - Fork the repository, create a feature branch, and submit pull requests.
