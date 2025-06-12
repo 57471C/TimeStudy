@@ -31,13 +31,76 @@ let zoomLevel = 1;
 let translateX = 0;
 let translateY = 0;
 let processEndTime = 0;
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "0.3.1-dev";
 
 let isDrawing = false;
 let startX;
 let startY;
 let marqueeOverlay;
 let marqueeRect;
+
+const DOM = {
+  taskList: document.getElementById("taskList"),
+  videoPlaceholder: document.getElementById("videoPlaceholder"),
+  videoWrapper: document.getElementById("videoWrapper"),
+  chartContainer: document.getElementById("chartContainer"),
+  pieChartContainer: document.getElementById("pieChartContainer"),
+  taskTableFoot: null, // Initialize as null, set dynamically in updateTaskList
+  darkModeToggle: document.getElementById("darkModeToggle"),
+  darkModeIcon: document.getElementById("darkModeIcon"),
+  currentTime: document.getElementById("currentTime"),
+  durationTime: document.getElementById("durationTime"),
+  speedValue: document.getElementById("speedValue"),
+  video: document.getElementById("my_video"),
+  marqueeOverlay: document.getElementById("marqueeOverlay"),
+  marqueeRect: document.getElementById("marqueeRect"),
+  videoFileInput: document.getElementById("videoFileInput"),
+  csvFileInput: document.getElementById("csvFileInput"),
+  zoomIn: document.getElementById("zoomIn"),
+  zoomOut: document.getElementById("zoomOut"),
+  resetZoom: document.getElementById("resetZoom"),
+};
+
+const debounce = (func, wait) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
+
+const loadHighcharts = () => {
+  return new Promise((resolve, reject) => {
+    if (typeof Highcharts !== "undefined") {
+      toConsole("Highcharts already loaded", Highcharts.version);
+      resolve();
+      return;
+    }
+    const scripts = [
+      "https://code.highcharts.com/highcharts.js",
+      "https://code.highcharts.com/modules/accessibility.js",
+    ];
+    let loaded = 0;
+    scripts.forEach(src => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onload = () => {
+        loaded += 1;
+        toConsole("Highcharts script loaded", src);
+        if (loaded === scripts.length) {
+          toConsole("Highcharts fully loaded", Highcharts.version);
+          resolve();
+        }
+      };
+      script.onerror = () => {
+        toConsole("Highcharts script load error", src);
+        reject(new Error(`Failed to load Highcharts script: ${src}`));
+      };
+      document.head.appendChild(script);
+    });
+  });
+};
 
 const setHighchartsTheme = isDark => {
   Highcharts.setOptions({
@@ -70,36 +133,35 @@ const setHighchartsTheme = isDark => {
 };
 
 const initializePlayer = () => {
-  player = document.getElementById("my_video");
+  player = DOM.video;
   playerReady = true;
   toConsole("Video element initialized", "Success");
   toConsole("App Version", APP_VERSION);
 
-  marqueeOverlay = document.getElementById("marqueeOverlay");
-  marqueeRect = document.getElementById("marqueeRect");
-
-  const videoPlaceholder = document.getElementById("videoPlaceholder");
-
-  const darkModeToggle = document.getElementById("darkModeToggle");
-  const darkModeIcon = document.getElementById("darkModeIcon");
+  marqueeOverlay = DOM.marqueeOverlay;
+  marqueeRect = DOM.marqueeRect;
 
   const isDarkMode = localStorage.getItem("darkMode") === "true";
-  setHighchartsTheme(isDarkMode);
+  if (typeof Highcharts !== "undefined") {
+    setHighchartsTheme(isDarkMode);
+  }
   if (isDarkMode) {
     document.body.classList.add("dark-mode");
-    darkModeIcon.textContent = "🌙";
+    DOM.darkModeIcon.textContent = "🌙";
   } else {
     document.body.classList.remove("dark-mode");
-    darkModeIcon.textContent = "☀️";
+    DOM.darkModeIcon.textContent = "☀️";
   }
 
-  darkModeToggle.addEventListener("click", () => {
+  DOM.darkModeToggle.addEventListener("click", () => {
     document.body.classList.toggle("dark-mode");
     const isDark = document.body.classList.contains("dark-mode");
-    darkModeIcon.textContent = isDark ? "🌙" : "☀️";
+    DOM.darkModeIcon.textContent = isDark ? "🌙" : "☀️";
     localStorage.setItem("darkMode", isDark);
     toConsole("Dark mode toggled", isDark ? "On" : "Off");
-    setHighchartsTheme(isDark);
+    if (typeof Highcharts !== "undefined") {
+      setHighchartsTheme(isDark);
+    }
     updateTaskList();
     if (yama.length > 0) {
       drawTable();
@@ -118,7 +180,7 @@ const initializePlayer = () => {
     updateProcessTimes();
     player.playbackRate = 1;
     speedSlider.value = 1;
-    document.getElementById("speedValue").textContent = "1x";
+    DOM.speedValue.textContent = "1x";
     toConsole("Playback speed reset to 1x after load", "Success");
     volumeSlider.value = player.volume;
   });
@@ -157,16 +219,19 @@ const initializePlayer = () => {
 
   taktTime = parseTaktTime(taktTimeInput.value);
 
-  taktTimeInput.addEventListener("input", () => {
-    const newTaktTime = parseTaktTime(taktTimeInput.value);
-    if (newTaktTime !== null) {
-      taktTime = newTaktTime;
-      toConsole("Takt Time updated", taktTime);
-    } else {
-      alert("Invalid Takt Time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
-      taktTimeInput.value = formatTaktTime(taktTime);
-    }
-  });
+  taktTimeInput.addEventListener(
+    "input",
+    debounce(event => {
+      const newTaktTime = parseTaktTime(event.target.value);
+      if (newTaktTime !== null) {
+        taktTime = newTaktTime;
+        toConsole("Takt Time updated", taktTime);
+      } else {
+        alert("Invalid Takt Time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
+        taktTimeInput.value = formatTaktTime(taktTime);
+      }
+    }, 100)
+  );
 
   addOpButton.addEventListener("click", () => {
     addTaskButton.disabled = false;
@@ -185,14 +250,14 @@ const initializePlayer = () => {
   addChartButton.addEventListener("click", drawTable, false);
   csvExportButton.addEventListener("click", exportToCSV, false);
   csvImportButton.addEventListener("click", () => {
-    document.getElementById("csvFileInput").click();
+    DOM.csvFileInput.click();
   });
   loadVideoButton.addEventListener("click", () => {
-    document.getElementById("videoFileInput").click();
+    DOM.videoFileInput.click();
   });
 
-  videoPlaceholder.addEventListener("click", () => {
-    document.getElementById("videoFileInput").click();
+  DOM.videoPlaceholder.addEventListener("click", () => {
+    DOM.videoFileInput.click();
     toConsole("Video placeholder clicked", "Triggered Load Video");
   });
 
@@ -242,38 +307,53 @@ const initializePlayer = () => {
     volumeSlider.value = player.muted ? 0 : player.volume;
   });
 
-  volumeSlider.addEventListener("input", () => {
-    const volume = parseFloat(volumeSlider.value);
-    player.volume = volume;
-    player.muted = volume === 0;
-    muteButton.textContent = player.muted ? "Unmute" : "Mute";
-    toConsole("Volume adjusted", volume);
-  });
+  volumeSlider.addEventListener(
+    "input",
+    debounce(event => {
+      const volume = parseFloat(event.target.value);
+      if (!isNaN(volume)) {
+        player.volume = volume;
+        player.muted = volume === 0;
+        muteButton.textContent = player.muted ? "Unmute" : "Mute";
+        toConsole("Volume adjusted", volume);
+      }
+    }, 100)
+  );
 
   if (speedSlider) {
-    speedSlider.addEventListener("input", function () {
-      toConsole("Speed slider input event fired", this.value);
-      const speed = parseFloat(this.value);
-      player.playbackRate = speed;
-      document.getElementById("speedValue").textContent = `${speed}x`;
-      toConsole("Speed value label updated", `${speed}x`);
-    });
+    speedSlider.addEventListener(
+      "input",
+      debounce(event => {
+        const speed = parseFloat(event.target.value);
+        if (!isNaN(speed)) {
+          player.playbackRate = speed;
+          DOM.speedValue.textContent = `${speed}x`;
+          toConsole("Speed slider input event fired", speed);
+          toConsole("Speed value label updated", `${speed}x`);
+        }
+      }, 100)
+    );
 
     player.playbackRate = 1;
     toConsole("Initial playback rate set", 1);
-    document.getElementById("speedValue").textContent = "1x";
+    DOM.speedValue.textContent = "1x";
   }
 
   if (seekBar) {
-    seekBar.addEventListener("input", function () {
-      toConsole("Seek bar input event fired", this.value);
-      const time = parseFloat(this.value);
-      player.currentTime = time;
-      toConsole("Video seeked to", time);
-    });
+    seekBar.addEventListener(
+      "input",
+      debounce(event => {
+        const time = parseFloat(event.target.value);
+        if (!isNaN(time)) {
+          player.currentTime = time;
+          toConsole("Seek bar input event fired", time);
+          toConsole("Video seeked to", time);
+        }
+      }, 100)
+    );
   }
 
-  document.getElementById("videoFileInput").addEventListener("change", event => {
+  DOM.videoFileInput.addEventListener("change", event => {
     const file = event.target.files[0];
     if (!file) {
       toConsole("No video file selected");
@@ -282,7 +362,7 @@ const initializePlayer = () => {
 
     if (player.src && yama.length > 0) {
       const save = confirm(
-        "You have unsaved data. Would you like to save your current data as a CSV file before loading a new video?"
+        "You have unsaved data. Would you like to save your data as a CSV file before loading a new video?"
       );
       if (save) {
         exportToCSV();
@@ -308,22 +388,22 @@ const initializePlayer = () => {
     taskCount = 0;
     firstOp = "y";
     taktTime = parseTaktTime(taktTimeInput.value);
-    document.getElementById("taskList").innerHTML = "";
-    document.getElementById("pieChartContainer").innerHTML = "";
-    document.getElementById("chartContainer").innerHTML = "";
+    DOM.taskList.innerHTML = "";
+    DOM.pieChartContainer.innerHTML = "";
+    DOM.chartContainer.innerHTML = "";
     updateTaskList();
     addTaskButton.disabled = true;
     toConsole("Cleared all previous data and charts");
 
     player.playbackRate = 1;
     speedSlider.value = 1;
-    document.getElementById("speedValue").textContent = "1x";
+    DOM.speedValue.textContent = "1x";
     toConsole("Playback speed reset to 1x after manual load", "Success");
 
     updateLoadButtonColor();
   });
 
-  document.getElementById("csvFileInput").addEventListener("change", event => {
+  DOM.csvFileInput.addEventListener("change", event => {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -334,15 +414,15 @@ const initializePlayer = () => {
     }
   });
 
-  document.getElementById("zoomIn").addEventListener("click", () => {
+  DOM.zoomIn.addEventListener("click", () => {
     zoomLevel += 0.1;
     updateZoom();
   });
-  document.getElementById("zoomOut").addEventListener("click", () => {
+  DOM.zoomOut.addEventListener("click", () => {
     zoomLevel = Math.max(0.1, zoomLevel - 0.1);
     updateZoom();
   });
-  document.getElementById("resetZoom").addEventListener("click", () => {
+  DOM.resetZoom.addEventListener("click", () => {
     zoomLevel = 1;
     translateX = 0;
     translateY = 0;
@@ -419,7 +499,6 @@ const initializePlayer = () => {
   });
 
   toConsole("jQuery version", $.fn.jquery);
-  toConsole("Highcharts version", Highcharts.version);
   updateLoadButtonColor();
 };
 
@@ -552,11 +631,11 @@ const endMarquee = e => {
     return;
   }
 
-  const videoWrapper = document.getElementById("videoWrapper");
+  const videoWrapper = DOM.videoWrapper;
   const wrapperWidth = videoWrapper.clientWidth;
   const wrapperHeight = videoWrapper.clientHeight;
 
-  const video = document.getElementById("my_video");
+  const video = DOM.video;
   const videoRect = video.getBoundingClientRect();
   const wrapperRect = videoWrapper.getBoundingClientRect();
   const offsetX = videoRect.left - wrapperRect.left;
@@ -606,7 +685,7 @@ const endMarquee = e => {
 };
 
 const updateZoom = () => {
-  const video = document.getElementById("my_video");
+  const video = DOM.video;
   video.style.transform = `scale(${zoomLevel}) translate(${translateX}px, ${translateY}px)`;
   toConsole("Zoom updated", `Level: ${zoomLevel}, Translate: (${translateX}, ${translateY})`);
 };
@@ -627,7 +706,7 @@ const seektimeupdate = () => {
 };
 
 const updateTimeDisplay = (seconds, elementId) => {
-  document.getElementById(elementId).textContent = formatTimeToHHMMSSMS(seconds);
+  DOM[elementId].textContent = formatTimeToHHMMSSMS(seconds);
 };
 
 const positionControls = () => {
@@ -666,23 +745,24 @@ const updateLoadButtonColor = () => {
 };
 
 const toggleVideoPlaceholder = show => {
-  const placeholder = document.getElementById("videoPlaceholder");
-  const videoWrapper = document.getElementById("videoWrapper");
-  if (placeholder && videoWrapper) {
+  try {
+    if (!DOM.videoPlaceholder || !DOM.videoWrapper) {
+      throw new Error("Video placeholder or wrapper element not found");
+    }
     if (show) {
       toConsole("Showing placeholder, hiding video wrapper");
-      placeholder.style.display = "flex";
-      videoWrapper.style.display = "none";
+      DOM.videoPlaceholder.style.display = "flex";
+      DOM.videoWrapper.style.display = "none";
     } else {
       toConsole("Hiding placeholder, showing video wrapper");
-      placeholder.style.display = "none";
-      videoWrapper.style.display = "block";
+      DOM.videoPlaceholder.style.display = "none";
+      DOM.videoWrapper.style.display = "block";
     }
+  } catch (error) {
+    toConsole("toggleVideoPlaceholder error", error.message);
+    alert("Failed to toggle video placeholder. Please check the console for details.");
   }
 };
-
-// End of Part 1
-// Start of Part 2
 
 const addOp = () => {
   player.pause();
@@ -979,139 +1059,161 @@ const formatDecimalMinutes = ms => {
 };
 
 const updateTaskList = () => {
-  const taskList = document.getElementById("taskList");
-  const isDarkMode = document.body.classList.contains("dark-mode");
-  let html = `
-    <table class="table table-bordered task-table${isDarkMode ? " table-dark" : ""}">
-      <thead>
+  try {
+    if (!DOM.taskList) throw new Error("Task list element not found");
+    const isDarkMode = document.body.classList.contains("dark-mode");
+    const rows = [
+      `<table class="table table-bordered task-table${isDarkMode ? " table-dark" : ""}">
+         <thead>
+           <tr>
+             <th scope="col">Operation</th>
+             <th scope="col">Task</th>
+             <th scope="col">Duration</th>
+             <th scope="col">Status</th>
+             <th scope="col">Actions</th>
+           </tr>
+         </thead>
+         <tbody>`,
+    ];
+    for (let i = 0; i < yama.length; i += 1) {
+      const opTimeInputId = `opTimeInput-${i}`;
+      const formattedTime = formatTimeToHHMMSSMS(opStartTimes[i]);
+      rows.push(`
         <tr>
-          <th scope="col">Operation</th>
-          <th scope="col">Task</th>
-          <th scope="col">Duration</th>
-          <th scope="col">Status</th>
-          <th scope="col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-  for (let i = 0; i < yama.length; i += 1) {
-    const opTimeInputId = `opTimeInput-${i}`;
-    const formattedTime = formatTimeToHHMMSSMS(opStartTimes[i]);
-    html += `
-      <tr>
-        <td colspan="4">
-          <a href="javascript:void(0)" onclick="jumpToOperationTime('${opTimeInputId}')">
-            Operation: ${opNames[i]}
-          </a>
-          <span class="op-time-container">
-            <label for="${opTimeInputId}" class="form-label" style="width: auto;">Start:</label>
-            <input type="text" id="${opTimeInputId}" class="form-control op-time-input" value="${formattedTime}">
-          </span>
-        </td>
-        <td>
-          <button onclick="deleteOperation(${i})" class="btn btn-danger">Delete Operation</button>
-        </td>
-      </tr>
-    `;
-    for (let j = 0; j < yama[i].length; j += 1) {
-      const task = yama[i][j];
-      const duration =
-        durationMode === "hhmmssms"
-          ? formatDuration(task.taskHeight)
-          : durationMode === "ms"
-            ? `${task.taskHeight.toFixed(3)} ms`
-            : `${formatDecimalMinutes(task.taskHeight)} min`;
-      html += `
-        <tr>
-          <td></td>
-          <td>${task.taskName}</td>
-          <td>${duration}</td>
-          <td>${task.taskStatus}</td>
+          <td colspan="4">
+            <a href="javascript:void(0)" onclick="jumpToOperationTime('${opTimeInputId}')">
+              Operation: ${opNames[i]}
+            </a>
+            <span class="op-time-container">
+              <label for="${opTimeInputId}" class="form-label" style="width: auto;">Start:</label>
+              <input type="text" id="${opTimeInputId}" class="form-control op-time-input" value="${formattedTime}">
+            </span>
+          </td>
           <td>
-            <button onclick="editTask(${i}, ${j})" class="btn btn-sm btn-outline-primary">Edit</button>
-            <button onclick="editTaskDuration(${i}, ${j})" class="btn btn-sm btn-outline-primary">Edit Duration</button>
-            <button onclick="deleteTask(${i}, ${j})" class="btn btn-sm btn-outline-danger">Delete</button>
-            <button onclick="insertTask(${i}, ${j})" class="btn btn-sm btn-outline-secondary">Split Task</button>
+            <button onclick="deleteOperation(${i})" class="btn btn-danger">Delete Operation</button>
           </td>
         </tr>
-      `;
-    }
-  }
-  html += `
-      </tbody>
-      <tfoot id="taskTableFoot"></tfoot>
-    </table>
-  `;
-  taskList.innerHTML = html;
-
-  const table = document.querySelector(".task-table");
-  if (yama.length > 0) {
-    table.style.display = "table";
-    updateProcessTimes();
-  } else {
-    table.style.display = "none";
-    addTaskButton.disabled = true;
-  }
-
-  for (let i = 0; i < yama.length; i += 1) {
-    const opTimeInput = document.getElementById(`opTimeInput-${i}`);
-    opTimeInput.addEventListener("input", () => {
-      const newTime = parseTimeFromHHMMSSMS(opTimeInput.value);
-      if (newTime !== null) {
-        opStartTimes[i] = newTime;
-        toConsole(`Operation ${i} start time updated`, opStartTimes[i]);
-        updateProcessTimes();
-      } else {
-        alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
-        opTimeInput.value = formatTimeToHHMMSSMS(opStartTimes[i]);
+      `);
+      for (let j = 0; j < yama[i].length; j += 1) {
+        const task = yama[i][j];
+        const duration =
+          durationMode === "hhmmssms"
+            ? formatDuration(task.taskHeight)
+            : durationMode === "ms"
+              ? `${task.taskHeight.toFixed(3)} ms`
+              : `${formatDecimalMinutes(task.taskHeight)} min`;
+        rows.push(`
+          <tr>
+            <td></td>
+            <td>${task.taskName}</td>
+            <td>${duration}</td>
+            <td>${task.taskStatus}</td>
+            <td>
+              <button onclick="editTask(${i}, ${j})" class="btn btn-sm btn-outline-primary">Edit</button>
+              <button onclick="editTaskDuration(${i}, ${j})" class="btn btn-sm btn-outline-primary">Edit Duration</button>
+              <button onclick="deleteTask(${i}, ${j})" class="btn btn-sm btn-outline-danger">Delete</button>
+              <button onclick="insertTask(${i}, ${j})" class="btn btn-sm btn-outline-secondary">Split Task</button>
+            </td>
+          </tr>
+        `);
       }
-    });
+    }
+    rows.push(`
+        </tbody>
+        <tfoot id="taskTableFoot"></tfoot>
+      </table>
+    `);
+    DOM.taskList.innerHTML = rows.join("");
+
+    DOM.taskTableFoot = document.getElementById("taskTableFoot");
+
+    const table = document.querySelector(".task-table");
+    if (!table) throw new Error("Task table element not found");
+    if (yama.length > 0) {
+      table.style.display = "table";
+      updateProcessTimes();
+    } else {
+      table.style.display = "none";
+      addTaskButton.disabled = true;
+    }
+
+    for (let i = 0; i < yama.length; i += 1) {
+      const opTimeInput = document.getElementById(`opTimeInput-${i}`);
+      if (!opTimeInput) throw new Error(`Operation time input opTimeInput-${i} not found`);
+      opTimeInput.addEventListener(
+        "input",
+        debounce(event => {
+          const newTime = parseTimeFromHHMMSSMS(event.target.value);
+          if (newTime !== null) {
+            opStartTimes[i] = newTime;
+            toConsole(`Operation ${i} start time updated`, opStartTimes[i]);
+            updateProcessTimes();
+          } else {
+            alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
+            opTimeInput.value = formatTimeToHHMMSSMS(opStartTimes[i]);
+          }
+        }, 100)
+      );
+    }
+  } catch (error) {
+    toConsole("updateTaskList error", error.message);
+    alert("Failed to update task list. Please check the console for details.");
   }
 };
 
 const updateProcessTimes = () => {
-  if (yama.length === 0) return;
+  try {
+    if (yama.length === 0) return;
 
-  const taskTableFoot = document.getElementById("taskTableFoot");
-  const formattedEndTime = formatTimeToHHMMSSMS(processEndTime);
-  let totalProcessTime = "00:00:00:00";
-  if (opStartTimes.length > 0) {
-    const durationSeconds = Math.max(0, processEndTime - opStartTimes[0]);
-    totalProcessTime = formatTimeToHHMMSSMS(durationSeconds);
-  }
-
-  taskTableFoot.innerHTML = `
-    <tr>
-      <td colspan="5" class="table-foot">
-        <span class="process-time-container">
-          <label for="processEndTimeInput" class="form-label" style="width: auto;">Process end time:</label>
-          <input type="text" id="processEndTimeInput" class="form-control process-time-input" value="${formattedEndTime}">
-        </span>
-        <span class="process-time-container">
-          <label for="totalProcessTimeInput" class="form-label" style="width: auto;">Total Process time:</label>
-          <input type="text" id="totalProcessTimeInput" class="form-control process-time-input" value="${totalProcessTime}" disabled>
-        </span>
-      </td>
-    </tr>
-  `;
-
-  const processEndTimeInput = document.getElementById("processEndTimeInput");
-  processEndTimeInput.addEventListener("input", () => {
-    const newEndTime = parseTimeFromHHMMSSMS(processEndTimeInput.value);
-    if (newEndTime !== null) {
-      processEndTime = newEndTime;
-      toConsole("Process end time updated", processEndTime);
-      const durationSeconds = opStartTimes.length > 0 ? Math.max(0, processEndTime - opStartTimes[0]) : 0;
-      document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
-    } else {
-      alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
-      processEndTimeInput.value = formatTimeToHHMMSSMS(processEndTime);
+    if (!DOM.taskTableFoot) {
+      toConsole("updateProcessTimes skipped", "taskTableFoot is null");
+      return;
     }
-  });
-};
 
-// End of Part 2
-// Start of Part 3
+    const formattedEndTime = formatTimeToHHMMSSMS(processEndTime);
+    let totalProcessTime = "00:00:00:00";
+    if (opStartTimes.length > 0) {
+      const durationSeconds = Math.max(0, processEndTime - opStartTimes[0]);
+      totalProcessTime = formatTimeToHHMMSSMS(durationSeconds);
+    }
+
+    DOM.taskTableFoot.innerHTML = `
+      <tr>
+        <td colspan="5" class="table-foot">
+          <span class="process-time-container">
+            <label for="processEndTimeInput" class="form-label" style="width: auto;">Process end time:</label>
+            <input type="text" id="processEndTimeInput" class="form-control process-time-input" value="${formattedEndTime}">
+          </span>
+          <span class="process-time-container">
+            <label for="totalProcessTimeInput" class="form-label" style="width: auto;">Total Process time:</label>
+            <input type="text" id="totalProcessTimeInput" class="form-control process-time-input" value="${totalProcessTime}" disabled>
+          </span>
+        </td>
+      </tr>
+    `;
+
+    const processEndTimeInput = document.getElementById("processEndTimeInput");
+    if (!processEndTimeInput) throw new Error("Process end time input not found");
+    processEndTimeInput.addEventListener(
+      "input",
+      debounce(event => {
+        const newEndTime = parseTimeFromHHMMSSMS(event.target.value);
+        if (newEndTime !== null) {
+          processEndTime = newEndTime;
+          toConsole("Process end time updated", processEndTime);
+          const durationSeconds = opStartTimes.length > 0 ? Math.max(0, processEndTime - opStartTimes[0]) : 0;
+          document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
+        } else {
+          alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
+          processEndTimeInput.value = formatTimeToHHMMSSMS(processEndTime);
+        }
+      }, 100)
+    );
+  } catch (error) {
+    toConsole("updateProcessTimes error", error.message);
+    alert("Failed to update process times. Please check the console for details.");
+  }
+};
 
 const importFromCSV = csvText => {
   const lines = csvText
@@ -1166,9 +1268,9 @@ const importFromCSV = csvText => {
   firstOp = "y";
   taktTime = parseTaktTime(taktTimeInput.value);
 
-  document.getElementById("taskList").innerHTML = "";
-  document.getElementById("pieChartContainer").innerHTML = "";
-  document.getElementById("chartContainer").innerHTML = "";
+  DOM.taskList.innerHTML = "";
+  DOM.pieChartContainer.innerHTML = "";
+  DOM.chartContainer.innerHTML = "";
 
   const taskHeaders = lines[2].split(",").map(h => h.trim());
   const expectedTaskHeaders = ["Operation", "Task", "VA", "NVA", "W"];
@@ -1274,184 +1376,200 @@ const exportToCSV = () => {
 };
 
 const drawTable = () => {
-  if (yama.length === 0) {
-    alert("No operations or tasks to chart.");
-    return;
-  }
-  if (taktTime === null || taktTime <= 0) {
-    alert("Invalid Takt Time. Please set a valid Takt Time (HH:MM:SS:MS).");
-    return;
-  }
-  const series = [];
-  for (let j = 0; j < yama.length; j += 1) {
-    if (yama[j] && Array.isArray(yama[j])) {
-      for (let i = 0; i < yama[j].length; i += 1) {
-        const task = yama[j][i];
-        const status = task.taskStatus.toUpperCase();
-        const color = status === "VA" ? "#00FF00" : status === "NVA" ? "#FFFF00" : "#FF0000";
-        const dataPoint = new Array(opNames.length).fill(0);
-        dataPoint[j] = task.taskHeight;
-        series.push({
-          name: `${opNames[j]}: ${task.name || task.taskName} (${status})`,
-          data: dataPoint,
-          stack: opNames[j],
-          color,
-        });
-      }
-    } else {
-      toConsole("Invalid task array for operation", j);
+  try {
+    if (!DOM.chartContainer || !DOM.pieChartContainer) {
+      throw new Error("Chart container elements not found");
     }
-  }
-  toConsole("Generated series", JSON.stringify(series));
-  toConsole("xAxis categories", JSON.stringify(opNames));
-  Highcharts.chart("chartContainer", {
-    chart: { type: "column" },
-    accessibility: { enabled: false },
-    title: { text: "Operation Task Durations by Status" },
-    xAxis: { categories: opNames },
-    yAxis: {
-      title: {
-        text: `Duration (${
-          durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
-        })`,
-      },
-      labels: {
-        formatter() {
-          return durationMode === "hhmmssms"
-            ? formatDuration(this.value)
-            : durationMode === "ms"
-              ? this.value.toFixed(3)
-              : formatDecimalMinutes(this.value);
-        },
-      },
-      plotLines: [
-        {
-          value: taktTime,
-          color: "#0000FF",
-          width: 2,
-          label: {
-            text: `Takt: ${
-              durationMode === "hhmmssms"
-                ? formatDuration(taktTime)
-                : durationMode === "ms"
-                  ? `${taktTime.toFixed(3)} ms`
-                  : `${formatDecimalMinutes(taktTime)} min`
-            }`,
-            align: "right",
-            style: { color: "#0000FF" },
-          },
-        },
-      ],
-    },
-    tooltip: {
-      formatter() {
-        const duration =
-          durationMode === "hhmmssms"
-            ? formatDuration(this.y)
-            : durationMode === "ms"
-              ? `${this.y.toFixed(3)} ms`
-              : `${formatDecimalMinutes(this.y)} min`;
-        return `<b>Operation: ${this.x}</b><br>Task: ${this.series.name}<br>Duration: ${duration}`;
-      },
-    },
-    plotOptions: {
-      column: {
-        stacking: "normal",
-        grouping: false,
-        pointWidth: 50,
-        dataLabels: {
-          enabled: true,
-          formatter() {
-            return this.y > 0
-              ? durationMode === "hhmmssms"
-                ? formatDuration(this.y)
-                : durationMode === "ms"
-                  ? this.y.toFixed(3)
-                  : formatDecimalMinutes(this.y)
-              : "";
-          },
-        },
-      },
-    },
-    series,
-  });
-
-  const pieChartContainer = document.getElementById("pieChartContainer");
-  pieChartContainer.innerHTML = "";
-  for (let i = 0; i < yama.length; i += 1) {
-    const statusDurations = { VA: 0, NVA: 0, W: 0 };
-    if (yama[i] && Array.isArray(yama[i])) {
-      for (let j = 0; j < yama[i].length; j += 1) {
-        if (yama[i][j] && yama[i][j].taskStatus) {
-          const status = yama[i][j].taskStatus.toUpperCase();
-          if (status in statusDurations) {
-            statusDurations[status] += yama[i][j].taskHeight;
+    if (yama.length === 0) {
+      alert("No operations or tasks to chart.");
+      return;
+    }
+    if (taktTime === null || taktTime <= 0) {
+      alert("Invalid Takt Time. Please set a valid Takt Time (HH:MM:SS:MS).");
+      return;
+    }
+    loadHighcharts()
+      .then(() => {
+        const isDarkMode = document.body.classList.contains("dark-mode");
+        setHighchartsTheme(isDarkMode);
+        const series = [];
+        for (let j = 0; j < yama.length; j += 1) {
+          if (yama[j] && Array.isArray(yama[j])) {
+            for (let i = 0; i < yama[j].length; i += 1) {
+              const task = yama[j][i];
+              const status = task.taskStatus.toUpperCase();
+              const color = status === "VA" ? "#00FF00" : status === "NVA" ? "#FFFF00" : "#FF0000";
+              const dataPoint = new Array(opNames.length).fill(0);
+              dataPoint[j] = task.taskHeight;
+              series.push({
+                name: `${opNames[j]}: ${task.name || task.taskName} (${status})`,
+                data: dataPoint,
+                stack: opNames[j],
+                color,
+              });
+            }
+          } else {
+            toConsole("Invalid task array for operation", j);
           }
-        } else {
-          toConsole("Invalid task data at", `Operation ${i}, Task ${j}`);
         }
-      }
-    } else {
-      toConsole("No tasks for operation", opNames[i]);
-      continue;
-    }
-    toConsole(
-      "Pie chart data for operation",
-      `${opNames[i]}: VA=${statusDurations.VA}, NVA=${statusDurations.NVA}, W=${statusDurations.W}`
-    );
-    const pieData = [
-      { name: "VA", y: statusDurations.VA, color: "#00FF00" },
-      { name: "NVA", y: statusDurations.NVA, color: "#FFFF00" },
-      { name: "W", y: statusDurations.W, color: "#FF0000" },
-    ].filter(item => item.y > 0);
-    if (pieData.length === 0) {
-      toConsole("No valid pie chart data for operation", opNames[i]);
-      continue;
-    }
-    const pieDiv = document.createElement("div");
-    pieDiv.id = `pieChart${i}`;
-    pieDiv.className = "pieChart";
-    pieChartContainer.appendChild(pieDiv);
-    Highcharts.chart(`pieChart${i}`, {
-      chart: { type: "pie", height: 200 },
-      accessibility: { enabled: false },
-      title: { text: `${opNames[i]} Duration by Status` },
-      tooltip: {
-        pointFormatter() {
-          const duration =
-            durationMode === "hhmmssms"
-              ? formatDuration(this.y)
-              : durationMode === "ms"
-                ? `${this.y.toFixed(3)} ms`
-                : `${formatDecimalMinutes(this.y)} min`;
-          return `Duration: <b>${duration} (${this.percentage.toFixed(1)}%)</b>`;
-        },
-      },
-      plotOptions: {
-        pie: {
-          allowPointSelect: true,
-          cursor: "pointer",
-          dataLabels: {
-            enabled: true,
+        toConsole("Generated series", JSON.stringify(series));
+        toConsole("xAxis categories", JSON.stringify(opNames));
+        Highcharts.chart(DOM.chartContainer, {
+          chart: { type: "column" },
+          accessibility: { enabled: false },
+          title: { text: "Operation Task Durations by Status" },
+          xAxis: { categories: opNames },
+          yAxis: {
+            title: {
+              text: `Duration (${
+                durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
+              })`,
+            },
+            labels: {
+              formatter() {
+                return durationMode === "hhmmssms"
+                  ? formatDuration(this.value)
+                  : durationMode === "ms"
+                    ? this.value.toFixed(3)
+                    : formatDecimalMinutes(this.value);
+              },
+            },
+            plotLines: [
+              {
+                value: taktTime,
+                color: "#0000FF",
+                width: 2,
+                label: {
+                  text: `Takt: ${
+                    durationMode === "hhmmssms"
+                      ? formatDuration(taktTime)
+                      : durationMode === "ms"
+                        ? `${taktTime.toFixed(3)} ms`
+                        : `${formatDecimalMinutes(taktTime)} min`
+                  }`,
+                  align: "right",
+                  style: { color: "#0000FF" },
+                },
+              },
+            ],
+          },
+          tooltip: {
             formatter() {
-              return `${this.point.name}: ${
+              const duration =
                 durationMode === "hhmmssms"
                   ? formatDuration(this.y)
                   : durationMode === "ms"
-                    ? this.y.toFixed(3)
-                    : formatDecimalMinutes(this.y)
-              }`;
+                    ? `${this.y.toFixed(3)} ms`
+                    : `${formatDecimalMinutes(this.y)} min`;
+              return `<b>Operation: ${this.x}</b><br>Task: ${this.series.name}<br>Duration: ${duration}`;
             },
           },
-        },
-      },
-      series: [
-        {
-          name: "Duration",
-          data: pieData,
-        },
-      ],
-    });
+          plotOptions: {
+            column: {
+              stacking: "normal",
+              grouping: false,
+              pointWidth: 50,
+              dataLabels: {
+                enabled: true,
+                formatter() {
+                  return this.y > 0
+                    ? durationMode === "hhmmssms"
+                      ? formatDuration(this.y)
+                      : durationMode === "ms"
+                        ? this.y.toFixed(3)
+                        : formatDecimalMinutes(this.y)
+                    : "";
+                },
+              },
+            },
+          },
+          series,
+        });
+
+        DOM.pieChartContainer.innerHTML = "";
+        for (let i = 0; i < yama.length; i += 1) {
+          const statusDurations = { VA: 0, NVA: 0, W: 0 };
+          if (yama[i] && Array.isArray(yama[i])) {
+            for (let j = 0; j < yama[i].length; j += 1) {
+              if (yama[i][j] && yama[i][j].taskStatus) {
+                const status = yama[i][j].taskStatus.toUpperCase();
+                if (status in statusDurations) {
+                  statusDurations[status] += yama[i][j].taskHeight;
+                }
+              } else {
+                toConsole("Invalid task data at", `Operation ${i}, Task ${j}`);
+              }
+            }
+          } else {
+            toConsole("No tasks for operation", opNames[i]);
+            continue;
+          }
+          toConsole(
+            "Pie chart data for operation",
+            `${opNames[i]}: VA=${statusDurations.VA}, NVA=${statusDurations.NVA}, W=${statusDurations.W}`
+          );
+          const pieData = [
+            { name: "VA", y: statusDurations.VA, color: "#00FF00" },
+            { name: "NVA", y: statusDurations.NVA, color: "#FFFF00" },
+            { name: "W", y: statusDurations.W, color: "#FF0000" },
+          ].filter(item => item.y > 0);
+          if (pieData.length === 0) {
+            toConsole("No valid pie chart data for operation", opNames[i]);
+            continue;
+          }
+          const pieDiv = document.createElement("div");
+          pieDiv.id = `pieChart${i}`;
+          pieDiv.className = "pieChart";
+          DOM.pieChartContainer.appendChild(pieDiv);
+          Highcharts.chart(`pieChart${i}`, {
+            chart: { type: "pie", height: 200 },
+            accessibility: { enabled: false },
+            title: { text: `${opNames[i]} Duration by Status` },
+            tooltip: {
+              pointFormatter() {
+                const duration =
+                  durationMode === "hhmmssms"
+                    ? formatDuration(this.y)
+                    : durationMode === "ms"
+                      ? `${this.y.toFixed(3)} ms`
+                      : `${formatDecimalMinutes(this.y)} min`;
+                return `Duration: <b>${duration} (${this.percentage.toFixed(1)}%)</b>`;
+              },
+            },
+            plotOptions: {
+              pie: {
+                allowPointSelect: true,
+                cursor: "pointer",
+                dataLabels: {
+                  enabled: true,
+                  formatter() {
+                    return `${this.point.name}: ${
+                      durationMode === "hhmmssms"
+                        ? formatDuration(this.y)
+                        : durationMode === "ms"
+                          ? this.y.toFixed(3)
+                          : formatDecimalMinutes(this.y)
+                    }`;
+                  },
+                },
+              },
+            },
+            series: [
+              {
+                name: "Duration",
+                data: pieData,
+              },
+            ],
+          });
+        }
+      })
+      .catch(error => {
+        toConsole("drawTable error", error.message);
+        alert("Failed to load Highcharts for chart rendering. Please check the console for details.");
+      });
+  } catch (error) {
+    toConsole("drawTable error", error.message);
+    alert("Failed to render charts. Please check the console for details.");
   }
 };
 
@@ -1460,5 +1578,3 @@ const toConsole = (message, value) => {
     console.log(`${message}:`, value);
   }
 };
-
-// End of Part 3
