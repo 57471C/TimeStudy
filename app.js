@@ -155,9 +155,7 @@ const initializePlayer = () => {
   });
   player.addEventListener("error", () => {
     toConsole("Video load error", "Failed to load video from URL");
-    alert(
-      "Failed to load the video from the provided URL. Please use the 'Load' button to select a video file manually."
-    );
+    alert("Failed to load the video from the provided URL. Please use the 'Load' button to select a video file manually.");
     toggleVideoPlaceholder(true);
     updateLoadButtonColor();
   });
@@ -182,19 +180,16 @@ const initializePlayer = () => {
 
   taktTime = parseTaktTime(taktTimeInput.value);
 
-  taktTimeInput.addEventListener(
-    "input",
-    debounce(() => {
-      const newTaktTime = parseTaktTime(taktTimeInput.value);
-      if (newTaktTime !== null) {
-        taktTime = newTaktTime;
-        toConsole("Takt Time updated", taktTime);
-      } else {
-        alert("Invalid Takt Time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
-        taktTimeInput.value = formatTaktTime(taktTime);
-      }
-    }, 100)
-  );
+  taktTimeInput.addEventListener("input", debounce(event => {
+    const newTaktTime = parseTaktTime(event.target.value);
+    if (newTaktTime !== null) {
+      taktTime = newTaktTime;
+      toConsole("Takt Time updated", taktTime);
+    } else {
+      alert("Invalid Takt Time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
+      taktTimeInput.value = formatTaktTime(taktTime);
+    }
+  }, 100));
 
   addOpButton.addEventListener("click", () => {
     addTaskButton.disabled = false;
@@ -270,28 +265,26 @@ const initializePlayer = () => {
     volumeSlider.value = player.muted ? 0 : player.volume;
   });
 
-  volumeSlider.addEventListener(
-    "input",
-    debounce(() => {
-      const volume = parseFloat(volumeSlider.value);
+  volumeSlider.addEventListener("input", debounce(event => {
+    const volume = parseFloat(event.target.value);
+    if (!isNaN(volume)) {
       player.volume = volume;
       player.muted = volume === 0;
       muteButton.textContent = player.muted ? "Unmute" : "Mute";
       toConsole("Volume adjusted", volume);
-    }, 100)
-  );
+    }
+  }, 100));
 
   if (speedSlider) {
-    speedSlider.addEventListener(
-      "input",
-      debounce(function () {
-        toConsole("Speed slider input event fired", this.value);
-        const speed = parseFloat(this.value);
+    speedSlider.addEventListener("input", debounce(event => {
+      const speed = parseFloat(event.target.value);
+      if (!isNaN(speed)) {
         player.playbackRate = speed;
         DOM.speedValue.textContent = `${speed}x`;
+        toConsole("Speed slider input event fired", speed);
         toConsole("Speed value label updated", `${speed}x`);
-      }, 100)
-    );
+      }
+    }, 100));
 
     player.playbackRate = 1;
     toConsole("Initial playback rate set", 1);
@@ -299,15 +292,14 @@ const initializePlayer = () => {
   }
 
   if (seekBar) {
-    seekBar.addEventListener(
-      "input",
-      debounce(function () {
-        toConsole("Seek bar input event fired", this.value);
-        const time = parseFloat(this.value);
+    seekBar.addEventListener("input", debounce(event => {
+      const time = parseFloat(event.target.value);
+      if (!isNaN(time)) {
         player.currentTime = time;
+        toConsole("Seek bar input event fired", time);
         toConsole("Video seeked to", time);
-      }, 100)
-    );
+      }
+    }, 100));
   }
 
   DOM.videoFileInput.addEventListener("change", event => {
@@ -319,7 +311,7 @@ const initializePlayer = () => {
 
     if (player.src && yama.length > 0) {
       const save = confirm(
-        "You have unsaved data. Would you like to save your data as a CSV file before loading a new video?"
+        "You have unsaved data. Would you like to save your current data as a CSV file before loading a new video?"
       );
       if (save) {
         exportToCSV();
@@ -907,7 +899,13 @@ const editTaskDuration = (opIndex, taskIndex) => {
     const minutes = parseInt(parts[0], 10);
     const seconds = parseInt(parts[1], 10);
     const milliseconds = parseInt(parts[2], 10) * 10;
-    if (isNaN(minutes) || isNaN(seconds) || isNaN(milliseconds) || seconds >= 60 || milliseconds >= 1000) {
+    if (
+      isNaN(minutes) ||
+      isNaN(seconds) ||
+      isNaN(milliseconds) ||
+      seconds >= 60 ||
+      milliseconds >= 1000
+    ) {
       alert("Invalid duration. Ensure minutes, seconds (<60), and milliseconds (<100) are valid.");
       return;
     }
@@ -976,7 +974,10 @@ const deleteOperation = opIndex => {
       addTaskButton.disabled = true;
     }
     taskCount = yama[opCount] ? yama[opCount].length : 0;
-    toConsole(`Deleted operation at index ${opIndex}`, `opCount: ${opCount}, taskCount: ${taskCount}`);
+    toConsole(
+      `Deleted operation at index ${opIndex}`,
+      `opCount: ${opCount}, taskCount: ${taskCount}`
+    );
     updateTaskList();
     drawTable();
   }
@@ -1016,7 +1017,7 @@ const updateTaskList = () => {
   const taskList = DOM.taskList;
   const isDarkMode = document.body.classList.contains("dark-mode");
   const rows = [
-    `<table class="table table-bordered task-table${isDarkMode ? " table-dark" : ""}">
+    `<table class="table table-bordered task-table${isDarkMode ? ' table-dark' : ''}">
        <thead>
          <tr>
            <th scope="col">Operation</th>
@@ -1026,7 +1027,7 @@ const updateTaskList = () => {
            <th scope="col">Actions</th>
          </tr>
        </thead>
-       <tbody>`,
+       <tbody>`
   ];
   for (let i = 0; i < yama.length; i += 1) {
     const opTimeInputId = `opTimeInput-${i}`;
@@ -1092,20 +1093,17 @@ const updateTaskList = () => {
 
   for (let i = 0; i < yama.length; i += 1) {
     const opTimeInput = document.getElementById(`opTimeInput-${i}`);
-    opTimeInput.addEventListener(
-      "input",
-      debounce(() => {
-        const newTime = parseTimeFromHHMMSSMS(opTimeInput.value);
-        if (newTime !== null) {
-          opStartTimes[i] = newTime;
-          toConsole(`Operation ${i} start time updated`, opStartTimes[i]);
-          updateProcessTimes();
-        } else {
-          alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
-          opTimeInput.value = formatTimeToHHMMSSMS(opStartTimes[i]);
-        }
-      }, 100)
-    );
+    opTimeInput.addEventListener("input", debounce(event => {
+      const newTime = parseTimeFromHHMMSSMS(event.target.value);
+      if (newTime !== null) {
+        opStartTimes[i] = newTime;
+        toConsole(`Operation ${i} start time updated`, opStartTimes[i]);
+        updateProcessTimes();
+      } else {
+        alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
+        opTimeInput.value = formatTimeToHHMMSSMS(opStartTimes[i]);
+      }
+    }, 100));
   }
 };
 
@@ -1141,21 +1139,20 @@ const updateProcessTimes = () => {
   `;
 
   const processEndTimeInput = document.getElementById("processEndTimeInput");
-  processEndTimeInput.addEventListener(
-    "input",
-    debounce(() => {
-      const newEndTime = parseTimeFromHHMMSSMS(processEndTimeInput.value);
-      if (newEndTime !== null) {
-        processEndTime = newEndTime;
-        toConsole("Process end time updated", processEndTime);
-        const durationSeconds = opStartTimes.length > 0 ? Math.max(0, processEndTime - opStartTimes[0]) : 0;
-        document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
-      } else {
-        alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
-        processEndTimeInput.value = formatTimeToHHMMSSMS(processEndTime);
-      }
-    }, 100)
-  );
+  processEndTimeInput.addEventListener("input", debounce(event => {
+    const newEndTime = parseTimeFromHHMMSSMS(event.target.value);
+    if (newEndTime !== null) {
+      processEndTime = newEndTime;
+      toConsole("Process end time updated", processEndTime);
+      const durationSeconds =
+        opStartTimes.length > 0 ? Math.max(0, processEndTime - opStartTimes[0]) : 0;
+      document.getElementById("totalProcessTimeInput").value =
+        formatTimeToHHMMSSMS(durationSeconds);
+    } else {
+      alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
+      processEndTimeInput.value = formatTimeToHHMMSSMS(processEndTime);
+    }
+  }, 100));
 };
 
 const importFromCSV = csvText => {
@@ -1217,7 +1214,10 @@ const importFromCSV = csvText => {
 
   const taskHeaders = lines[2].split(",").map(h => h.trim());
   const expectedTaskHeaders = ["Operation", "Task", "VA", "NVA", "W"];
-  if (taskHeaders.length !== expectedTaskHeaders.length || !taskHeaders.every((h, i) => h === expectedTaskHeaders[i])) {
+  if (
+    taskHeaders.length !== expectedTaskHeaders.length ||
+    !taskHeaders.every((h, i) => h === expectedTaskHeaders[i])
+  ) {
     alert("Invalid CSV format. Expected task headers: Operation,Task,VA,NVA,W");
     return;
   }
@@ -1273,7 +1273,7 @@ const importFromCSV = csvText => {
     return;
   }
   updateTaskList();
-  toConsole("CSV imported successfully", {});
+  toConsole("CSV imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`);
 };
 
 const exportToCSV = () => {
@@ -1357,7 +1357,11 @@ const drawTable = () => {
     yAxis: {
       title: {
         text: `Duration (${
-          durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
+          durationMode === "hhmmssms"
+            ? "MM:SS:MS"
+            : durationMode === "ms"
+              ? "Milliseconds"
+              : "Minutes"
         })`,
       },
       labels: {
