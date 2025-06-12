@@ -69,6 +69,39 @@ const debounce = (func, wait) => {
   };
 };
 
+const loadHighcharts = () => {
+  return new Promise((resolve, reject) => {
+    if (typeof Highcharts !== "undefined") {
+      toConsole("Highcharts already loaded", Highcharts.version);
+      resolve();
+      return;
+    }
+    const scripts = [
+      "https://code.highcharts.com/highcharts.js",
+      "https://code.highcharts.com/modules/accessibility.js",
+    ];
+    let loaded = 0;
+    scripts.forEach(src => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onload = () => {
+        loaded += 1;
+        toConsole("Highcharts script loaded", src);
+        if (loaded === scripts.length) {
+          toConsole("Highcharts fully loaded", Highcharts.version);
+          resolve();
+        }
+      };
+      script.onerror = () => {
+        toConsole("Highcharts script load error", src);
+        reject(new Error(`Failed to load Highcharts script: ${src}`));
+      };
+      document.head.appendChild(script);
+    });
+  });
+};
+
 const setHighchartsTheme = isDark => {
   Highcharts.setOptions({
     chart: { backgroundColor: isDark ? "#1c2526" : "#ffffff" },
@@ -109,7 +142,9 @@ const initializePlayer = () => {
   marqueeRect = DOM.marqueeRect;
 
   const isDarkMode = localStorage.getItem("darkMode") === "true";
-  setHighchartsTheme(isDarkMode);
+  if (typeof Highcharts !== "undefined") {
+    setHighchartsTheme(isDarkMode);
+  }
   if (isDarkMode) {
     document.body.classList.add("dark-mode");
     DOM.darkModeIcon.textContent = "🌙";
@@ -124,7 +159,9 @@ const initializePlayer = () => {
     DOM.darkModeIcon.textContent = isDark ? "🌙" : "☀️";
     localStorage.setItem("darkMode", isDark);
     toConsole("Dark mode toggled", isDark ? "On" : "Off");
-    setHighchartsTheme(isDark);
+    if (typeof Highcharts !== "undefined") {
+      setHighchartsTheme(isDark);
+    }
     updateTaskList();
     if (yama.length > 0) {
       drawTable();
@@ -462,7 +499,6 @@ const initializePlayer = () => {
   });
 
   toConsole("jQuery version", $.fn.jquery);
-  toConsole("Highcharts version", Highcharts.version);
   updateLoadButtonColor();
 };
 
@@ -1352,176 +1388,185 @@ const drawTable = () => {
       alert("Invalid Takt Time. Please set a valid Takt Time (HH:MM:SS:MS).");
       return;
     }
-    const series = [];
-    for (let j = 0; j < yama.length; j += 1) {
-      if (yama[j] && Array.isArray(yama[j])) {
-        for (let i = 0; i < yama[j].length; i += 1) {
-          const task = yama[j][i];
-          const status = task.taskStatus.toUpperCase();
-          const color = status === "VA" ? "#00FF00" : status === "NVA" ? "#FFFF00" : "#FF0000";
-          const dataPoint = new Array(opNames.length).fill(0);
-          dataPoint[j] = task.taskHeight;
-          series.push({
-            name: `${opNames[j]}: ${task.name || task.taskName} (${status})`,
-            data: dataPoint,
-            stack: opNames[j],
-            color,
-          });
-        }
-      } else {
-        toConsole("Invalid task array for operation", j);
-      }
-    }
-    toConsole("Generated series", JSON.stringify(series));
-    toConsole("xAxis categories", JSON.stringify(opNames));
-    Highcharts.chart(DOM.chartContainer, {
-      chart: { type: "column" },
-      accessibility: { enabled: false },
-      title: { text: "Operation Task Durations by Status" },
-      xAxis: { categories: opNames },
-      yAxis: {
-        title: {
-          text: `Duration (${
-            durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
-          })`,
-        },
-        labels: {
-          formatter() {
-            return durationMode === "hhmmssms"
-              ? formatDuration(this.value)
-              : durationMode === "ms"
-                ? this.value.toFixed(3)
-                : formatDecimalMinutes(this.value);
-          },
-        },
-        plotLines: [
-          {
-            value: taktTime,
-            color: "#0000FF",
-            width: 2,
-            label: {
-              text: `Takt: ${
-                durationMode === "hhmmssms"
-                  ? formatDuration(taktTime)
-                  : durationMode === "ms"
-                    ? `${taktTime.toFixed(3)} ms`
-                    : `${formatDecimalMinutes(taktTime)} min`
-              }`,
-              align: "right",
-              style: { color: "#0000FF" },
-            },
-          },
-        ],
-      },
-      tooltip: {
-        formatter() {
-          const duration =
-            durationMode === "hhmmssms"
-              ? formatDuration(this.y)
-              : durationMode === "ms"
-                ? `${this.y.toFixed(3)} ms`
-                : `${formatDecimalMinutes(this.y)} min`;
-          return `<b>Operation: ${this.x}</b><br>Task: ${this.series.name}<br>Duration: ${duration}`;
-        },
-      },
-      plotOptions: {
-        column: {
-          stacking: "normal",
-          grouping: false,
-          pointWidth: 50,
-          dataLabels: {
-            enabled: true,
-            formatter() {
-              return this.y > 0
-                ? durationMode === "hhmmssms"
-                  ? formatDuration(this.y)
-                  : durationMode === "ms"
-                    ? this.y.toFixed(3)
-                    : formatDecimalMinutes(this.y)
-                : "";
-            },
-          },
-        },
-      },
-      series,
-    });
-
-    DOM.pieChartContainer.innerHTML = "";
-    for (let i = 0; i < yama.length; i += 1) {
-      const statusDurations = { VA: 0, NVA: 0, W: 0 };
-      if (yama[i] && Array.isArray(yama[i])) {
-        for (let j = 0; j < yama[i].length; j += 1) {
-          if (yama[i][j] && yama[i][j].taskStatus) {
-            const status = yama[i][j].taskStatus.toUpperCase();
-            if (status in statusDurations) {
-              statusDurations[status] += yama[i][j].taskHeight;
+    loadHighcharts()
+      .then(() => {
+        const isDarkMode = document.body.classList.contains("dark-mode");
+        setHighchartsTheme(isDarkMode);
+        const series = [];
+        for (let j = 0; j < yama.length; j += 1) {
+          if (yama[j] && Array.isArray(yama[j])) {
+            for (let i = 0; i < yama[j].length; i += 1) {
+              const task = yama[j][i];
+              const status = task.taskStatus.toUpperCase();
+              const color = status === "VA" ? "#00FF00" : status === "NVA" ? "#FFFF00" : "#FF0000";
+              const dataPoint = new Array(opNames.length).fill(0);
+              dataPoint[j] = task.taskHeight;
+              series.push({
+                name: `${opNames[j]}: ${task.name || task.taskName} (${status})`,
+                data: dataPoint,
+                stack: opNames[j],
+                color,
+              });
             }
           } else {
-            toConsole("Invalid task data at", `Operation ${i}, Task ${j}`);
+            toConsole("Invalid task array for operation", j);
           }
         }
-      } else {
-        toConsole("No tasks for operation", opNames[i]);
-        continue;
-      }
-      toConsole(
-        "Pie chart data for operation",
-        `${opNames[i]}: VA=${statusDurations.VA}, NVA=${statusDurations.NVA}, W=${statusDurations.W}`
-      );
-      const pieData = [
-        { name: "VA", y: statusDurations.VA, color: "#00FF00" },
-        { name: "NVA", y: statusDurations.NVA, color: "#FFFF00" },
-        { name: "W", y: statusDurations.W, color: "#FF0000" },
-      ].filter(item => item.y > 0);
-      if (pieData.length === 0) {
-        toConsole("No valid pie chart data for operation", opNames[i]);
-        continue;
-      }
-      const pieDiv = document.createElement("div");
-      pieDiv.id = `pieChart${i}`;
-      pieDiv.className = "pieChart";
-      DOM.pieChartContainer.appendChild(pieDiv);
-      Highcharts.chart(`pieChart${i}`, {
-        chart: { type: "pie", height: 200 },
-        accessibility: { enabled: false },
-        title: { text: `${opNames[i]} Duration by Status` },
-        tooltip: {
-          pointFormatter() {
-            const duration =
-              durationMode === "hhmmssms"
-                ? formatDuration(this.y)
-                : durationMode === "ms"
-                  ? `${this.y.toFixed(3)} ms`
-                  : `${formatDecimalMinutes(this.y)} min`;
-            return `Duration: <b>${duration} (${this.percentage.toFixed(1)}%)</b>`;
-          },
-        },
-        plotOptions: {
-          pie: {
-            allowPointSelect: true,
-            cursor: "pointer",
-            dataLabels: {
-              enabled: true,
+        toConsole("Generated series", JSON.stringify(series));
+        toConsole("xAxis categories", JSON.stringify(opNames));
+        Highcharts.chart(DOM.chartContainer, {
+          chart: { type: "column" },
+          accessibility: { enabled: false },
+          title: { text: "Operation Task Durations by Status" },
+          xAxis: { categories: opNames },
+          yAxis: {
+            title: {
+              text: `Duration (${
+                durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
+              })`,
+            },
+            labels: {
               formatter() {
-                return `${this.point.name}: ${
-                  durationMode === "hhmmssms"
-                    ? formatDuration(this.y)
-                    : durationMode === "ms"
-                      ? this.y.toFixed(3)
-                      : formatDecimalMinutes(this.y)
-                }`;
+                return durationMode === "hhmmssms"
+                  ? formatDuration(this.value)
+                  : durationMode === "ms"
+                    ? this.value.toFixed(3)
+                    : formatDecimalMinutes(this.value);
+              },
+            },
+            plotLines: [
+              {
+                value: taktTime,
+                color: "#0000FF",
+                width: 2,
+                label: {
+                  text: `Takt: ${
+                    durationMode === "hhmmssms"
+                      ? formatDuration(taktTime)
+                      : durationMode === "ms"
+                        ? `${taktTime.toFixed(3)} ms`
+                        : `${formatDecimalMinutes(taktTime)} min`
+                  }`,
+                  align: "right",
+                  style: { color: "#0000FF" },
+                },
+              },
+            ],
+          },
+          tooltip: {
+            formatter() {
+              const duration =
+                durationMode === "hhmmssms"
+                  ? formatDuration(this.y)
+                  : durationMode === "ms"
+                    ? `${this.y.toFixed(3)} ms`
+                    : `${formatDecimalMinutes(this.y)} min`;
+              return `<b>Operation: ${this.x}</b><br>Task: ${this.series.name}<br>Duration: ${duration}`;
+            },
+          },
+          plotOptions: {
+            column: {
+              stacking: "normal",
+              grouping: false,
+              pointWidth: 50,
+              dataLabels: {
+                enabled: true,
+                formatter() {
+                  return this.y > 0
+                    ? durationMode === "hhmmssms"
+                      ? formatDuration(this.y)
+                      : durationMode === "ms"
+                        ? this.y.toFixed(3)
+                        : formatDecimalMinutes(this.y)
+                    : "";
+                },
               },
             },
           },
-        },
-        series: [
-          {
-            name: "Duration",
-            data: pieData,
-          },
-        ],
+          series,
+        });
+
+        DOM.pieChartContainer.innerHTML = "";
+        for (let i = 0; i < yama.length; i += 1) {
+          const statusDurations = { VA: 0, NVA: 0, W: 0 };
+          if (yama[i] && Array.isArray(yama[i])) {
+            for (let j = 0; j < yama[i].length; j += 1) {
+              if (yama[i][j] && yama[i][j].taskStatus) {
+                const status = yama[i][j].taskStatus.toUpperCase();
+                if (status in statusDurations) {
+                  statusDurations[status] += yama[i][j].taskHeight;
+                }
+              } else {
+                toConsole("Invalid task data at", `Operation ${i}, Task ${j}`);
+              }
+            }
+          } else {
+            toConsole("No tasks for operation", opNames[i]);
+            continue;
+          }
+          toConsole(
+            "Pie chart data for operation",
+            `${opNames[i]}: VA=${statusDurations.VA}, NVA=${statusDurations.NVA}, W=${statusDurations.W}`
+          );
+          const pieData = [
+            { name: "VA", y: statusDurations.VA, color: "#00FF00" },
+            { name: "NVA", y: statusDurations.NVA, color: "#FFFF00" },
+            { name: "W", y: statusDurations.W, color: "#FF0000" },
+          ].filter(item => item.y > 0);
+          if (pieData.length === 0) {
+            toConsole("No valid pie chart data for operation", opNames[i]);
+            continue;
+          }
+          const pieDiv = document.createElement("div");
+          pieDiv.id = `pieChart${i}`;
+          pieDiv.className = "pieChart";
+          DOM.pieChartContainer.appendChild(pieDiv);
+          Highcharts.chart(`pieChart${i}`, {
+            chart: { type: "pie", height: 200 },
+            accessibility: { enabled: false },
+            title: { text: `${opNames[i]} Duration by Status` },
+            tooltip: {
+              pointFormatter() {
+                const duration =
+                  durationMode === "hhmmssms"
+                    ? formatDuration(this.y)
+                    : durationMode === "ms"
+                      ? `${this.y.toFixed(3)} ms`
+                      : `${formatDecimalMinutes(this.y)} min`;
+                return `Duration: <b>${duration} (${this.percentage.toFixed(1)}%)</b>`;
+              },
+            },
+            plotOptions: {
+              pie: {
+                allowPointSelect: true,
+                cursor: "pointer",
+                dataLabels: {
+                  enabled: true,
+                  formatter() {
+                    return `${this.point.name}: ${
+                      durationMode === "hhmmssms"
+                        ? formatDuration(this.y)
+                        : durationMode === "ms"
+                          ? this.y.toFixed(3)
+                          : formatDecimalMinutes(this.y)
+                    }`;
+                  },
+                },
+              },
+            },
+            series: [
+              {
+                name: "Duration",
+                data: pieData,
+              },
+            ],
+          });
+        }
+      })
+      .catch(error => {
+        toConsole("drawTable error", error.message);
+        alert("Failed to load Highcharts for chart rendering. Please check the console for details.");
       });
-    }
   } catch (error) {
     toConsole("drawTable error", error.message);
     alert("Failed to render charts. Please check the console for details.");
