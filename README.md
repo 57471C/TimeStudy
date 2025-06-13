@@ -29,12 +29,14 @@ TimeStudy is a web-based application for analyzing video-based process times, en
 ## Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/57471C/TimeStudy.git
    cd TimeStudy
    ```
 
 2. Install dependencies (if applicable):
+
    ```bash
    npm install
    ```
@@ -75,7 +77,7 @@ TimeStudy is a web-based application for analyzing video-based process times, en
 
 - **Focus**: Validate two-column layout, styling, XLSX handling, lazy-loaded Highcharts, and core functionality.
 - **Feedback**: Report issues via GitHub Issues at https://github.com/57471C/TimeStudy/issues.
-- **Known Limitations**: None identified; monitor for performance with large datasets.
+- **Known Limitations**: Monitor performance with large datasets.
 
 ## Contributing
 
