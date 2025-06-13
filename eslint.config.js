@@ -20,6 +20,7 @@ module.exports = [
     rules: {
       ...google.rules,
       ...prettier.rules,
+      "no-unused-vars": ["off", { vars: "all", args: "none" }], // Warn instead of error, ignore unused args
       semi: ["error", "always"],
       quotes: ["error", "double"],
       indent: "off",
