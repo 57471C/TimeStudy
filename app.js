@@ -31,7 +31,7 @@ let zoomLevel = 1;
 let translateX = 0;
 let translateY = 0;
 let processEndTime = 0;
-const APP_VERSION = "0.3.1-dev";
+const APP_VERSION = "0.3.2";
 
 let isDrawing = false;
 let startX;
@@ -61,18 +61,10 @@ const DOM = {
   resetZoom: document.getElementById("resetZoom"),
 };
 
-const debounce = (func, wait) => {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-};
-
 const loadHighcharts = () => {
   return new Promise((resolve, reject) => {
     if (typeof Highcharts !== "undefined") {
-      toConsole("Highcharts already loaded", Highcharts.version);
+      toConsole("Highcharts already loaded", Highcharts.version, debuggin);
       resolve();
       return;
     }
@@ -87,14 +79,14 @@ const loadHighcharts = () => {
       script.async = true;
       script.onload = () => {
         loaded += 1;
-        toConsole("Highcharts script loaded", src);
+        toConsole("Highcharts script loaded", src, debuggin);
         if (loaded === scripts.length) {
-          toConsole("Highcharts fully loaded", Highcharts.version);
+          toConsole("Highcharts fully loaded", Highcharts.version, debuggin);
           resolve();
         }
       };
       script.onerror = () => {
-        toConsole("Highcharts script load error", src);
+        toConsole("Highcharts script load error", src, debuggin);
         reject(new Error(`Failed to load Highcharts script: ${src}`));
       };
       document.head.appendChild(script);
@@ -129,14 +121,14 @@ const setHighchartsTheme = isDark => {
       itemHoverStyle: { color: isDark ? "#60a5fa" : "#0d6efd" },
     },
   });
-  toConsole("Highcharts theme set", isDark ? "Dark" : "Light");
+  toConsole("Highcharts theme set", isDark ? "Dark" : "Light", debuggin);
 };
 
 const initializePlayer = () => {
   player = DOM.video;
   playerReady = true;
-  toConsole("Video element initialized", "Success");
-  toConsole("App Version", APP_VERSION);
+  toConsole("Video element initialized", "Success", debuggin);
+  toConsole("App Version", APP_VERSION, debuggin);
 
   marqueeOverlay = DOM.marqueeOverlay;
   marqueeRect = DOM.marqueeRect;
@@ -158,7 +150,7 @@ const initializePlayer = () => {
     const isDark = document.body.classList.contains("dark-mode");
     DOM.darkModeIcon.textContent = isDark ? "🌙" : "☀️";
     localStorage.setItem("darkMode", isDark);
-    toConsole("Dark mode toggled", isDark ? "On" : "Off");
+    toConsole("Dark mode toggled", isDark ? "On" : "Off", debuggin);
     if (typeof Highcharts !== "undefined") {
       setHighchartsTheme(isDark);
     }
@@ -181,7 +173,7 @@ const initializePlayer = () => {
     player.playbackRate = 1;
     speedSlider.value = 1;
     DOM.speedValue.textContent = "1x";
-    toConsole("Playback speed reset to 1x after load", "Success");
+    toConsole("Playback speed reset to 1x after load", "Success", debuggin);
     volumeSlider.value = player.volume;
   });
   player.addEventListener("play", () => {
@@ -191,7 +183,7 @@ const initializePlayer = () => {
     playPauseButton.textContent = "Play";
   });
   player.addEventListener("error", () => {
-    toConsole("Video load error", "Failed to load video from URL");
+    toConsole("Video load error", "Failed to load video from URL", debuggin);
     alert(
       "Failed to load the video from the provided URL. Please use the 'Load' button to select a video file manually."
     );
@@ -225,7 +217,7 @@ const initializePlayer = () => {
       const newTaktTime = parseTaktTime(event.target.value);
       if (newTaktTime !== null) {
         taktTime = newTaktTime;
-        toConsole("Takt Time updated", taktTime);
+        toConsole("Takt Time updated", taktTime, debuggin);
       } else {
         alert("Invalid Takt Time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
         taktTimeInput.value = formatTaktTime(taktTime);
@@ -240,7 +232,7 @@ const initializePlayer = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const videoUrl = urlParams.get("v");
   if (videoUrl) {
-    toConsole("Found video URL in GET parameter", videoUrl);
+    toConsole("Found video URL in GET parameter", videoUrl, debuggin);
     player.src = videoUrl;
     player.load();
   }
@@ -258,7 +250,7 @@ const initializePlayer = () => {
 
   DOM.videoPlaceholder.addEventListener("click", () => {
     DOM.videoFileInput.click();
-    toConsole("Video placeholder clicked", "Triggered Load Video");
+    toConsole("Video placeholder clicked", "Triggered Load Video", debuggin);
   });
 
   toggleFormatButton.addEventListener("click", () => {
@@ -285,25 +277,25 @@ const initializePlayer = () => {
 
   rewind5sButton.addEventListener("click", () => {
     player.currentTime = Math.max(0, player.currentTime - 5);
-    toConsole("Rewind 5s", player.currentTime);
+    toConsole("Rewind 5s", player.currentTime, debuggin);
   });
   rewind1sButton.addEventListener("click", () => {
     player.currentTime = Math.max(0, player.currentTime - 1);
-    toConsole("Rewind 1s", player.currentTime);
+    toConsole("Rewind 1s", player.currentTime, debuggin);
   });
   forward1sButton.addEventListener("click", () => {
     player.currentTime = Math.min(player.duration, player.currentTime + 1);
-    toConsole("Forward 1s", player.currentTime);
+    toConsole("Forward 1s", player.currentTime, debuggin);
   });
   forward5sButton.addEventListener("click", () => {
     player.currentTime = Math.min(player.duration, player.currentTime + 5);
-    toConsole("Forward 5s", player.currentTime);
+    toConsole("Forward 5s", player.currentTime, debuggin);
   });
 
   muteButton.addEventListener("click", () => {
     player.muted = !player.muted;
     muteButton.textContent = player.muted ? "Unmute" : "Mute";
-    toConsole("Mute toggled", player.muted);
+    toConsole("Mute toggled", player.muted, debuggin);
     volumeSlider.value = player.muted ? 0 : player.volume;
   });
 
@@ -315,7 +307,7 @@ const initializePlayer = () => {
         player.volume = volume;
         player.muted = volume === 0;
         muteButton.textContent = player.muted ? "Unmute" : "Mute";
-        toConsole("Volume adjusted", volume);
+        toConsole("Volume adjusted", volume, debuggin);
       }
     }, 100)
   );
@@ -328,14 +320,14 @@ const initializePlayer = () => {
         if (!isNaN(speed)) {
           player.playbackRate = speed;
           DOM.speedValue.textContent = `${speed}x`;
-          toConsole("Speed slider input event fired", speed);
-          toConsole("Speed value label updated", `${speed}x`);
+          toConsole("Speed slider input event fired", speed, debuggin);
+          toConsole("Speed value label updated", `${speed}x`, debuggin);
         }
       }, 100)
     );
 
     player.playbackRate = 1;
-    toConsole("Initial playback rate set", 1);
+    toConsole("Initial playback rate set", 1, debuggin);
     DOM.speedValue.textContent = "1x";
   }
 
@@ -346,8 +338,8 @@ const initializePlayer = () => {
         const time = parseFloat(event.target.value);
         if (!isNaN(time)) {
           player.currentTime = time;
-          toConsole("Seek bar input event fired", time);
-          toConsole("Video seeked to", time);
+          toConsole("Seek bar input event fired", time, debuggin);
+          toConsole("Video seeked to", time, debuggin);
         }
       }, 100)
     );
@@ -356,7 +348,7 @@ const initializePlayer = () => {
   DOM.videoFileInput.addEventListener("change", event => {
     const file = event.target.files[0];
     if (!file) {
-      toConsole("No video file selected");
+      toConsole("No video file selected", null, debuggin);
       return;
     }
 
@@ -366,13 +358,13 @@ const initializePlayer = () => {
       );
       if (save) {
         exportToCSV();
-        toConsole("Data exported to CSV before loading new video");
+        toConsole("Data exported to CSV before loading new video", null, debuggin);
       }
       const proceed = confirm(
         "Loading a new video will clear all existing data and charts. Are you sure you want to proceed?"
       );
       if (!proceed) {
-        toConsole("User cancelled loading new video");
+        toConsole("User cancelled loading new video", null, debuggin);
         return;
       }
     }
@@ -393,12 +385,12 @@ const initializePlayer = () => {
     DOM.chartContainer.innerHTML = "";
     updateTaskList();
     addTaskButton.disabled = true;
-    toConsole("Cleared all previous data and charts");
+    toConsole("Cleared all previous data and charts", null, debuggin);
 
     player.playbackRate = 1;
     speedSlider.value = 1;
     DOM.speedValue.textContent = "1x";
-    toConsole("Playback speed reset to 1x after manual load", "Success");
+    toConsole("Playback speed reset to 1x after manual load", "Success", debuggin);
 
     updateLoadButtonColor();
   });
@@ -446,22 +438,22 @@ const initializePlayer = () => {
       case "ArrowLeft":
         e.preventDefault();
         player.currentTime = Math.max(0, player.currentTime - 1);
-        toConsole("Rewind 1s (Left Arrow)", player.currentTime);
+        toConsole("Rewind 1s (Left Arrow)", player.currentTime, debuggin);
         break;
       case "ArrowDown":
         e.preventDefault();
         player.currentTime = Math.max(0, player.currentTime - 5);
-        toConsole("Rewind 5s (Down Arrow)", player.currentTime);
+        toConsole("Rewind 5s (Down Arrow)", player.currentTime, debuggin);
         break;
       case "ArrowRight":
         e.preventDefault();
         player.currentTime = Math.min(player.duration, player.currentTime + 1);
-        toConsole("Forward 1s (Right Arrow)", player.currentTime);
+        toConsole("Forward 1s (Right Arrow)", player.currentTime, debuggin);
         break;
       case "ArrowUp":
         e.preventDefault();
         player.currentTime = Math.min(player.duration, player.currentTime + 5);
-        toConsole("Forward 5s (Up Arrow)", player.currentTime);
+        toConsole("Forward 5s (Up Arrow)", player.currentTime, debuggin);
         break;
       case "t":
         e.preventDefault();
@@ -475,7 +467,7 @@ const initializePlayer = () => {
         e.preventDefault();
         player.muted = !player.muted;
         muteButton.textContent = player.muted ? "Unmute" : "Mute";
-        toConsole("Mute toggled (M key)", player.muted);
+        toConsole("Mute toggled (M key)", player.muted, debuggin);
         volumeSlider.value = player.muted ? 0 : player.volume;
         break;
       case "=":
@@ -498,73 +490,13 @@ const initializePlayer = () => {
     }
   });
 
-  toConsole("jQuery version", $.fn.jquery);
+  toConsole("jQuery version", $.fn.jquery, debuggin);
   updateLoadButtonColor();
 };
 
 window.onload = () => {
   initializePlayer();
   toggleVideoPlaceholder(true);
-};
-
-const parseTaktTime = input => {
-  const parts = input.split(":");
-  if (parts.length !== 4) return null;
-  const hours = parseInt(parts[0], 10);
-  const minutes = parseInt(parts[1], 10);
-  const seconds = parseInt(parts[2], 10);
-  const milliseconds = parseInt(parts[3], 10) * 10;
-  if (
-    isNaN(hours) ||
-    isNaN(minutes) ||
-    isNaN(seconds) ||
-    isNaN(milliseconds) ||
-    minutes >= 60 ||
-    seconds >= 60 ||
-    milliseconds >= 1000
-  ) {
-    return null;
-  }
-  return hours * 3600 * 1000 + minutes * 60 * 1000 + seconds * 1000 + milliseconds;
-};
-
-const formatTaktTime = ms => {
-  if (!ms || ms <= 0) return "00:00:00:00";
-  const hours = Math.floor(ms / (3600 * 1000));
-  const minutes = Math.floor((ms % (3600 * 1000)) / (60 * 1000));
-  const seconds = Math.floor((ms % (60 * 1000)) / 1000);
-  const milliseconds = Math.floor((ms % 1000) / 10);
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}:${milliseconds.toString().padStart(2, "0")}`;
-};
-
-const formatTimeToHHMMSSMS = seconds => {
-  if (!seconds || seconds < 0) return "00:00:00:00";
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-  const milliseconds = Math.floor(((seconds % 1) * 1000) / 10);
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}:${milliseconds.toString().padStart(2, "0")}`;
-};
-
-const parseTimeFromHHMMSSMS = input => {
-  const parts = input.split(":");
-  if (parts.length !== 4) return null;
-  const hours = parseInt(parts[0], 10);
-  const minutes = parseInt(parts[1], 10);
-  const seconds = parseInt(parts[2], 10);
-  const milliseconds = parseInt(parts[3], 10) * 10;
-  if (
-    isNaN(hours) ||
-    isNaN(minutes) ||
-    isNaN(seconds) ||
-    isNaN(milliseconds) ||
-    minutes >= 60 ||
-    seconds >= 60 ||
-    milliseconds >= 1000
-  ) {
-    return null;
-  }
-  return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
 };
 
 const startMarquee = e => {
@@ -578,7 +510,7 @@ const startMarquee = e => {
   marqueeRect.style.width = "0px";
   marqueeRect.style.height = "0px";
   marqueeRect.style.display = "block";
-  toConsole("Marquee start", `(${startX}, ${startY})`);
+  toConsole("Marquee start", `(${startX}, ${startY})`, debuggin);
 };
 
 const drawMarquee = e => {
@@ -624,10 +556,10 @@ const endMarquee = e => {
   const marqueeWidth = x2 - x1;
   const marqueeHeight = y2 - y1;
 
-  toConsole("Marquee end", `Box: (${x1}, ${y1}) to (${x2}, ${y2})`);
+  toConsole("Marquee end", `Box: (${x1}, ${y1}) to (${x2}, ${y2})`, debuggin);
 
   if (marqueeWidth < 10 || marqueeHeight < 10) {
-    toConsole("Marquee too small, ignoring zoom");
+    toConsole("Marquee too small, ignoring zoom", null, debuggin);
     return;
   }
 
@@ -644,7 +576,8 @@ const endMarquee = e => {
   const videoDisplayHeight = videoRect.height;
   toConsole(
     "Video display",
-    `Width: ${videoDisplayWidth}, Height: ${videoDisplayHeight}, Offset: (${offsetX}, ${offsetY})`
+    `Width: ${videoDisplayWidth}, Height: ${videoDisplayHeight}, Offset: (${offsetX}, ${offsetY})`,
+    debuggin
   );
 
   const marqueeX1 = x1 - offsetX;
@@ -654,32 +587,32 @@ const endMarquee = e => {
 
   const marqueeCenterX = (marqueeX1 + marqueeX2) / 2;
   const marqueeCenterY = (marqueeY1 + marqueeY2) / 2;
-  toConsole("Marquee center (display)", `(${marqueeCenterX}, ${marqueeCenterY})`);
+  toConsole("Marquee center (display)", `(${marqueeCenterX}, ${marqueeCenterY})`, debuggin);
 
   const zoomX = videoDisplayWidth / marqueeWidth;
   const zoomY = videoDisplayHeight / marqueeHeight;
   const newZoomLevel = Math.min(zoomX, zoomY);
-  toConsole("New zoom level (relative)", newZoomLevel);
+  toConsole("New zoom level (relative)", newZoomLevel, debuggin);
 
   const previousZoomLevel = zoomLevel;
   zoomLevel *= newZoomLevel;
-  toConsole("Cumulative zoom level", zoomLevel);
+  toConsole("Cumulative zoom level", zoomLevel, debuggin);
 
   const videoCoordX = (marqueeCenterX - translateX * previousZoomLevel) / previousZoomLevel;
   const videoCoordY = (marqueeCenterY - translateY * previousZoomLevel) / previousZoomLevel;
-  toConsole("Marquee center (video coords)", `(${videoCoordX}, ${videoCoordY})`);
+  toConsole("Marquee center (video coords)", `(${videoCoordX}, ${videoCoordY})`, debuggin);
 
   const scaledVideoCoordX = videoCoordX * zoomLevel;
   const scaledVideoCoordY = videoCoordY * zoomLevel;
-  toConsole("Scaled video coordinates", `(${scaledVideoCoordX}, ${scaledVideoCoordY})`);
+  toConsole("Scaled video coordinates", `(${scaledVideoCoordX}, ${scaledVideoCoordY})`, debuggin);
 
   translateX = (wrapperWidth / 2 - scaledVideoCoordX) / zoomLevel;
   translateY = (wrapperHeight / 2 - scaledVideoCoordY) / zoomLevel;
-  toConsole("New translation", `(${translateX}, ${translateY})`);
+  toConsole("New translation", `(${translateX}, ${translateY})`, debuggin);
 
   const finalX = videoCoordX * zoomLevel + translateX * zoomLevel;
   const finalY = videoCoordY * zoomLevel + translateY * zoomLevel;
-  toConsole("Final center position", `(${finalX}, ${finalY})`);
+  toConsole("Final center position", `(${finalX}, ${finalY})`, debuggin);
 
   updateZoom();
 };
@@ -687,7 +620,7 @@ const endMarquee = e => {
 const updateZoom = () => {
   const video = DOM.video;
   video.style.transform = `scale(${zoomLevel}) translate(${translateX}px, ${translateY}px)`;
-  toConsole("Zoom updated", `Level: ${zoomLevel}, Translate: (${translateX}, ${translateY})`);
+  toConsole("Zoom updated", `Level: ${zoomLevel}, Translate: (${translateX}, ${translateY})`, debuggin);
 };
 
 const seektimeupdate = () => {
@@ -713,7 +646,7 @@ const positionControls = () => {
   const controlsBar = document.getElementById("video_controls_bar");
   if (controlsBar) {
     controlsBar.style.position = "relative";
-    toConsole("Controls repositioned after video load", "Success");
+    toConsole("Controls repositioned after video load", "Success", debuggin);
   }
 };
 
@@ -750,16 +683,16 @@ const toggleVideoPlaceholder = show => {
       throw new Error("Video placeholder or wrapper element not found");
     }
     if (show) {
-      toConsole("Showing placeholder, hiding video wrapper");
+      toConsole("Showing placeholder, hiding video wrapper", null, debuggin);
       DOM.videoPlaceholder.style.display = "flex";
       DOM.videoWrapper.style.display = "none";
     } else {
-      toConsole("Hiding placeholder, showing video wrapper");
+      toConsole("Hiding placeholder, showing video wrapper", null, debuggin);
       DOM.videoPlaceholder.style.display = "none";
       DOM.videoWrapper.style.display = "block";
     }
   } catch (error) {
-    toConsole("toggleVideoPlaceholder error", error.message);
+    toConsole("toggleVideoPlaceholder error", error.message, debuggin);
     alert("Failed to toggle video placeholder. Please check the console for details.");
   }
 };
@@ -772,28 +705,28 @@ const addOp = () => {
     return;
   }
   const startTime = player.currentTime;
-  toConsole("Operation start time", startTime);
+  toConsole("Operation start time", startTime, debuggin);
   if (firstOp === "n") {
     opCount += 1;
-    toConsole("Creating Operation opCount has increased by 1", opCount);
+    toConsole("Creating Operation opCount has increased by 1", opCount, debuggin);
   } else {
     firstOp = "n";
-    toConsole("Creating first operation yama[0]", opCount);
+    toConsole("Creating first operation yama[0]", opCount, debuggin);
   }
   opNames[opCount] = opName;
   opStartTimes[opCount] = startTime;
   taskCount = 0;
   yama[opCount] = [];
-  toConsole("taskCount has been reset", taskCount);
+  toConsole("taskCount has been reset", taskCount, debuggin);
   updateTaskList();
 };
 
 const addTask = () => {
   player.pause();
-  toConsole("playPause", "play paused to add task");
+  toConsole("playPause", "play paused to add task", debuggin);
   if (yama.length === 0) {
     alert("There's no Operation yet! Please add an Operation first.");
-    toConsole("Tried to add a Task, but No Operation exists");
+    toConsole("Tried to add a Task, but No Operation exists", null, debuggin);
     addOp();
     if (yama.length === 0) {
       return;
@@ -804,24 +737,24 @@ const addTask = () => {
     alert("Task name cannot be empty.");
     return;
   }
-  toConsole("taskName", taskName);
+  toConsole("taskName", taskName, debuggin);
   const taskEnd = player.currentTime * 1000;
-  toConsole("taskEnd", taskEnd);
+  toConsole("taskEnd", taskEnd, debuggin);
   const opIndex = opCount;
   const opStartTimeInputId = `opTimeInput-${opIndex}`;
   const opTimeInput = document.getElementById(opStartTimeInputId);
   const opStartTime = parseTimeFromHHMMSSMS(opTimeInput.value) || 0;
-  toConsole("opStartTime from input", opStartTime);
+  toConsole("opStartTime from input", opStartTime, debuggin);
   const taskStart = taskCount === 0 ? opStartTime * 1000 : yama[opCount][taskCount - 1].taskEnd;
-  toConsole("taskStart", taskStart);
+  toConsole("taskStart", taskStart, debuggin);
   const taskHeight = taskCount === 0 ? taskEnd - opStartTime * 1000 : taskEnd - taskStart;
-  toConsole("taskHeight", taskHeight);
+  toConsole("taskHeight", taskHeight, debuggin);
   let taskStatus = prompt("VA, NVA, W? (or 1=VA, 2=NVA, 3=W)");
   if (!taskStatus) {
     alert("Task status cannot be empty.");
     return;
   }
-  toConsole("taskStatus input", taskStatus);
+  toConsole("taskStatus input", taskStatus, debuggin);
 
   taskStatus = taskStatus.toUpperCase();
   if (taskStatus === "1") taskStatus = "VA";
@@ -832,7 +765,7 @@ const addTask = () => {
     alert("Invalid task status. Please enter VA, NVA, W, 1 (VA), 2 (NVA), or 3 (W).");
     return;
   }
-  toConsole("taskStatus processed", taskStatus);
+  toConsole("taskStatus processed", taskStatus, debuggin);
   yama[opCount][taskCount] = {
     taskName,
     taskStart,
@@ -848,19 +781,19 @@ const addTask = () => {
 /* eslint-disable no-unused-vars */
 const insertTask = (opIndex, taskIndex) => {
   player.pause();
-  toConsole("playPause", "play paused to insert task");
+  toConsole("playPause", "play paused to insert task", debuggin);
   const taskName = prompt("Please name the new Task");
   if (!taskName) {
     alert("Task name cannot be empty.");
     return;
   }
-  toConsole("taskName", taskName);
+  toConsole("taskName", taskName, debuggin);
   let taskStatus = prompt("VA, NVA, W? (or 1=VA, 2=NVA, 3=W)");
   if (!taskStatus) {
     alert("Task status cannot be empty.");
     return;
   }
-  toConsole("taskStatus input", taskStatus);
+  toConsole("taskStatus input", taskStatus, debuggin);
 
   taskStatus = taskStatus.toUpperCase();
   if (taskStatus === "1") taskStatus = "VA";
@@ -871,7 +804,7 @@ const insertTask = (opIndex, taskIndex) => {
     alert("Invalid task status. Please enter VA, NVA, W, 1 (VA), 2 (NVA), or 3 (W).");
     return;
   }
-  toConsole("taskStatus processed", taskStatus);
+  toConsole("taskStatus processed", taskStatus, debuggin);
 
   const currentTask = yama[opIndex][taskIndex];
   const originalDuration = currentTask.taskHeight;
@@ -897,7 +830,7 @@ const insertTask = (opIndex, taskIndex) => {
 
   yama[opIndex].splice(taskIndex + 1, 0, newTask);
 
-  for (let i = taskIndex + 2; i < yama[opIndex].length; i++) {
+  for (let i = taskIndex + 2; i < yama[opIndex].length; i += 1) {
     yama[opIndex][i].taskStart = yama[opIndex][i - 1].taskEnd;
     yama[opIndex][i].taskEnd = yama[opIndex][i].taskStart + yama[opIndex][i].taskHeight;
   }
@@ -1022,7 +955,7 @@ const deleteOperation = opIndex => {
       addTaskButton.disabled = true;
     }
     taskCount = yama[opCount] ? yama[opCount].length : 0;
-    toConsole(`Deleted operation at index ${opIndex}`, `opCount: ${opCount}, taskCount: ${taskCount}`);
+    toConsole(`Deleted operation at index ${opIndex}`, `opCount: ${opCount}, taskCount: ${taskCount}`, debuggin);
     updateTaskList();
     drawTable();
   }
@@ -1034,7 +967,7 @@ const jumpToOperationTime = inputId => {
   if (time !== null) {
     if (player.src) {
       player.currentTime = time;
-      toConsole("Jumped to operation time", time);
+      toConsole("Jumped to operation time", time, debuggin);
     } else {
       alert("Please load a video first.");
     }
@@ -1043,20 +976,6 @@ const jumpToOperationTime = inputId => {
   }
 };
 /* eslint-enable no-unused-vars */
-
-const formatDuration = ms => {
-  if (!ms || ms <= 0) return "00:00:00";
-  const minutes = Math.floor(ms / 60000);
-  const seconds = Math.floor((ms % 60000) / 1000);
-  const milliseconds = Math.floor((ms % 1000) / 10);
-  return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}:${milliseconds.toString().padStart(2, "0")}`;
-};
-
-const formatDecimalMinutes = ms => {
-  if (!ms || ms <= 0) return "0.00";
-  const minutes = ms / (60 * 1000);
-  return minutes.toFixed(2);
-};
 
 const updateTaskList = () => {
   try {
@@ -1146,7 +1065,7 @@ const updateTaskList = () => {
           const newTime = parseTimeFromHHMMSSMS(event.target.value);
           if (newTime !== null) {
             opStartTimes[i] = newTime;
-            toConsole(`Operation ${i} start time updated`, opStartTimes[i]);
+            toConsole(`Operation ${i} start time updated`, opStartTimes[i], debuggin);
             updateProcessTimes();
           } else {
             alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
@@ -1156,7 +1075,7 @@ const updateTaskList = () => {
       );
     }
   } catch (error) {
-    toConsole("updateTaskList error", error.message);
+    toConsole("updateTaskList error", error.message, debuggin);
     alert("Failed to update task list. Please check the console for details.");
   }
 };
@@ -1166,7 +1085,7 @@ const updateProcessTimes = () => {
     if (yama.length === 0) return;
 
     if (!DOM.taskTableFoot) {
-      toConsole("updateProcessTimes skipped", "taskTableFoot is null");
+      toConsole("updateProcessTimes skipped", "taskTableFoot is null", debuggin);
       return;
     }
 
@@ -1200,7 +1119,7 @@ const updateProcessTimes = () => {
         const newEndTime = parseTimeFromHHMMSSMS(event.target.value);
         if (newEndTime !== null) {
           processEndTime = newEndTime;
-          toConsole("Process end time updated", processEndTime);
+          toConsole("Process end time updated", processEndTime, debuggin);
           const durationSeconds = opStartTimes.length > 0 ? Math.max(0, processEndTime - opStartTimes[0]) : 0;
           document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
         } else {
@@ -1210,7 +1129,7 @@ const updateProcessTimes = () => {
       }, 100)
     );
   } catch (error) {
-    toConsole("updateProcessTimes error", error.message);
+    toConsole("updateProcessTimes error", error.message, debuggin);
     alert("Failed to update process times. Please check the console for details.");
   }
 };
@@ -1232,7 +1151,7 @@ const importFromCSV = csvText => {
 
   const metaDataLine = lines[1].split(",").map(val => val.trim());
   processEndTime = parseTimeFromHHMMSSMS(metaDataLine[0]) || 0;
-  toConsole("Imported Process end time", processEndTime);
+  toConsole("Imported Process end time", processEndTime, debuggin);
 
   const opStartTimeHeaders = header.slice(1);
   opStartTimes = [];
@@ -1248,7 +1167,7 @@ const importFromCSV = csvText => {
         const newMinutes = Math.floor(seconds / 60);
         const newSeconds = seconds % 60;
         timeStr = `00:${newMinutes.toString().padStart(2, "0")}:${newSeconds.toString().padStart(2, "0")}:${milliseconds.toString().padStart(2, "0")}`;
-        toConsole(`Fixed OpStartTime-${i}`, `${metaDataLine[i + 1]} -> ${timeStr}`);
+        toConsole(`Fixed OpStartTime-${i}`, `${metaDataLine[i + 1]} -> ${timeStr}`, debuggin);
       }
     }
     const time = parseTimeFromHHMMSSMS(timeStr);
@@ -1256,10 +1175,10 @@ const importFromCSV = csvText => {
       opStartTimes[i] = time;
     } else {
       opStartTimes[i] = 0;
-      toConsole("Invalid OpStartTime, defaulting to 0", `OpStartTime-${i}`);
+      toConsole("Invalid OpStartTime, defaulting to 0", `OpStartTime-${i}`, debuggin);
     }
   }
-  toConsole("Imported OpStartTimes", opStartTimes);
+  toConsole("Imported OpStartTimes", opStartTimes, debuggin);
 
   yama = [];
   opNames = [];
@@ -1284,7 +1203,7 @@ const importFromCSV = csvText => {
   for (let i = 3; i < lines.length; i += 1) {
     const row = lines[i].split(",").map(cell => cell.trim());
     if (row.length < 5) {
-      toConsole("Skipping invalid row", `Line ${i + 1}: ${lines[i]}`);
+      toConsole("Skipping invalid row", `Line ${i + 1}: ${lines[i]}`, debuggin);
       continue;
     }
     const opName = row[0].replace(/^"|"$/g, "");
@@ -1330,7 +1249,7 @@ const importFromCSV = csvText => {
     return;
   }
   updateTaskList();
-  toConsole("CSV imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`);
+  toConsole("CSV imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`, debuggin);
 };
 
 const exportToCSV = () => {
@@ -1409,11 +1328,11 @@ const drawTable = () => {
               });
             }
           } else {
-            toConsole("Invalid task array for operation", j);
+            toConsole("Invalid task array for operation", j, debuggin);
           }
         }
-        toConsole("Generated series", JSON.stringify(series));
-        toConsole("xAxis categories", JSON.stringify(opNames));
+        toConsole("Generated series", JSON.stringify(series), debuggin);
+        toConsole("xAxis categories", JSON.stringify(opNames), debuggin);
         Highcharts.chart(DOM.chartContainer, {
           chart: { type: "column" },
           accessibility: { enabled: false },
@@ -1497,16 +1416,17 @@ const drawTable = () => {
                   statusDurations[status] += yama[i][j].taskHeight;
                 }
               } else {
-                toConsole("Invalid task data at", `Operation ${i}, Task ${j}`);
+                toConsole("Invalid task data at", `Operation ${i}, Task ${j}`, debuggin);
               }
             }
           } else {
-            toConsole("No tasks for operation", opNames[i]);
+            toConsole("No tasks for operation", opNames[i], debuggin);
             continue;
           }
           toConsole(
             "Pie chart data for operation",
-            `${opNames[i]}: VA=${statusDurations.VA}, NVA=${statusDurations.NVA}, W=${statusDurations.W}`
+            `${opNames[i]}: VA=${statusDurations.VA}, NVA=${statusDurations.NVA}, W=${statusDurations.W}`,
+            debuggin
           );
           const pieData = [
             { name: "VA", y: statusDurations.VA, color: "#00FF00" },
@@ -1514,7 +1434,7 @@ const drawTable = () => {
             { name: "W", y: statusDurations.W, color: "#FF0000" },
           ].filter(item => item.y > 0);
           if (pieData.length === 0) {
-            toConsole("No valid pie chart data for operation", opNames[i]);
+            toConsole("No valid pie chart data for operation", opNames[i], debuggin);
             continue;
           }
           const pieDiv = document.createElement("div");
@@ -1564,17 +1484,11 @@ const drawTable = () => {
         }
       })
       .catch(error => {
-        toConsole("drawTable error", error.message);
+        toConsole("drawTable error", error.message, debuggin);
         alert("Failed to load Highcharts for chart rendering. Please check the console for details.");
       });
   } catch (error) {
-    toConsole("drawTable error", error.message);
+    toConsole("drawTable error", error.message, debuggin);
     alert("Failed to render charts. Please check the console for details.");
-  }
-};
-
-const toConsole = (message, value) => {
-  if (debuggin === 1) {
-    console.log(`${message}:`, value);
   }
 };
