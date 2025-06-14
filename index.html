@@ -1,146 +1,140 @@
-<!doctype html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TimeStudy v0.3.1-dev</title>
-    <!-- Bootstrap CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-      crossorigin="anonymous"
-    />
-    <!-- Custom styles -->
-    <link rel="stylesheet" href="styles.css" />
-    <!-- jQuery -->
-    <script
-      src="https://code.jquery.com/jquery-3.7.1.min.js"
-      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
-      crossorigin="anonymous"
-    ></script>
-  </head>
-  <body>
-    <!-- Header -->
-    <header class="site-header">
-      <div class="container-fluid">
-        <h1 class="header-title">TimeStudy v0.3.1-dev</h1>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TimeStudy v0.3.3</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container-fluid">
+      <h1 class="header-title">TimeStudy v0.3.3</h1>
+    </div>
+  </header>
+  <div class="container-fluid main-content">
+    <div class="row">
+      <div class="col-lg-6">
+        <div class="video-container">
+          <div id="videoPlaceholder" class="video-placeholder">Load a video to get started</div>
+          <div id="videoWrapper">
+            <div id="marqueeOverlay" class="marquee-overlay">
+              <div id="marqueeRect" class="marquee-rect"></div>
+            </div>
+            <video id="my_video">
+              <source src="" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            <div class="zoom-controls">
+              <button id="zoomIn" class="btn btn-sm btn-dark-gray">+</button>
+              <button id="zoomOut" class="btn btn-sm btn-dark-gray">-</button>
+              <button id="resetZoom" class="btn btn-sm btn-dark-gray">Reset</button>
+            </div>
+          </div>
+        </div>
+        <div class="controls-container">
+          <div id="video_controls_bar">
+            <div class="control-row time-row">
+              <div class="time-display">
+                <span>Current: <span id="currentTime">00:00:00:00</span></span>
+                <span>Duration: <span id="durationTime">00:00:00:00</span></span>
+              </div>
+              <button id="darkModeToggle" class="btn btn-dark-mode-toggle" title="Toggle Dark Mode">
+                <span id="darkModeIcon">☀️</span>
+              </button>
+            </div>
+            <div class="control-row">
+              <input type="range" class="form-range" min="0" max="100" value="0" id="seekBar">
+            </div>
+            <div class="control-row button-row">
+              <button id="loadVideoButton" class="btn btn-yellow load-button">Load</button>
+              <button id="rewind5sButton" class="btn btn-lighter-green nudge-button">-5s</button>
+              <button id="rewind1sButton" class="btn btn-lighter-green nudge-button">-1s</button>
+              <button id="playPauseButton" class="btn btn-light-green play-button">Play</button>
+              <button id="forward1sButton" class="btn btn-lighter-green nudge-button">+1s</button>
+              <button id="forward5sButton" class="btn btn-lighter-green nudge-button">+5s</button>
+              <button id="muteButton" class="btn btn-dark-gray mute-button" aria-label="Mute audio">🔊</button>
+              <div class="volume-control-container">
+                <input type="range" class="form-range volume-slider" min="0" max="1" step="0.01" value="1" id="volumeSlider">
+              </div>
+            </div>
+            <div class="control-row slider-row">
+              <div class="speed-display">
+                <label for="speedSlider">Playback Speed:</label>
+                <span id="speedValue">1x</span>
+              </div>
+              <input type="range" class="form-range" min="0.5" max="8" step="0.1" value="1" id="speedSlider">
+            </div>
+          </div>
+        </div>
+        <input type="file" id="videoFileInput" accept="video/*" style="display: none">
+        <input type="file" id="csvFileInput" accept=".csv" style="display: none">
       </div>
-    </header>
-
-    <div class="container-fluid main-content">
-      <div class="row">
-        <!-- Left Column: Video and Controls -->
-        <div class="col-lg-6">
-          <div class="video-container">
-            <div id="videoPlaceholder" class="video-placeholder">Load a video to get started</div>
-            <div id="videoWrapper">
-              <div id="marqueeOverlay" class="marquee-overlay">
-                <div id="marqueeRect" class="marquee-rect"></div>
-              </div>
-              <video id="my_video">
-                <source src="" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-              <div class="zoom-controls">
-                <button id="zoomIn" class="btn btn-sm btn-dark-gray">+</button>
-                <button id="zoomOut" class="btn btn-sm btn-dark-gray">-</button>
-                <button id="resetZoom" class="btn btn-sm btn-dark-gray">Reset</button>
-              </div>
+      <div class="col-lg-6">
+        <div class="controls-container">
+          <div class="control-row functions-row">
+            <div class="takt-time-container">
+              <label for="taktTimeInput" class="form-label">Takt Time:</label>
+              <input type="text" class="form-control" id="taktTimeInput" value="00:01:00:00" placeholder="HH:MM:SS:MS">
             </div>
+            <button id="addOpButton" class="btn btn-primary">Add Operation</button>
+            <button id="addTaskButton" class="btn btn-primary" disabled>Add Task</button>
+            <button id="addChartButton" class="btn btn-light-green" disabled>Chart</button>
+            <button id="toggleFormatButton" class="btn btn-dark-gray">Format (MM:SS:MS)</button>
+            <button id="csvExportButton" class="btn btn-orange">Export CSV</button>
+            <button id="csvImportButton" class="btn btn-orange">Load CSV</button>
           </div>
-          <div class="controls-container">
-            <div id="video_controls_bar">
-              <div class="control-row time-row">
-                <div class="time-display">
-                  <span>Current: <span id="currentTime">00:00:00:00</span></span>
-                  <span>Duration: <span id="durationTime">00:00:00:00</span></span>
-                </div>
-                <button id="darkModeToggle" class="btn btn-dark-mode-toggle" title="Toggle Dark Mode">
-                  <span id="darkModeIcon">☀️</span>
-                </button>
-              </div>
-              <div class="control-row">
-                <input type="range" class="form-range" min="0" max="100" value="0" id="seekBar" />
-              </div>
-              <div class="control-row button-row">
-                <button id="loadVideoButton" class="btn btn-yellow load-button">Load</button>
-                <button id="rewind5sButton" class="btn btn-lighter-green nudge-button">-5s</button>
-                <button id="rewind1sButton" class="btn btn-lighter-green nudge-button">-1s</button>
-                <button id="playPauseButton" class="btn btn-light-green play-button">Play</button>
-                <button id="forward1sButton" class="btn btn-lighter-green nudge-button">+1s</button>
-                <button id="forward5sButton" class="btn btn-lighter-green nudge-button">+5s</button>
-                <button id="muteButton" class="btn btn-dark-gray mute-button">Mute</button>
-                <div class="volume-control-container">
-                  <input
-                    type="range"
-                    class="form-range volume-slider"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value="1"
-                    id="volumeSlider"
-                  />
-                </div>
-              </div>
-              <div class="control-row slider-row">
-                <div class="speed-display">
-                  <label for="speedSlider">Playback Speed:</label>
-                  <span id="speedValue">1x</span>
-                </div>
-                <input type="range" class="form-range" min="0.5" max="8" step="0.1" value="1" id="speedSlider" />
-              </div>
-            </div>
-          </div>
-          <input type="file" id="videoFileInput" accept="video/*" style="display: none" />
         </div>
-
-        <!-- Right Column: Controls and Task Table -->
-        <div class="col-lg-6">
-          <div class="controls-container">
-            <div class="control-row functions-row">
-              <div class="takt-time-container">
-                <label for="taktTimeInput" class="form-label">Takt Time:</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="taktTimeInput"
-                  value="00:01:00:00"
-                  placeholder="HH:MM:SS:MS"
-                />
-              </div>
-              <button id="addOpButton" class="btn btn-primary">Add Operation</button>
-              <button id="addTaskButton" class="btn btn-primary" disabled>Add Task</button>
-              <button id="addChartButton" class="btn btn-light-green">Chart</button>
-              <button id="toggleFormatButton" class="btn btn-dark-gray">Format (MM:SS:MS)</button>
-              <button id="csvExportButton" class="btn btn-orange">Export CSV</button>
-              <button id="csvImportButton" class="btn btn-orange">Load CSV</button>
-              <input type="file" id="csvFileInput" accept=".csv" style="display: none" />
-            </div>
-          </div>
-
-          <!-- Task List Table -->
-          <div id="taskList"></div>
-        </div>
-      </div>
-
-      <!-- Full-Width Charts -->
-      <div class="row">
-        <div class="col-12">
-          <div id="chartContainer"></div>
-          <div id="pieChartContainer" class="d-flex flex-wrap"></div>
-        </div>
+        <div id="taskList"></div>
+        <div id="chartContainer"></div>
+        <div id="pieChartContainer" class="d-flex flex-wrap"></div>
       </div>
     </div>
-
-    <!-- Bootstrap JS Bundle (includes Popper) -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-      crossorigin="anonymous"
-    ></script>
-    <!-- Application Logic -->
-    <script src="functions.js"></script>
-    <script src="app.js"></script>
-  </body>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script src="functions.js"></script>
+  <script src="video.js"></script>
+  <script src="app.js"></script>
+</body>
 </html>

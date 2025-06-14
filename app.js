@@ -1,20 +1,9 @@
-let player;
 let addTaskButton;
 let addOpButton;
 let addChartButton;
-let loadVideoButton;
 let toggleFormatButton;
 let csvExportButton;
 let csvImportButton;
-let speedSlider;
-let seekBar;
-let playPauseButton;
-let rewind5sButton;
-let rewind1sButton;
-let forward1sButton;
-let forward5sButton;
-let muteButton;
-let volumeSlider;
 let taktTimeInput;
 
 const debuggin = 1;
@@ -27,44 +16,13 @@ let opStartTimes = [];
 let taktTime = null;
 let durationMode = "hhmmssms";
 let playerReady = false;
-let zoomLevel = 1;
-let translateX = 0;
-let translateY = 0;
 let processEndTime = 0;
-const APP_VERSION = "0.3.2";
-
-let isDrawing = false;
-let startX;
-let startY;
-let marqueeOverlay;
-let marqueeRect;
-
-const DOM = {
-  taskList: document.getElementById("taskList"),
-  videoPlaceholder: document.getElementById("videoPlaceholder"),
-  videoWrapper: document.getElementById("videoWrapper"),
-  chartContainer: document.getElementById("chartContainer"),
-  pieChartContainer: document.getElementById("pieChartContainer"),
-  taskTableFoot: null, // Initialize as null, set dynamically in updateTaskList
-  darkModeToggle: document.getElementById("darkModeToggle"),
-  darkModeIcon: document.getElementById("darkModeIcon"),
-  currentTime: document.getElementById("currentTime"),
-  durationTime: document.getElementById("durationTime"),
-  speedValue: document.getElementById("speedValue"),
-  video: document.getElementById("my_video"),
-  marqueeOverlay: document.getElementById("marqueeOverlay"),
-  marqueeRect: document.getElementById("marqueeRect"),
-  videoFileInput: document.getElementById("videoFileInput"),
-  csvFileInput: document.getElementById("csvFileInput"),
-  zoomIn: document.getElementById("zoomIn"),
-  zoomOut: document.getElementById("zoomOut"),
-  resetZoom: document.getElementById("resetZoom"),
-};
+const APP_VERSION = "0.3.3";
 
 const loadHighcharts = () => {
   return new Promise((resolve, reject) => {
     if (typeof Highcharts !== "undefined") {
-      toConsole("Highcharts already loaded", Highcharts.version, debuggin);
+      TimeStudy.toConsole("Highcharts already loaded", Highcharts.version, debuggin);
       resolve();
       return;
     }
@@ -79,14 +37,14 @@ const loadHighcharts = () => {
       script.async = true;
       script.onload = () => {
         loaded += 1;
-        toConsole("Highcharts script loaded", src, debuggin);
+        TimeStudy.toConsole("Highcharts script loaded", src, debuggin);
         if (loaded === scripts.length) {
-          toConsole("Highcharts fully loaded", Highcharts.version, debuggin);
+          TimeStudy.toConsole("Highcharts fully loaded", Highcharts.version, debuggin);
           resolve();
         }
       };
       script.onerror = () => {
-        toConsole("Highcharts script load error", src, debuggin);
+        TimeStudy.toConsole("Highcharts script load error", src, debuggin);
         reject(new Error(`Failed to load Highcharts script: ${src}`));
       };
       document.head.appendChild(script);
@@ -121,17 +79,14 @@ const setHighchartsTheme = isDark => {
       itemHoverStyle: { color: isDark ? "#60a5fa" : "#0d6efd" },
     },
   });
-  toConsole("Highcharts theme set", isDark ? "Dark" : "Light", debuggin);
+  TimeStudy.toConsole("Highcharts theme set", isDark ? "Dark" : "Light", debuggin);
 };
 
-const initializePlayer = () => {
-  player = DOM.video;
+const initializeApp = () => {
   playerReady = true;
-  toConsole("Video element initialized", "Success", debuggin);
-  toConsole("App Version", APP_VERSION, debuggin);
-
-  marqueeOverlay = DOM.marqueeOverlay;
-  marqueeRect = DOM.marqueeRect;
+  TimeStudy.playerReady = playerReady; // Shared via TimeStudy.playerReady
+  TimeStudy.toConsole("App initialized", "Success", debuggin);
+  TimeStudy.toConsole("App Version", APP_VERSION, debuggin);
 
   const isDarkMode = localStorage.getItem("darkMode") === "true";
   if (typeof Highcharts !== "undefined") {
@@ -139,18 +94,41 @@ const initializePlayer = () => {
   }
   if (isDarkMode) {
     document.body.classList.add("dark-mode");
-    DOM.darkModeIcon.textContent = "🌙";
+    TimeStudy.DOM.darkModeIcon.textContent = "🌙";
   } else {
     document.body.classList.remove("dark-mode");
-    DOM.darkModeIcon.textContent = "☀️";
+    TimeStudy.DOM.darkModeIcon.textContent = "☀️";
   }
 
-  DOM.darkModeToggle.addEventListener("click", () => {
+  // Initialize history state to intercept back button
+  history.pushState(null, null, document.URL);
+  window.onpopstate = () => {
+    if (yama.length > 0) {
+      const leave = confirm("You have unsaved data. Are you sure you want to go back?");
+      if (!leave) {
+        history.pushState(null, null, document.URL);
+      } else {
+        history.back();
+      }
+    } else {
+      history.back();
+    }
+  };
+
+  // Warn on tab close if unsaved data exists
+  window.onbeforeunload = () => {
+    if (yama.length > 0) {
+      return "You have unsaved data. Are you sure you want to leave?";
+    }
+    return null;
+  };
+
+  TimeStudy.DOM.darkModeToggle.addEventListener("click", () => {
     document.body.classList.toggle("dark-mode");
     const isDark = document.body.classList.contains("dark-mode");
-    DOM.darkModeIcon.textContent = isDark ? "🌙" : "☀️";
+    TimeStudy.DOM.darkModeIcon.textContent = isDark ? "🌙" : "☀️";
     localStorage.setItem("darkMode", isDark);
-    toConsole("Dark mode toggled", isDark ? "On" : "Off", debuggin);
+    TimeStudy.toConsole("Dark mode toggled", isDark ? "On" : "Off", debuggin);
     if (typeof Highcharts !== "undefined") {
       setHighchartsTheme(isDark);
     }
@@ -160,68 +138,36 @@ const initializePlayer = () => {
     }
   });
 
-  player.addEventListener("timeupdate", seektimeupdate);
-  player.addEventListener("loadedmetadata", () => {
-    const duration = player.duration;
-    seekBar.max = duration;
-    processEndTime = duration;
-    updateTimeDisplay(duration, "durationTime");
-    positionControls();
-    updateLoadButtonColor();
-    toggleVideoPlaceholder(false);
-    updateProcessTimes();
-    player.playbackRate = 1;
-    speedSlider.value = 1;
-    DOM.speedValue.textContent = "1x";
-    toConsole("Playback speed reset to 1x after load", "Success", debuggin);
-    volumeSlider.value = player.volume;
-  });
-  player.addEventListener("play", () => {
-    playPauseButton.textContent = "Pause";
-  });
-  player.addEventListener("pause", () => {
-    playPauseButton.textContent = "Play";
-  });
-  player.addEventListener("error", () => {
-    toConsole("Video load error", "Failed to load video from URL", debuggin);
-    alert(
-      "Failed to load the video from the provided URL. Please use the 'Load' button to select a video file manually."
-    );
-    toggleVideoPlaceholder(true);
-    updateLoadButtonColor();
-  });
-
   addTaskButton = document.getElementById("addTaskButton");
   addOpButton = document.getElementById("addOpButton");
   addChartButton = document.getElementById("addChartButton");
   csvExportButton = document.getElementById("csvExportButton");
   csvImportButton = document.getElementById("csvImportButton");
-  loadVideoButton = document.getElementById("loadVideoButton");
   toggleFormatButton = document.getElementById("toggleFormatButton");
-  speedSlider = document.getElementById("speedSlider");
-  seekBar = document.getElementById("seekBar");
-  playPauseButton = document.getElementById("playPauseButton");
-  rewind5sButton = document.getElementById("rewind5sButton");
-  rewind1sButton = document.getElementById("rewind1sButton");
-  forward1sButton = document.getElementById("forward1sButton");
-  forward5sButton = document.getElementById("forward5sButton");
-  muteButton = document.getElementById("muteButton");
-  volumeSlider = document.getElementById("volumeSlider");
   taktTimeInput = document.getElementById("taktTimeInput");
+
+  // Shared via TimeStudy
+  TimeStudy.addTaskButton = addTaskButton;
+  TimeStudy.addChartButton = addChartButton;
+  TimeStudy.toggleFormatButton = toggleFormatButton;
+  TimeStudy.taktTimeInput = taktTimeInput;
 
   // Initialize button states
   addTaskButton.disabled = true;
   addChartButton.disabled = true;
+  toggleFormatButton.disabled = true;
 
   taktTime = parseTaktTime(taktTimeInput.value);
+  TimeStudy.taktTime = taktTime; // Shared via TimeStudy.taktTime
 
   taktTimeInput.addEventListener(
     "input",
-    debounce(event => {
+    TimeStudy.debounce(event => {
       const newTaktTime = parseTaktTime(event.target.value);
       if (newTaktTime !== null) {
         taktTime = newTaktTime;
-        toConsole("Takt Time updated", taktTime, debuggin);
+        TimeStudy.taktTime = taktTime;
+        TimeStudy.toConsole("Takt Time updated", taktTime, debuggin);
       } else {
         alert("Invalid Takt Time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
         taktTimeInput.value = formatTaktTime(taktTime);
@@ -230,28 +176,22 @@ const initializePlayer = () => {
   );
 
   addOpButton.addEventListener("click", addOp);
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const videoUrl = urlParams.get("v");
-  if (videoUrl) {
-    toConsole("Found video URL in GET parameter", videoUrl, debuggin);
-    player.src = videoUrl;
-    player.load();
-  }
-
   addTaskButton.addEventListener("click", addTask, false);
   addChartButton.addEventListener("click", drawTable, false);
   csvExportButton.addEventListener("click", exportToCSV, false);
   csvImportButton.addEventListener("click", () => {
-    DOM.csvFileInput.click();
-  });
-  loadVideoButton.addEventListener("click", () => {
-    DOM.videoFileInput.click();
+    TimeStudy.DOM.csvFileInput.click();
   });
 
-  DOM.videoPlaceholder.addEventListener("click", () => {
-    DOM.videoFileInput.click();
-    toConsole("Video placeholder clicked", "Triggered Load Video", debuggin);
+  TimeStudy.DOM.csvFileInput.addEventListener("change", event => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        importFromCSV(e.target.result);
+      };
+      reader.readAsText(file);
+    }
   });
 
   toggleFormatButton.addEventListener("click", () => {
@@ -268,195 +208,9 @@ const initializePlayer = () => {
     updateTaskList();
     drawTable();
   });
-  playPauseButton.addEventListener("click", () => {
-    if (player.paused) {
-      player.play();
-    } else {
-      player.pause();
-    }
-  });
-
-  rewind5sButton.addEventListener("click", () => {
-    player.currentTime = Math.max(0, player.currentTime - 5);
-    toConsole("Rewind 5s", player.currentTime, debuggin);
-  });
-  rewind1sButton.addEventListener("click", () => {
-    player.currentTime = Math.max(0, player.currentTime - 1);
-    toConsole("Rewind 1s", player.currentTime, debuggin);
-  });
-  forward1sButton.addEventListener("click", () => {
-    player.currentTime = Math.min(player.duration, player.currentTime + 1);
-    toConsole("Forward 1s", player.currentTime, debuggin);
-  });
-  forward5sButton.addEventListener("click", () => {
-    player.currentTime = Math.min(player.duration, player.currentTime + 5);
-    toConsole("Forward 5s", player.currentTime, debuggin);
-  });
-
-  muteButton.addEventListener("click", () => {
-    player.muted = !player.muted;
-    muteButton.textContent = player.muted ? "Unmute" : "Mute";
-    toConsole("Mute toggled", player.muted, debuggin);
-    volumeSlider.value = player.muted ? 0 : player.volume;
-  });
-
-  volumeSlider.addEventListener(
-    "input",
-    debounce(event => {
-      const volume = parseFloat(event.target.value);
-      if (!isNaN(volume)) {
-        player.volume = volume;
-        player.muted = volume === 0;
-        muteButton.textContent = player.muted ? "Unmute" : "Mute";
-        toConsole("Volume adjusted", volume, debuggin);
-      }
-    }, 100)
-  );
-
-  if (speedSlider) {
-    speedSlider.addEventListener(
-      "input",
-      debounce(event => {
-        const speed = parseFloat(event.target.value);
-        if (!isNaN(speed)) {
-          player.playbackRate = speed;
-          DOM.speedValue.textContent = `${speed}x`;
-          toConsole("Speed slider input event fired", speed, debuggin);
-          toConsole("Speed value label updated", `${speed}x`, debuggin);
-        }
-      }, 100)
-    );
-
-    player.playbackRate = 1;
-    toConsole("Initial playback rate set", 1, debuggin);
-    DOM.speedValue.textContent = "1x";
-  }
-
-  if (seekBar) {
-    seekBar.addEventListener(
-      "input",
-      debounce(event => {
-        const time = parseFloat(event.target.value);
-        if (!isNaN(time)) {
-          player.currentTime = time;
-          toConsole("Seek bar input event fired", time, debuggin);
-          toConsole("Video seeked to", time, debuggin);
-        }
-      }, 100)
-    );
-  }
-
-  DOM.videoFileInput.addEventListener("change", event => {
-    const file = event.target.files[0];
-    if (!file) {
-      toConsole("No video file selected", null, debuggin);
-      return;
-    }
-
-    if (player.src && yama.length > 0) {
-      const save = confirm(
-        "You have unsaved data. Would you like to save your data as a CSV file before loading a new video?"
-      );
-      if (save) {
-        exportToCSV();
-        toConsole("Data exported to CSV before loading new video", null, debuggin);
-      }
-      const proceed = confirm(
-        "Loading a new video will clear all existing data and charts. Are you sure you want to proceed?"
-      );
-      if (!proceed) {
-        toConsole("User cancelled loading new video", null, debuggin);
-        return;
-      }
-    }
-
-    const fileURL = URL.createObjectURL(file);
-    player.src = fileURL;
-    player.load();
-
-    yama = [];
-    opNames = [];
-    opStartTimes = [];
-    opCount = 0;
-    taskCount = 0;
-    firstOp = "y";
-    taktTime = parseTaktTime(taktTimeInput.value);
-    DOM.taskList.innerHTML = "";
-    DOM.pieChartContainer.innerHTML = "";
-    DOM.chartContainer.innerHTML = "";
-    updateTaskList();
-    addTaskButton.disabled = true;
-    addChartButton.disabled = true;
-    toConsole("Cleared all previous data and charts", null, debuggin);
-
-    player.playbackRate = 1;
-    speedSlider.value = 1;
-    DOM.speedValue.textContent = "1x";
-    toConsole("Playback speed reset to 1x after manual load", "Success", debuggin);
-
-    updateLoadButtonColor();
-  });
-
-  DOM.csvFileInput.addEventListener("change", event => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        importFromCSV(e.target.result);
-      };
-      reader.readAsText(file);
-    }
-  });
-
-  DOM.zoomIn.addEventListener("click", () => {
-    zoomLevel += 0.1;
-    updateZoom();
-  });
-  DOM.zoomOut.addEventListener("click", () => {
-    zoomLevel = Math.max(0.1, zoomLevel - 0.1);
-    updateZoom();
-  });
-  DOM.resetZoom.addEventListener("click", () => {
-    zoomLevel = 1;
-    translateX = 0;
-    translateY = 0;
-    updateZoom();
-  });
-
-  marqueeOverlay.addEventListener("mousedown", startMarquee);
-  marqueeOverlay.addEventListener("mousemove", drawMarquee);
-  marqueeOverlay.addEventListener("mouseup", endMarquee);
 
   document.addEventListener("keydown", e => {
     switch (e.key) {
-      case " ":
-        e.preventDefault();
-        if (player.paused) {
-          player.play();
-        } else {
-          player.pause();
-        }
-        break;
-      case "ArrowLeft":
-        e.preventDefault();
-        player.currentTime = Math.max(0, player.currentTime - 1);
-        toConsole("Rewind 1s (Left Arrow)", player.currentTime, debuggin);
-        break;
-      case "ArrowDown":
-        e.preventDefault();
-        player.currentTime = Math.max(0, player.currentTime - 5);
-        toConsole("Rewind 5s (Down Arrow)", player.currentTime, debuggin);
-        break;
-      case "ArrowRight":
-        e.preventDefault();
-        player.currentTime = Math.min(player.duration, player.currentTime + 1);
-        toConsole("Forward 1s (Right Arrow)", player.currentTime, debuggin);
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        player.currentTime = Math.min(player.duration, player.currentTime + 5);
-        toConsole("Forward 5s (Up Arrow)", player.currentTime, debuggin);
-        break;
       case "t":
         e.preventDefault();
         if (!addTaskButton.disabled) addTask();
@@ -465,272 +219,59 @@ const initializePlayer = () => {
         e.preventDefault();
         addOp();
         break;
-      case "m":
-        e.preventDefault();
-        player.muted = !player.muted;
-        muteButton.textContent = player.muted ? "Unmute" : "Mute";
-        toConsole("Mute toggled (M key)", player.muted, debuggin);
-        volumeSlider.value = player.muted ? 0 : player.volume;
-        break;
-      case "=":
-        e.preventDefault();
-        zoomLevel += 0.1;
-        updateZoom();
-        break;
-      case "-":
-        e.preventDefault();
-        zoomLevel = Math.max(0.1, zoomLevel - 0.1);
-        updateZoom();
-        break;
-      case "Backspace":
-        e.preventDefault();
-        zoomLevel = 1;
-        translateX = 0;
-        translateY = 0;
-        updateZoom();
-        break;
     }
   });
 
-  toConsole("jQuery version", $.fn.jquery, debuggin);
-  updateLoadButtonColor();
+  TimeStudy.toConsole("jQuery version", $.fn.jquery, debuggin);
 };
 
 window.onload = () => {
-  initializePlayer();
-  toggleVideoPlaceholder(true);
-};
-
-const startMarquee = e => {
-  if (e.target.closest(".zoom-controls")) return;
-  isDrawing = true;
-  const rect = marqueeOverlay.getBoundingClientRect();
-  startX = e.clientX - rect.left;
-  startY = e.clientY - rect.top;
-  marqueeRect.style.left = `${startX}px`;
-  marqueeRect.style.top = `${startY}px`;
-  marqueeRect.style.width = "0px";
-  marqueeRect.style.height = "0px";
-  marqueeRect.style.display = "block";
-  toConsole("Marquee start", `(${startX}, ${startY})`, debuggin);
-};
-
-const drawMarquee = e => {
-  if (!isDrawing) return;
-  const rect = marqueeOverlay.getBoundingClientRect();
-  const currentX = e.clientX - rect.left;
-  const currentY = e.clientY - rect.top;
-
-  const width = currentX - startX;
-  const height = currentY - startY;
-
-  if (width < 0) {
-    marqueeRect.style.left = `${currentX}px`;
-    marqueeRect.style.width = `${-width}px`;
-  } else {
-    marqueeRect.style.left = `${startX}px`;
-    marqueeRect.style.width = `${width}px`;
-  }
-
-  if (height < 0) {
-    marqueeRect.style.top = `${currentY}px`;
-    marqueeRect.style.height = `${-height}px`;
-  } else {
-    marqueeRect.style.top = `${startY}px`;
-    marqueeRect.style.height = `${height}px`;
-  }
-};
-
-const endMarquee = e => {
-  if (!isDrawing) return;
-  isDrawing = false;
-  marqueeRect.style.display = "none";
-
-  const rect = marqueeOverlay.getBoundingClientRect();
-  const endX = e.clientX - rect.left;
-  const endY = e.clientY - rect.top;
-
-  const x1 = Math.min(startX, endX);
-  const x2 = Math.max(startX, endX);
-  const y1 = Math.min(startY, endY);
-  const y2 = Math.max(startY, endY);
-
-  const marqueeWidth = x2 - x1;
-  const marqueeHeight = y2 - y1;
-
-  toConsole("Marquee end", `Box: (${x1}, ${y1}) to (${x2}, ${y2})`, debuggin);
-
-  if (marqueeWidth < 10 || marqueeHeight < 10) {
-    toConsole("Marquee too small, ignoring zoom", null, debuggin);
-    return;
-  }
-
-  const videoWrapper = DOM.videoWrapper;
-  const wrapperWidth = videoWrapper.clientWidth;
-  const wrapperHeight = videoWrapper.clientHeight;
-
-  const video = DOM.video;
-  const videoRect = video.getBoundingClientRect();
-  const wrapperRect = videoWrapper.getBoundingClientRect();
-  const offsetX = videoRect.left - wrapperRect.left;
-  const offsetY = videoRect.top - wrapperRect.top;
-  const videoDisplayWidth = videoRect.width;
-  const videoDisplayHeight = videoRect.height;
-  toConsole(
-    "Video display",
-    `Width: ${videoDisplayWidth}, Height: ${videoDisplayHeight}, Offset: (${offsetX}, ${offsetY})`,
-    debuggin
-  );
-
-  const marqueeX1 = x1 - offsetX;
-  const marqueeY1 = y1 - offsetY;
-  const marqueeX2 = x2 - offsetX;
-  const marqueeY2 = y2 - offsetY;
-
-  const marqueeCenterX = (marqueeX1 + marqueeX2) / 2;
-  const marqueeCenterY = (marqueeY1 + marqueeY2) / 2;
-  toConsole("Marquee center (display)", `(${marqueeCenterX}, ${marqueeCenterY})`, debuggin);
-
-  const zoomX = videoDisplayWidth / marqueeWidth;
-  const zoomY = videoDisplayHeight / marqueeHeight;
-  const newZoomLevel = Math.min(zoomX, zoomY);
-  toConsole("New zoom level (relative)", newZoomLevel, debuggin);
-
-  const previousZoomLevel = zoomLevel;
-  zoomLevel *= newZoomLevel;
-  toConsole("Cumulative zoom level", zoomLevel, debuggin);
-
-  const videoCoordX = (marqueeCenterX - translateX * previousZoomLevel) / previousZoomLevel;
-  const videoCoordY = (marqueeCenterY - translateY * previousZoomLevel) / previousZoomLevel;
-  toConsole("Marquee center (video coords)", `(${videoCoordX}, ${videoCoordY})`, debuggin);
-
-  const scaledVideoCoordX = videoCoordX * zoomLevel;
-  const scaledVideoCoordY = videoCoordY * zoomLevel;
-  toConsole("Scaled video coordinates", `(${scaledVideoCoordX}, ${scaledVideoCoordY})`, debuggin);
-
-  translateX = (wrapperWidth / 2 - scaledVideoCoordX) / zoomLevel;
-  translateY = (wrapperHeight / 2 - scaledVideoCoordY) / zoomLevel;
-  toConsole("New translation", `(${translateX}, ${translateY})`, debuggin);
-
-  const finalX = videoCoordX * zoomLevel + translateX * zoomLevel;
-  const finalY = videoCoordY * zoomLevel + translateY * zoomLevel;
-  toConsole("Final center position", `(${finalX}, ${finalY})`, debuggin);
-
-  updateZoom();
-};
-
-const updateZoom = () => {
-  const video = DOM.video;
-  video.style.transform = `scale(${zoomLevel}) translate(${translateX}px, ${translateY}px)`;
-  toConsole("Zoom updated", `Level: ${zoomLevel}, Translate: (${translateX}, ${translateY})`, debuggin);
-};
-
-const seektimeupdate = () => {
-  if (player && playerReady) {
-    const currentTime = player.currentTime;
-    const duration = player.duration;
-    if (seekBar) {
-      seekBar.value = currentTime;
-      seekBar.max = duration || 0;
-    }
-    updateTimeDisplay(currentTime, "currentTime");
-    if (duration) {
-      updateTimeDisplay(duration, "durationTime");
-    }
-  }
-};
-
-const updateTimeDisplay = (seconds, elementId) => {
-  DOM[elementId].textContent = formatTimeToHHMMSSMS(seconds);
-};
-
-const positionControls = () => {
-  const controlsBar = document.getElementById("video_controls_bar");
-  if (controlsBar) {
-    controlsBar.style.position = "relative";
-    toConsole("Controls repositioned after video load", "Success", debuggin);
-  }
-};
-
-const updateLoadButtonColor = () => {
-  if (loadVideoButton && player && playPauseButton) {
-    const src = player.src;
-    if (!src) {
-      loadVideoButton.classList.remove("btn-orange");
-      loadVideoButton.classList.add("btn-yellow");
-      playPauseButton.disabled = true;
-      rewind5sButton.disabled = true;
-      rewind1sButton.disabled = true;
-      forward1sButton.disabled = true;
-      forward5sButton.disabled = true;
-      muteButton.disabled = true;
-      volumeSlider.disabled = true;
-    } else {
-      loadVideoButton.classList.remove("btn-yellow");
-      loadVideoButton.classList.add("btn-orange");
-      playPauseButton.disabled = false;
-      rewind5sButton.disabled = false;
-      rewind1sButton.disabled = false;
-      forward1sButton.disabled = false;
-      forward5sButton.disabled = false;
-      muteButton.disabled = false;
-      volumeSlider.disabled = false;
-    }
-  }
-};
-
-const toggleVideoPlaceholder = show => {
-  try {
-    if (!DOM.videoPlaceholder || !DOM.videoWrapper) {
-      throw new Error("Video placeholder or wrapper element not found");
-    }
-    if (show) {
-      toConsole("Showing placeholder, hiding video wrapper", null, debuggin);
-      DOM.videoPlaceholder.style.display = "flex";
-      DOM.videoWrapper.style.display = "none";
-    } else {
-      toConsole("Hiding placeholder, showing video wrapper", null, debuggin);
-      DOM.videoPlaceholder.style.display = "none";
-      DOM.videoWrapper.style.display = "block";
-    }
-  } catch (error) {
-    toConsole("toggleVideoPlaceholder error", error.message, debuggin);
-    alert("Failed to toggle video placeholder. Please check the console for details.");
-  }
+  TimeStudy.initVideo();
+  initializeApp();
 };
 
 const addOp = () => {
-  player.pause();
+  TimeStudy.player.pause();
   const opName = prompt("Please name the Operation");
   if (!opName) {
     alert("Operation name cannot be empty.");
     return;
   }
-  const startTime = player.currentTime;
-  toConsole("Operation start time", startTime, debuggin);
+  const startTime = TimeStudy.player.currentTime;
+  TimeStudy.toConsole("Operation start time", startTime, debuggin);
   if (firstOp === "n") {
     opCount += 1;
-    toConsole("Creating Operation opCount has increased by 1", opCount, debuggin);
+    TimeStudy.toConsole("Creating Operation opCount has increased by 1", opCount, debuggin);
   } else {
     firstOp = "n";
-    toConsole("Creating first operation yama[0]", opCount, debuggin);
+    TimeStudy.toConsole("Creating first operation yama[0]", opCount, debuggin);
   }
   opNames[opCount] = opName;
   opStartTimes[opCount] = startTime;
   taskCount = 0;
   yama[opCount] = [];
-  toConsole("taskCount has been reset", taskCount, debuggin);
-  addTaskButton.disabled = false; // Enable Add Task button
-  addChartButton.disabled = false; // Enable Chart button
+  TimeStudy.toConsole("taskCount has been reset", taskCount, debuggin);
+  addTaskButton.disabled = false;
+  addChartButton.disabled = false;
+  toggleFormatButton.disabled = false;
+
+  // Update shared state
+  TimeStudy.opCount = opCount;
+  TimeStudy.firstOp = firstOp;
+  TimeStudy.taskCount = taskCount;
+  TimeStudy.yama = yama;
+  TimeStudy.opNames = opNames;
+  TimeStudy.opStartTimes = opStartTimes;
+
   updateTaskList();
 };
 
 const addTask = () => {
-  player.pause();
-  toConsole("playPause", "play paused to add task", debuggin);
+  TimeStudy.player.pause();
+  TimeStudy.toConsole("playPause", "play paused to add task", debuggin);
   if (yama.length === 0) {
     alert("There's no Operation yet! Please add an Operation first.");
-    toConsole("Tried to add a Task, but No Operation exists", null, debuggin);
+    TimeStudy.toConsole("Tried to add a Task, but No Operation exists", null, debuggin);
     addOp();
     if (yama.length === 0) {
       return;
@@ -741,24 +282,24 @@ const addTask = () => {
     alert("Task name cannot be empty.");
     return;
   }
-  toConsole("taskName", taskName, debuggin);
-  const taskEnd = player.currentTime * 1000;
-  toConsole("taskEnd", taskEnd, debuggin);
+  TimeStudy.toConsole("taskName", taskName, debuggin);
+  const taskEnd = TimeStudy.player.currentTime * 1000;
+  TimeStudy.toConsole("taskEnd", taskEnd, debuggin);
   const opIndex = opCount;
   const opStartTimeInputId = `opTimeInput-${opIndex}`;
   const opTimeInput = document.getElementById(opStartTimeInputId);
   const opStartTime = parseTimeFromHHMMSSMS(opTimeInput.value) || 0;
-  toConsole("opStartTime from input", opStartTime, debuggin);
+  TimeStudy.toConsole("opStartTime from input", opStartTime, debuggin);
   const taskStart = taskCount === 0 ? opStartTime * 1000 : yama[opCount][taskCount - 1].taskEnd;
-  toConsole("taskStart", taskStart, debuggin);
+  TimeStudy.toConsole("taskStart", taskStart, debuggin);
   const taskHeight = taskCount === 0 ? taskEnd - opStartTime * 1000 : taskEnd - taskStart;
-  toConsole("taskHeight", taskHeight, debuggin);
+  TimeStudy.toConsole("taskHeight", taskHeight, debuggin);
   let taskStatus = prompt("VA, NVA, W? (or 1=VA, 2=NVA, 3=W)");
   if (!taskStatus) {
     alert("Task status cannot be empty.");
     return;
   }
-  toConsole("taskStatus input", taskStatus, debuggin);
+  TimeStudy.toConsole("taskStatus input", taskStatus, debuggin);
 
   taskStatus = taskStatus.toUpperCase();
   if (taskStatus === "1") taskStatus = "VA";
@@ -769,7 +310,7 @@ const addTask = () => {
     alert("Invalid task status. Please enter VA, NVA, W, 1 (VA), 2 (NVA), or 3 (W).");
     return;
   }
-  toConsole("taskStatus processed", taskStatus, debuggin);
+  TimeStudy.toConsole("taskStatus processed", taskStatus, debuggin);
   yama[opCount][taskCount] = {
     taskName,
     taskStart,
@@ -779,25 +320,29 @@ const addTask = () => {
   };
   console.table(yama[opCount][taskCount]);
   taskCount += 1;
+
+  // Update shared state
+  TimeStudy.taskCount = taskCount;
+  TimeStudy.yama = yama;
+
   updateTaskList();
 };
 
-/* eslint-disable no-unused-vars */
 const insertTask = (opIndex, taskIndex) => {
-  player.pause();
-  toConsole("playPause", "play paused to insert task", debuggin);
+  TimeStudy.player.pause();
+  TimeStudy.toConsole("playPause", "play paused to insert task", debuggin);
   const taskName = prompt("Please name the new Task");
   if (!taskName) {
     alert("Task name cannot be empty.");
     return;
   }
-  toConsole("taskName", taskName, debuggin);
+  TimeStudy.toConsole("taskName", taskName, debuggin);
   let taskStatus = prompt("VA, NVA, W? (or 1=VA, 2=NVA, 3=W)");
   if (!taskStatus) {
     alert("Task status cannot be empty.");
     return;
   }
-  toConsole("taskStatus input", taskStatus, debuggin);
+  TimeStudy.toConsole("taskStatus input", taskStatus, debuggin);
 
   taskStatus = taskStatus.toUpperCase();
   if (taskStatus === "1") taskStatus = "VA";
@@ -808,7 +353,7 @@ const insertTask = (opIndex, taskIndex) => {
     alert("Invalid task status. Please enter VA, NVA, W, 1 (VA), 2 (NVA), or 3 (W).");
     return;
   }
-  toConsole("taskStatus processed", taskStatus, debuggin);
+  TimeStudy.toConsole("taskStatus processed", taskStatus, debuggin);
 
   const currentTask = yama[opIndex][taskIndex];
   const originalDuration = currentTask.taskHeight;
@@ -840,6 +385,9 @@ const insertTask = (opIndex, taskIndex) => {
   }
 
   taskCount = yama[opIndex].length;
+  TimeStudy.taskCount = taskCount; // Shared via TimeStudy.taskCount
+  TimeStudy.yama = yama; // Shared via TimeStudy.yama
+
   updateTaskList();
   drawTable();
 };
@@ -858,6 +406,7 @@ const editTask = (opIndex, taskIndex) => {
   }
   yama[opIndex][taskIndex].taskName = newTaskName;
   yama[opIndex][taskIndex].taskStatus = newTaskStatus;
+  TimeStudy.yama = yama; // Shared via TimeStudy.yama
   updateTaskList();
   drawTable();
 };
@@ -915,6 +464,7 @@ const editTaskDuration = (opIndex, taskIndex) => {
     yama[opIndex][i].taskStart = yama[opIndex][i - 1].taskEnd;
     yama[opIndex][i].taskEnd = yama[opIndex][i].taskStart + yama[opIndex][i].taskHeight;
   }
+  TimeStudy.yama = yama; // Shared via TimeStudy.yama
   updateTaskList();
   drawTable();
 };
@@ -936,9 +486,22 @@ const deleteTask = (opIndex, taskIndex) => {
         firstOp = "y";
         addTaskButton.disabled = true;
         addChartButton.disabled = true;
+        toggleFormatButton.disabled = true;
       }
     }
     taskCount = yama[opIndex] ? yama[opIndex].length : 0;
+
+    // Update shared state
+    TimeStudy.opCount = opCount;
+    TimeStudy.firstOp = firstOp;
+    TimeStudy.taskCount = taskCount;
+    TimeStudy.yama = yama;
+    TimeStudy.opNames = opNames;
+    TimeStudy.opStartTimes = opStartTimes;
+    TimeStudy.addTaskButton.disabled = addTaskButton.disabled;
+    TimeStudy.addChartButton.disabled = addChartButton.disabled;
+    TimeStudy.toggleFormatButton.disabled = toggleFormatButton.disabled;
+
     updateTaskList();
     drawTable();
   }
@@ -959,9 +522,26 @@ const deleteOperation = opIndex => {
       firstOp = "y";
       addTaskButton.disabled = true;
       addChartButton.disabled = true;
+      toggleFormatButton.disabled = true;
     }
     taskCount = yama[opCount] ? yama[opCount].length : 0;
-    toConsole(`Deleted operation at index ${opIndex}`, `opCount: ${opCount}, taskCount: ${taskCount}`, debuggin);
+
+    // Update shared state
+    TimeStudy.opCount = opCount;
+    TimeStudy.firstOp = firstOp;
+    TimeStudy.taskCount = taskCount;
+    TimeStudy.yama = yama;
+    TimeStudy.opNames = opNames;
+    TimeStudy.opStartTimes = opStartTimes;
+    TimeStudy.addTaskButton.disabled = addTaskButton.disabled;
+    TimeStudy.addChartButton.disabled = addChartButton.disabled;
+    TimeStudy.toggleFormatButton.disabled = toggleFormatButton.disabled;
+
+    TimeStudy.toConsole(
+      `Deleted operation at index ${opIndex}`,
+      `opCount: ${opCount}, taskCount: ${taskCount}`,
+      debuggin
+    );
     updateTaskList();
     drawTable();
   }
@@ -971,9 +551,9 @@ const jumpToOperationTime = inputId => {
   const opTimeInput = document.getElementById(inputId);
   const time = parseTimeFromHHMMSSMS(opTimeInput.value);
   if (time !== null) {
-    if (player.src) {
-      player.currentTime = time;
-      toConsole("Jumped to operation time", time, debuggin);
+    if (TimeStudy.player.src) {
+      TimeStudy.player.currentTime = time;
+      TimeStudy.toConsole("Jumped to operation time", time, debuggin);
     } else {
       alert("Please load a video first.");
     }
@@ -981,11 +561,10 @@ const jumpToOperationTime = inputId => {
     alert("Invalid time format in the input field.");
   }
 };
-/* eslint-enable no-unused-vars */
 
 const updateTaskList = () => {
   try {
-    if (!DOM.taskList) throw new Error("Task list element not found");
+    if (!TimeStudy.DOM.taskList) throw new Error("Task list element not found");
     const isDarkMode = document.body.classList.contains("dark-mode");
     const rows = [
       `<table class="table table-bordered task-table${isDarkMode ? " table-dark" : ""}">
@@ -1048,21 +627,29 @@ const updateTaskList = () => {
         <tfoot id="taskTableFoot"></tfoot>
       </table>
     `);
-    DOM.taskList.innerHTML = rows.join("");
+    TimeStudy.DOM.taskList.innerHTML = rows.join("");
 
-    DOM.taskTableFoot = document.getElementById("taskTableFoot");
+    TimeStudy.DOM.taskTableFoot = document.getElementById("taskTableFoot");
 
     const table = document.querySelector(".task-table");
     if (!table) throw new Error("Task table element not found");
     if (yama.length > 0) {
       table.style.display = "table";
-      addTaskButton.disabled = false; // Ensure Add Task button is enabled if operations exist
-      addChartButton.disabled = false; // Ensure Chart button is enabled if operations exist
+      addTaskButton.disabled = false;
+      addChartButton.disabled = false;
+      toggleFormatButton.disabled = false;
+      TimeStudy.addTaskButton.disabled = false;
+      TimeStudy.addChartButton.disabled = false;
+      TimeStudy.toggleFormatButton.disabled = false;
       updateProcessTimes();
     } else {
       table.style.display = "none";
-      addTaskButton.disabled = true; // Disable Add Task button if no operations
-      addChartButton.disabled = true; // Disable Chart button if no operations
+      addTaskButton.disabled = true;
+      addChartButton.disabled = true;
+      toggleFormatButton.disabled = true;
+      TimeStudy.addTaskButton.disabled = true;
+      TimeStudy.addChartButton.disabled = true;
+      TimeStudy.toggleFormatButton.disabled = true;
     }
 
     for (let i = 0; i < yama.length; i += 1) {
@@ -1070,11 +657,12 @@ const updateTaskList = () => {
       if (!opTimeInput) throw new Error(`Operation time input opTimeInput-${i} not found`);
       opTimeInput.addEventListener(
         "input",
-        debounce(event => {
+        TimeStudy.debounce(event => {
           const newTime = parseTimeFromHHMMSSMS(event.target.value);
           if (newTime !== null) {
             opStartTimes[i] = newTime;
-            toConsole(`Operation ${i} start time updated`, opStartTimes[i], debuggin);
+            TimeStudy.opStartTimes[i] = newTime;
+            TimeStudy.toConsole(`Operation ${i} start time updated`, opStartTimes[i], debuggin);
             updateProcessTimes();
           } else {
             alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
@@ -1084,17 +672,20 @@ const updateTaskList = () => {
       );
     }
   } catch (error) {
-    toConsole("updateTaskList error", error.message, debuggin);
+    TimeStudy.toConsole("updateTaskList error", error.message, debuggin);
     alert("Failed to update task list. Please check the console for details.");
   }
 };
+
+// Expose updateTaskList to TimeStudy
+TimeStudy.updateTaskList = updateTaskList; // Shared via TimeStudy.updateTaskList
 
 const updateProcessTimes = () => {
   try {
     if (yama.length === 0) return;
 
-    if (!DOM.taskTableFoot) {
-      toConsole("updateProcessTimes skipped", "taskTableFoot is null", debuggin);
+    if (!TimeStudy.DOM.taskTableFoot) {
+      TimeStudy.toConsole("updateProcessTimes skipped", "taskTableFoot is null", debuggin);
       return;
     }
 
@@ -1105,7 +696,7 @@ const updateProcessTimes = () => {
       totalProcessTime = formatTimeToHHMMSSMS(durationSeconds);
     }
 
-    DOM.taskTableFoot.innerHTML = `
+    TimeStudy.DOM.taskTableFoot.innerHTML = `
       <tr>
         <td colspan="5" class="table-foot">
           <span class="process-time-container">
@@ -1124,11 +715,12 @@ const updateProcessTimes = () => {
     if (!processEndTimeInput) throw new Error("Process end time input not found");
     processEndTimeInput.addEventListener(
       "input",
-      debounce(event => {
+      TimeStudy.debounce(event => {
         const newEndTime = parseTimeFromHHMMSSMS(event.target.value);
         if (newEndTime !== null) {
           processEndTime = newEndTime;
-          toConsole("Process end time updated", processEndTime, debuggin);
+          TimeStudy.processEndTime = processEndTime; // Shared via TimeStudy.processEndTime
+          TimeStudy.toConsole("Process end time updated", processEndTime, debuggin);
           const durationSeconds = opStartTimes.length > 0 ? Math.max(0, processEndTime - opStartTimes[0]) : 0;
           document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
         } else {
@@ -1138,7 +730,7 @@ const updateProcessTimes = () => {
       }, 100)
     );
   } catch (error) {
-    toConsole("updateProcessTimes error", error.message, debuggin);
+    TimeStudy.toConsole("updateProcessTimes error", error.message, debuggin);
     alert("Failed to update process times. Please check the console for details.");
   }
 };
@@ -1160,7 +752,8 @@ const importFromCSV = csvText => {
 
   const metaDataLine = lines[1].split(",").map(val => val.trim());
   processEndTime = parseTimeFromHHMMSSMS(metaDataLine[0]) || 0;
-  toConsole("Imported Process end time", processEndTime, debuggin);
+  TimeStudy.processEndTime = processEndTime; // Shared via TimeStudy.processEndTime
+  TimeStudy.toConsole("Imported Process end time", processEndTime, debuggin);
 
   const opStartTimeHeaders = header.slice(1);
   opStartTimes = [];
@@ -1176,7 +769,7 @@ const importFromCSV = csvText => {
         const newMinutes = Math.floor(seconds / 60);
         const newSeconds = seconds % 60;
         timeStr = `00:${newMinutes.toString().padStart(2, "0")}:${newSeconds.toString().padStart(2, "0")}:${milliseconds.toString().padStart(2, "0")}`;
-        toConsole(`Fixed OpStartTime-${i}`, `${metaDataLine[i + 1]} -> ${timeStr}`, debuggin);
+        TimeStudy.toConsole(`Fixed OpStartTime-${i}`, `${metaDataLine[i + 1]} -> ${timeStr}`, debuggin);
       }
     }
     const time = parseTimeFromHHMMSSMS(timeStr);
@@ -1184,10 +777,11 @@ const importFromCSV = csvText => {
       opStartTimes[i] = time;
     } else {
       opStartTimes[i] = 0;
-      toConsole("Invalid OpStartTime, defaulting to 0", `OpStartTime-${i}`, debuggin);
+      TimeStudy.toConsole("Invalid OpStartTime, defaulting to 0", `OpStartTime-${i}`, debuggin);
     }
   }
-  toConsole("Imported OpStartTimes", opStartTimes, debuggin);
+  TimeStudy.opStartTimes = opStartTimes; // Shared via TimeStudy.opStartTimes
+  TimeStudy.toConsole("Imported OpStartTimes", opStartTimes, debuggin);
 
   yama = [];
   opNames = [];
@@ -1196,9 +790,9 @@ const importFromCSV = csvText => {
   firstOp = "y";
   taktTime = parseTaktTime(taktTimeInput.value);
 
-  DOM.taskList.innerHTML = "";
-  DOM.pieChartContainer.innerHTML = "";
-  DOM.chartContainer.innerHTML = "";
+  TimeStudy.DOM.taskList.innerHTML = "";
+  TimeStudy.DOM.pieChartContainer.innerHTML = "";
+  TimeStudy.DOM.chartContainer.innerHTML = "";
 
   const taskHeaders = lines[2].split(",").map(h => h.trim());
   const expectedTaskHeaders = ["Operation", "Task", "VA", "NVA", "W"];
@@ -1212,7 +806,7 @@ const importFromCSV = csvText => {
   for (let i = 3; i < lines.length; i += 1) {
     const row = lines[i].split(",").map(cell => cell.trim());
     if (row.length < 5) {
-      toConsole("Skipping invalid row", `Line ${i + 1}: ${lines[i]}`, debuggin);
+      TimeStudy.toConsole("Skipping invalid row", `Line ${i + 1}: ${lines[i]}`, debuggin);
       continue;
     }
     const opName = row[0].replace(/^"|"$/g, "");
@@ -1257,10 +851,20 @@ const importFromCSV = csvText => {
     alert("No valid tasks found in CSV.");
     return;
   }
-  addTaskButton.disabled = false; // Enable Add Task button after CSV import
-  addChartButton.disabled = false; // Enable Chart button after CSV import
+
+  // Update shared state
+  TimeStudy.opCount = opCount;
+  TimeStudy.firstOp = firstOp;
+  TimeStudy.taskCount = taskCount;
+  TimeStudy.yama = yama;
+  TimeStudy.opNames = opNames;
+  TimeStudy.taktTime = taktTime;
+  TimeStudy.addTaskButton.disabled = false;
+  TimeStudy.addChartButton.disabled = false;
+  TimeStudy.toggleFormatButton.disabled = false;
+
   updateTaskList();
-  toConsole("CSV imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`, debuggin);
+  TimeStudy.toConsole("CSV imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`, debuggin);
 };
 
 const exportToCSV = () => {
@@ -1305,9 +909,12 @@ const exportToCSV = () => {
   document.body.removeChild(link);
 };
 
+// Expose exportToCSV to TimeStudy
+TimeStudy.exportToCSV = exportToCSV; // Shared via TimeStudy.exportToCSV
+
 const drawTable = () => {
   try {
-    if (!DOM.chartContainer || !DOM.pieChartContainer) {
+    if (!TimeStudy.DOM.chartContainer || !TimeStudy.DOM.pieChartContainer) {
       throw new Error("Chart container elements not found");
     }
     if (yama.length === 0) {
@@ -1339,12 +946,12 @@ const drawTable = () => {
               });
             }
           } else {
-            toConsole("Invalid task array for operation", j, debuggin);
+            TimeStudy.toConsole("Invalid task array for operation", j, debuggin);
           }
         }
-        toConsole("Generated series", JSON.stringify(series), debuggin);
-        toConsole("xAxis categories", JSON.stringify(opNames), debuggin);
-        Highcharts.chart(DOM.chartContainer, {
+        TimeStudy.toConsole("Generated series", JSON.stringify(series), debuggin);
+        TimeStudy.toConsole("xAxis categories", JSON.stringify(opNames), debuggin);
+        Highcharts.chart(TimeStudy.DOM.chartContainer, {
           chart: { type: "column" },
           accessibility: { enabled: false },
           title: { text: "Operation Task Durations by Status" },
@@ -1416,7 +1023,7 @@ const drawTable = () => {
           series,
         });
 
-        DOM.pieChartContainer.innerHTML = "";
+        TimeStudy.DOM.pieChartContainer.innerHTML = "";
         for (let i = 0; i < yama.length; i += 1) {
           const statusDurations = { VA: 0, NVA: 0, W: 0 };
           if (yama[i] && Array.isArray(yama[i])) {
@@ -1427,14 +1034,14 @@ const drawTable = () => {
                   statusDurations[status] += yama[i][j].taskHeight;
                 }
               } else {
-                toConsole("Invalid task data at", `Operation ${i}, Task ${j}`, debuggin);
+                TimeStudy.toConsole("Invalid task data at", `Operation ${i}, Task ${j}`, debuggin);
               }
             }
           } else {
-            toConsole("No tasks for operation", opNames[i], debuggin);
+            TimeStudy.toConsole("No tasks for operation", opNames[i], debuggin);
             continue;
           }
-          toConsole(
+          TimeStudy.toConsole(
             "Pie chart data for operation",
             `${opNames[i]}: VA=${statusDurations.VA}, NVA=${statusDurations.NVA}, W=${statusDurations.W}`,
             debuggin
@@ -1445,13 +1052,13 @@ const drawTable = () => {
             { name: "W", y: statusDurations.W, color: "#FF0000" },
           ].filter(item => item.y > 0);
           if (pieData.length === 0) {
-            toConsole("No valid pie chart data for operation", opNames[i], debuggin);
+            TimeStudy.toConsole("No valid pie chart data for operation", opNames[i], debuggin);
             continue;
           }
           const pieDiv = document.createElement("div");
           pieDiv.id = `pieChart${i}`;
           pieDiv.className = "pieChart";
-          DOM.pieChartContainer.appendChild(pieDiv);
+          TimeStudy.DOM.pieChartContainer.appendChild(pieDiv);
           Highcharts.chart(`pieChart${i}`, {
             chart: { type: "pie", height: 200 },
             accessibility: { enabled: false },
@@ -1495,11 +1102,13 @@ const drawTable = () => {
         }
       })
       .catch(error => {
-        toConsole("drawTable error", error.message, debuggin);
+        TimeStudy.toConsole("drawTable error", error.message, debuggin);
         alert("Failed to load Highcharts for chart rendering. Please check the console for details.");
       });
   } catch (error) {
-    toConsole("drawTable error", error.message, debuggin);
+    TimeStudy.toConsole("drawTable error", error.message, debuggin);
     alert("Failed to render charts. Please check the console for details.");
   }
 };
+
+// Autosave logic to be added here
