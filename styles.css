@@ -53,6 +53,26 @@ body.dark-mode {
   --btn-dark-gray-text: #fff;
 }
 
+/* Modal styles for Dark Mode */
+body.dark-mode .help-modal-content {
+  background-color: var(--container-bg-color);
+  color: var(--text-color);
+  border-color: var(--table-border-color);
+}
+body.dark-mode .help-modal-content .modal-header,
+body.dark-mode .help-modal-content .modal-footer {
+  border-color: var(--table-border-color);
+}
+body.dark-mode .help-modal-content .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+body.dark-mode .help-table {
+  color: var(--text-color);
+}
+body.dark-mode .help-table td, body.dark-mode .help-table th {
+  border-color: var(--table-border-color);
+}
+
 /* Apply Variables */
 body {
   background-color: var(--background-color);
