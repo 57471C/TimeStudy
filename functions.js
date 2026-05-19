@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const debounce = (func, wait) => {
   let timeout;
   return (...args) => {
