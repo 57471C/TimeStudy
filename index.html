@@ -27,7 +27,7 @@
       @layer utilities {
         /* Modern sleek buttons (Mux inspired) */
         .btn { @apply px-3 py-1.5 text-sm font-medium transition-all duration-200 border border-slate-200/60 dark:border-white/5 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 active:scale-95 cursor-pointer backdrop-blur-sm; }
-        .btn:disabled { @apply opacity-50 cursor-not-allowed active:scale-100; }
+        .btn:disabled { @apply opacity-50 cursor-default active:scale-100; }
         .btn-sm { @apply px-2.5 py-1 text-xs rounded; }
         .btn-primary { @apply bg-blue-600/90 text-white hover:bg-blue-600 border-transparent dark:bg-blue-500/80 dark:hover:bg-blue-500; }
         .btn-outline-primary { @apply bg-transparent border-blue-500/50 text-blue-600 hover:bg-blue-50 dark:border-blue-400/50 dark:text-blue-400 dark:hover:bg-blue-500/10; }
@@ -49,6 +49,12 @@
         .form-range::-webkit-slider-thumb { @apply appearance-none w-1.5 h-4 rounded-full bg-blue-500 hover:bg-blue-400 hover:scale-110 active:scale-95 transition-all duration-200 shadow-md border-0; }
         .form-range::-moz-range-thumb { @apply appearance-none w-1.5 h-4 rounded-full bg-blue-500 hover:bg-blue-400 hover:scale-110 active:scale-95 transition-all duration-200 shadow-md border-0; }
         
+        .slider-ticks { background-image: repeating-linear-gradient(to right, transparent, transparent calc(10% - 1px), rgba(0, 0, 0, 0.15) calc(10% - 1px), rgba(0, 0, 0, 0.15) 10%); }
+        .dark .slider-ticks { background-image: repeating-linear-gradient(to right, transparent, transparent calc(10% - 1px), rgba(255, 255, 255, 0.15) calc(10% - 1px), rgba(255, 255, 255, 0.15) 10%); }
+
+        .timeline-ticks { background-image: repeating-linear-gradient(to right, transparent, transparent calc(var(--tick-interval, 100%) - 1px), rgba(0, 0, 0, 0.15) calc(var(--tick-interval, 100%) - 1px), rgba(0, 0, 0, 0.15) var(--tick-interval, 100%)); }
+        .dark .timeline-ticks { background-image: repeating-linear-gradient(to right, transparent, transparent calc(var(--tick-interval, 100%) - 1px), rgba(255, 255, 255, 0.15) calc(var(--tick-interval, 100%) - 1px), rgba(255, 255, 255, 0.15) var(--tick-interval, 100%)); }
+
         .table { @apply w-full text-left border-collapse text-sm; }
         .table th, .table td { @apply p-2 border border-zinc-200 dark:border-zinc-700; }
         .table thead th { @apply bg-zinc-100 dark:bg-zinc-800 font-semibold; }
@@ -149,7 +155,7 @@
             <div id="video_controls_bar">
               <div class="control-row items-center gap-4">
                 <span id="currentTime" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-20 text-center">00:00:00</span>
-                <input type="range" class="form-range flex-1" min="0" max="100" value="0" id="seekBar" aria-label="Seek Video" />
+                <input type="range" class="form-range flex-1 timeline-ticks" min="0" max="100" value="0" id="seekBar" aria-label="Seek Video" />
                 <span id="durationTime" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-20 text-center">00:00:00</span>
               </div>
               <div class="control-row button-row">
@@ -159,11 +165,24 @@
                 <button id="playPauseButton" class="btn btn-light-green play-button">Play</button>
                 <button id="forward1sButton" class="btn btn-lighter-green nudge-button">+1s</button>
                 <button id="forward5sButton" class="btn btn-lighter-green nudge-button">+5s</button>
-                <button id="muteButton" class="btn btn-dark-gray mute-button">Mute</button>
-                <div class="volume-control-container">
+                <button id="muteButton" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors ml-4 focus:outline-none disabled:opacity-50 disabled:cursor-default" title="Mute/Unmute">
+                  <!-- Volume High (Unmuted) -->
+                  <svg id="volumeOnIcon" xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                  </svg>
+                  <!-- Volume X (Muted) -->
+                  <svg id="volumeOffIcon" xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                  </svg>
+                </button>
+                <div class="flex items-center w-24 sm:w-32 shrink min-w-[60px]">
                   <input
                     type="range"
-                    class="form-range volume-slider"
+                    class="form-range slider-ticks"
                     min="0"
                     max="1"
                     step="0.01"

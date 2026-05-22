@@ -74,18 +74,6 @@
   flex-wrap: wrap;
   gap: 10px;
 }
-.volume-slider {
-  width: 70px;
-  padding-left: 30px;
-  padding-right: 30px;
-}
-/* Style for volume slider */
-.volume-control-container {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-/* Style for load button */
 .load-button {
   margin-right: 10px;
 }
@@ -154,13 +142,6 @@
   justify-content: center;
   align-items: center;
 }
-/* Mute button */
-.mute-button {
-  min-width: 55px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
 /* Zoom controls */
 .zoom-controls {
   position: absolute;
@@ -216,11 +197,6 @@
   }
   .process-time-container {
     margin-right: 10px;
-  }
-  .volume-slider {
-    width: 60px;
-    padding-left: 25px;
-    padding-right: 25px;
   }
   .task-table th,
   .task-table td {

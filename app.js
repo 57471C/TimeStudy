@@ -52,6 +52,8 @@ const DOM = {
   currentTime: document.getElementById("currentTime"),
   durationTime: document.getElementById("durationTime"),
   speedValue: document.getElementById("speedValue"),
+  volumeOnIcon: document.getElementById("volumeOnIcon"),
+  volumeOffIcon: document.getElementById("volumeOffIcon"),
   video: document.getElementById("my_video"),
   marqueeOverlay: document.getElementById("marqueeOverlay"),
   marqueeRect: document.getElementById("marqueeRect"),
@@ -62,7 +64,7 @@ const DOM = {
   resetZoom: document.getElementById("resetZoom"),
 };
 
-const setHighchartsTheme = isDark => {
+const setHighchartsTheme = (isDark) => {
   Highcharts.setOptions({
     chart: {
       backgroundColor: isDark ? "#1c2526" : "#ffffff",
@@ -163,6 +165,10 @@ const initializePlayer = () => {
   player.addEventListener("loadedmetadata", () => {
     const duration = player.duration;
     seekBar.max = duration;
+    if (duration > 0) {
+      const tickInterval = (60 / duration) * 100;
+      seekBar.style.setProperty("--tick-interval", `${tickInterval}%`);
+    }
     processEndTime = duration;
     updateTimeDisplay(duration, "durationTime");
     positionControls();
@@ -184,7 +190,7 @@ const initializePlayer = () => {
   player.addEventListener("error", () => {
     toConsole("Video load error", "Failed to load video from URL", debuggin);
     alert(
-      "Failed to load the video from the provided URL. Please use the 'Load' button to select a video file manually."
+      "Failed to load the video from the provided URL. Please use the 'Load' button to select a video file manually.",
     );
     toggleVideoPlaceholder(true);
     updateLoadButtonColor();
@@ -221,7 +227,7 @@ const initializePlayer = () => {
 
   taktTimeInput.addEventListener(
     "input",
-    debounce(event => {
+    debounce((event) => {
       const newTaktTime = parseTaktTime(event.target.value);
       if (newTaktTime !== null) {
         taktTime = newTaktTime;
@@ -231,7 +237,7 @@ const initializePlayer = () => {
         alert("Invalid Takt Time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
         taktTimeInput.value = formatTaktTime(taktTime);
       }
-    }, 100)
+    }, 100),
   );
 
   addOpButton.addEventListener("click", () => {
@@ -306,7 +312,7 @@ const initializePlayer = () => {
   const openHelpBtn = document.getElementById("openHelpBtn");
   const closeHelpBtn = document.getElementById("closeHelpBtn");
   const closeHelpBtnX = document.getElementById("closeHelpBtnX");
-  
+
   if (openHelpBtn) openHelpBtn.addEventListener("click", () => helpModal.showModal());
   const closeModal = () => helpModal.close();
   if (closeHelpBtn) closeHelpBtn.addEventListener("click", closeModal);
@@ -314,36 +320,38 @@ const initializePlayer = () => {
 
   muteButton.addEventListener("click", () => {
     player.muted = !player.muted;
-    muteButton.textContent = player.muted ? "Unmute" : "Mute";
+    DOM.volumeOnIcon.classList.toggle("hidden", player.muted);
+    DOM.volumeOffIcon.classList.toggle("hidden", !player.muted);
     toConsole("Mute toggled", player.muted, debuggin);
     volumeSlider.value = player.muted ? 0 : player.volume;
   });
 
   volumeSlider.addEventListener(
     "input",
-    debounce(event => {
-      const volume = parseFloat(event.target.value);
-      if (!isNaN(volume)) {
+    debounce((event) => {
+      const volume = Number.parseFloat(event.target.value);
+      if (!Number.isNaN(volume)) {
         player.volume = volume;
         player.muted = volume === 0;
-        muteButton.textContent = player.muted ? "Unmute" : "Mute";
+        DOM.volumeOnIcon.classList.toggle("hidden", player.muted);
+        DOM.volumeOffIcon.classList.toggle("hidden", !player.muted);
         toConsole("Volume adjusted", volume, debuggin);
       }
-    }, 100)
+    }, 100),
   );
 
   if (speedSlider) {
     speedSlider.addEventListener(
       "input",
-      debounce(event => {
-        const speed = parseFloat(event.target.value);
-        if (!isNaN(speed)) {
+      debounce((event) => {
+        const speed = Number.parseFloat(event.target.value);
+        if (!Number.isNaN(speed)) {
           player.playbackRate = speed;
           DOM.speedValue.textContent = `${speed.toFixed(1)}x`;
           toConsole("Speed slider input event fired", speed, debuggin);
           toConsole("Speed value label updated", `${speed.toFixed(1)}x`, debuggin);
         }
-      }, 100)
+      }, 100),
     );
 
     player.playbackRate = 1;
@@ -354,18 +362,18 @@ const initializePlayer = () => {
   if (seekBar) {
     seekBar.addEventListener(
       "input",
-      debounce(event => {
-        const time = parseFloat(event.target.value);
-        if (!isNaN(time)) {
+      debounce((event) => {
+        const time = Number.parseFloat(event.target.value);
+        if (!Number.isNaN(time)) {
           player.currentTime = time;
           toConsole("Seek bar input event fired", time, debuggin);
           toConsole("Video seeked to", time, debuggin);
         }
-      }, 100)
+      }, 100),
     );
   }
 
-  DOM.videoFileInput.addEventListener("change", event => {
+  DOM.videoFileInput.addEventListener("change", (event) => {
     const file = event.target.files[0];
     if (!file) {
       toConsole("No video file selected", null, debuggin);
@@ -374,14 +382,14 @@ const initializePlayer = () => {
 
     if (player.src && yama.length > 0) {
       const save = confirm(
-        "You have unsaved data. Would you like to save your data as a CSV file before loading a new video?"
+        "You have unsaved data. Would you like to save your data as a CSV file before loading a new video?",
       );
       if (save) {
         exportToCSV();
         toConsole("Data exported to CSV before loading new video", null, debuggin);
       }
       const proceed = confirm(
-        "Loading a new video will clear all existing data and charts. Are you sure you want to proceed?"
+        "Loading a new video will clear all existing data and charts. Are you sure you want to proceed?",
       );
       if (!proceed) {
         toConsole("User cancelled loading new video", null, debuggin);
@@ -416,11 +424,11 @@ const initializePlayer = () => {
     updateLoadButtonColor();
   });
 
-  DOM.csvFileInput.addEventListener("change", event => {
+  DOM.csvFileInput.addEventListener("change", (event) => {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = e => {
+      reader.onload = (e) => {
         importFromCSV(e.target.result);
       };
       reader.readAsText(file);
@@ -446,7 +454,7 @@ const initializePlayer = () => {
   marqueeOverlay.addEventListener("mousemove", drawMarquee);
   marqueeOverlay.addEventListener("mouseup", endMarquee);
 
-  document.addEventListener("keydown", e => {
+  document.addEventListener("keydown", (e) => {
     switch (e.key) {
       case " ":
         e.preventDefault();
@@ -487,7 +495,8 @@ const initializePlayer = () => {
       case "m":
         e.preventDefault();
         player.muted = !player.muted;
-        muteButton.textContent = player.muted ? "Unmute" : "Mute";
+        DOM.volumeOnIcon.classList.toggle("hidden", player.muted);
+        DOM.volumeOffIcon.classList.toggle("hidden", !player.muted);
         toConsole("Mute toggled (M key)", player.muted, debuggin);
         volumeSlider.value = player.muted ? 0 : player.volume;
         break;
@@ -520,7 +529,7 @@ window.onload = () => {
   toggleVideoPlaceholder(true);
 };
 
-const startMarquee = e => {
+const startMarquee = (e) => {
   if (e.target.closest(".zoom-controls")) return;
   isDrawing = true;
   const rect = marqueeOverlay.getBoundingClientRect();
@@ -534,7 +543,7 @@ const startMarquee = e => {
   toConsole("Marquee start", `(${startX}, ${startY})`, debuggin);
 };
 
-const drawMarquee = e => {
+const drawMarquee = (e) => {
   if (!isDrawing) return;
   const rect = marqueeOverlay.getBoundingClientRect();
   const currentX = e.clientX - rect.left;
@@ -560,7 +569,7 @@ const drawMarquee = e => {
   }
 };
 
-const endMarquee = e => {
+const endMarquee = (e) => {
   if (!isDrawing) return;
   isDrawing = false;
   marqueeRect.style.display = "none";
@@ -598,7 +607,7 @@ const endMarquee = e => {
   toConsole(
     "Video display",
     `Width: ${videoDisplayWidth}, Height: ${videoDisplayHeight}, Offset: (${offsetX}, ${offsetY})`,
-    debuggin
+    debuggin,
   );
 
   const marqueeX1 = x1 - offsetX;
@@ -698,7 +707,7 @@ const updateLoadButtonColor = () => {
   }
 };
 
-const toggleVideoPlaceholder = show => {
+const toggleVideoPlaceholder = (show) => {
   try {
     if (!DOM.videoPlaceholder || !DOM.videoWrapper) {
       throw new Error("Video placeholder or wrapper element not found");
@@ -905,23 +914,29 @@ const editTaskDuration = (opIndex, taskIndex) => {
       alert("Invalid format. Please use MM:SS:MS (e.g., 01:30:50).");
       return;
     }
-    const minutes = parseInt(parts[0], 10);
-    const seconds = parseInt(parts[1], 10);
-    const milliseconds = parseInt(parts[2], 10) * 10;
-    if (isNaN(minutes) || isNaN(seconds) || isNaN(milliseconds) || seconds >= 60 || milliseconds >= 1000) {
+    const minutes = Number.parseInt(parts[0], 10);
+    const seconds = Number.parseInt(parts[1], 10);
+    const milliseconds = Number.parseInt(parts[2], 10) * 10;
+    if (
+      Number.isNaN(minutes) ||
+      Number.isNaN(seconds) ||
+      Number.isNaN(milliseconds) ||
+      seconds >= 60 ||
+      milliseconds >= 1000
+    ) {
       alert("Invalid duration. Ensure minutes, seconds (<60), and milliseconds (<100) are valid.");
       return;
     }
     newDurationMs = minutes * 60 * 1000 + seconds * 1000 + milliseconds;
   } else if (durationMode === "ms") {
-    newDurationMs = parseFloat(newDurationInput);
-    if (isNaN(newDurationMs) || newDurationMs < 0) {
+    newDurationMs = Number.parseFloat(newDurationInput);
+    if (Number.isNaN(newDurationMs) || newDurationMs < 0) {
       alert("Invalid duration. Please enter a non-negative number.");
       return;
     }
   } else {
-    const decimalMinutes = parseFloat(newDurationInput);
-    if (isNaN(decimalMinutes) || decimalMinutes < 0) {
+    const decimalMinutes = Number.parseFloat(newDurationInput);
+    if (Number.isNaN(decimalMinutes) || decimalMinutes < 0) {
       alert("Invalid duration. Please enter a non-negative number.");
       return;
     }
@@ -955,16 +970,16 @@ const deleteTask = (opIndex, taskIndex) => {
         addTaskButton.disabled = true;
       }
     }
-    taskCount = yama[opIndex] ? yama[opIndex].length : 0;
+    taskCount = yama[opIndex]?.length ?? 0;
     updateTaskList();
     drawTable();
   }
 };
 
-const deleteOperation = opIndex => {
+const deleteOperation = (opIndex) => {
   if (
     confirm(
-      `Are you sure you want to delete the operation "${opNames[opIndex]}" and all its tasks? This action cannot be undone.`
+      `Are you sure you want to delete the operation "${opNames[opIndex]}" and all its tasks? This action cannot be undone.`,
     )
   ) {
     yama.splice(opIndex, 1);
@@ -976,14 +991,14 @@ const deleteOperation = opIndex => {
       firstOp = "y";
       addTaskButton.disabled = true;
     }
-    taskCount = yama[opCount] ? yama[opCount].length : 0;
+    taskCount = yama[opCount]?.length ?? 0;
     toConsole(`Deleted operation at index ${opIndex}`, `opCount: ${opCount}, taskCount: ${taskCount}`, debuggin);
     updateTaskList();
     drawTable();
   }
 };
 
-const jumpToOperationTime = inputId => {
+const jumpToOperationTime = (inputId) => {
   const opTimeInput = document.getElementById(inputId);
   const time = parseTimeFromHHMMSSMS(opTimeInput.value);
   if (time !== null) {
@@ -1083,7 +1098,7 @@ const updateTaskList = () => {
       if (!opTimeInput) throw new Error(`Operation time input opTimeInput-${i} not found`);
       opTimeInput.addEventListener(
         "input",
-        debounce(event => {
+        debounce((event) => {
           const newTime = parseTimeFromHHMMSSMS(event.target.value);
           if (newTime !== null) {
             opStartTimes[i] = newTime;
@@ -1093,7 +1108,7 @@ const updateTaskList = () => {
             alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
             opTimeInput.value = formatTimeToHHMMSSMS(opStartTimes[i]);
           }
-        }, 100)
+        }, 100),
       );
     }
   } catch (error) {
@@ -1137,7 +1152,7 @@ const updateProcessTimes = () => {
     if (!processEndTimeInput) throw new Error("Process end time input not found");
     processEndTimeInput.addEventListener(
       "input",
-      debounce(event => {
+      debounce((event) => {
         const newEndTime = parseTimeFromHHMMSSMS(event.target.value);
         if (newEndTime !== null) {
           processEndTime = newEndTime;
@@ -1149,7 +1164,7 @@ const updateProcessTimes = () => {
           alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
           processEndTimeInput.value = formatTimeToHHMMSSMS(processEndTime);
         }
-      }, 100)
+      }, 100),
     );
   } catch (error) {
     toConsole("updateProcessTimes error", error.message, debuggin);
@@ -1157,22 +1172,22 @@ const updateProcessTimes = () => {
   }
 };
 
-const importFromCSV = csvText => {
+const importFromCSV = (csvText) => {
   const lines = csvText
     .split("\n")
-    .map(line => line.trim())
-    .filter(line => line);
+    .map((line) => line.trim())
+    .filter((line) => line);
   if (lines.length < 2) {
     alert("CSV file is empty or missing metadata.");
     return;
   }
-  const header = lines[0].split(",").map(h => h.trim());
+  const header = lines[0].split(",").map((h) => h.trim());
   if (header[0] !== "ProcessEndTime" || !header[1].startsWith("OpStartTime")) {
     alert("Invalid CSV format. Expected header: ProcessEndTime,OpStartTime-0,...");
     return;
   }
 
-  const metaDataLine = lines[1].split(",").map(val => val.trim());
+  const metaDataLine = lines[1].split(",").map((val) => val.trim());
   processEndTime = parseTimeFromHHMMSSMS(metaDataLine[0]) || 0;
   toConsole("Imported Process end time", processEndTime, debuggin);
 
@@ -1182,10 +1197,10 @@ const importFromCSV = csvText => {
     let timeStr = metaDataLine[i + 1];
     const parts = timeStr.split(":");
     if (parts.length === 4) {
-      const hours = parseInt(parts[0], 10);
-      const minutes = parseInt(parts[1], 10);
-      const seconds = parseInt(parts[2], 10);
-      const milliseconds = parseInt(parts[3], 10);
+      const hours = Number.parseInt(parts[0], 10);
+      const minutes = Number.parseInt(parts[1], 10);
+      const seconds = Number.parseInt(parts[2], 10);
+      const milliseconds = Number.parseInt(parts[3], 10);
       if (hours === 0 && minutes === 0 && seconds >= 60) {
         const newMinutes = Math.floor(seconds / 60);
         const newSeconds = seconds % 60;
@@ -1214,7 +1229,7 @@ const importFromCSV = csvText => {
   DOM.pieChartContainer.innerHTML = "";
   DOM.chartContainer.innerHTML = "";
 
-  const taskHeaders = lines[2].split(",").map(h => h.trim());
+  const taskHeaders = lines[2].split(",").map((h) => h.trim());
   const expectedTaskHeaders = ["Operation", "Task", "VA", "NVA", "W"];
   if (taskHeaders.length !== expectedTaskHeaders.length || !taskHeaders.every((h, i) => h === expectedTaskHeaders[i])) {
     alert("Invalid CSV format. Expected task headers: Operation,Task,VA,NVA,W");
@@ -1224,27 +1239,27 @@ const importFromCSV = csvText => {
   let taskIndex = 0;
   let lastEndTime = 0;
   for (let i = 3; i < lines.length; i += 1) {
-    const row = lines[i].split(",").map(cell => cell.trim());
+    const row = lines[i].split(",").map((cell) => cell.trim());
     if (row.length < 5) {
       toConsole("Skipping invalid row", `Line ${i + 1}: ${lines[i]}`, debuggin);
       continue;
     }
     const opName = row[0].replace(/^"|"$/g, "");
     const taskName = row[1].replace(/^"|"$/g, "");
-    const va = parseFloat(row[2]);
-    const nva = parseFloat(row[3]);
-    const w = parseFloat(row[4]);
+    const va = Number.parseFloat(row[2]);
+    const nva = Number.parseFloat(row[3]);
+    const w = Number.parseFloat(row[4]);
     const durations = [va, nva, w];
-    const nonZeroCount = durations.filter(d => d > 0).length;
+    const nonZeroCount = durations.filter((d) => d > 0).length;
     if (nonZeroCount !== 1) {
       alert(`Invalid row ${i + 1}: Exactly one of VA, NVA, W must be non-zero.`);
       return;
     }
-    if (durations.some(d => isNaN(d) || d < 0)) {
+    if (durations.some((d) => Number.isNaN(d) || d < 0)) {
       alert(`Invalid row ${i + 1}: Durations must be non-negative numbers.`);
       return;
     }
-    const taskHeight = durations.find(d => d > 0);
+    const taskHeight = durations.find((d) => d > 0);
     const taskStatus = va > 0 ? "VA" : nva > 0 ? "NVA" : "W";
     if (opName !== currentOpName) {
       opCount += 1;
@@ -1339,177 +1354,176 @@ const drawTable = () => {
     const isDarkMode = document.documentElement.classList.contains("dark");
     setHighchartsTheme(isDarkMode);
     const series = [];
-        for (let j = 0; j < yama.length; j += 1) {
-          if (yama[j] && Array.isArray(yama[j])) {
-            for (let i = 0; i < yama[j].length; i += 1) {
-              const task = yama[j][i];
-              const status = task.taskStatus.toUpperCase();
-              const color = status === "VA" ? "#00FF00" : status === "NVA" ? "#FFFF00" : "#FF0000";
-              const dataPoint = new Array(opNames.length).fill(0);
-              dataPoint[j] = task.taskHeight;
-              series.push({
-                name: `${opNames[j]}: ${task.name || task.taskName} (${status})`,
-                data: dataPoint,
-                stack: opNames[j],
-                color,
-              });
-            }
-          } else {
-            toConsole("Invalid task array for operation", j, debuggin);
-          }
+    for (let j = 0; j < yama.length; j += 1) {
+      if (yama[j] && Array.isArray(yama[j])) {
+        for (let i = 0; i < yama[j].length; i += 1) {
+          const task = yama[j][i];
+          const status = task.taskStatus.toUpperCase();
+          const color = status === "VA" ? "#00FF00" : status === "NVA" ? "#FFFF00" : "#FF0000";
+          const dataPoint = new Array(opNames.length).fill(0);
+          dataPoint[j] = task.taskHeight;
+          series.push({
+            name: `${opNames[j]}: ${task.name || task.taskName} (${status})`,
+            data: dataPoint,
+            stack: opNames[j],
+            color,
+          });
         }
-        toConsole("Generated series", JSON.stringify(series), debuggin);
-        toConsole("xAxis categories", JSON.stringify(opNames), debuggin);
-        Highcharts.chart(DOM.chartContainer, {
-          chart: { type: "column" },
-          accessibility: { enabled: false },
-          title: { text: "Operation Task Durations by Status" },
-          xAxis: { categories: opNames },
-          yAxis: {
-            title: {
-              text: `Duration (${
-                durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
-              })`,
-            },
-            labels: {
-              formatter() {
-                return durationMode === "hhmmssms"
-                  ? formatDuration(this.value)
-                  : durationMode === "ms"
-                    ? this.value.toFixed(3)
-                    : formatDecimalMinutes(this.value);
-              },
-            },
-            plotLines: [
-              {
-                value: taktTime,
-                color: "#0000FF",
-                width: 2,
-                label: {
-                  text: `Takt: ${
-                    durationMode === "hhmmssms"
-                      ? formatDuration(taktTime)
-                      : durationMode === "ms"
-                        ? `${taktTime.toFixed(3)} ms`
-                        : `${formatDecimalMinutes(taktTime)} min`
-                  }`,
-                  align: "right",
-                  style: { color: "#0000FF" },
-                },
-              },
-            ],
+      } else {
+        toConsole("Invalid task array for operation", j, debuggin);
+      }
+    }
+    toConsole("Generated series", JSON.stringify(series), debuggin);
+    toConsole("xAxis categories", JSON.stringify(opNames), debuggin);
+    Highcharts.chart(DOM.chartContainer, {
+      chart: { type: "column" },
+      accessibility: { enabled: false },
+      title: { text: "Operation Task Durations by Status" },
+      xAxis: { categories: opNames },
+      yAxis: {
+        title: {
+          text: `Duration (${
+            durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
+          })`,
+        },
+        labels: {
+          formatter() {
+            return durationMode === "hhmmssms"
+              ? formatDuration(this.value)
+              : durationMode === "ms"
+                ? this.value.toFixed(3)
+                : formatDecimalMinutes(this.value);
           },
-          tooltip: {
-            formatter() {
-              const duration =
+        },
+        plotLines: [
+          {
+            value: taktTime,
+            color: "#0000FF",
+            width: 2,
+            label: {
+              text: `Takt: ${
                 durationMode === "hhmmssms"
+                  ? formatDuration(taktTime)
+                  : durationMode === "ms"
+                    ? `${taktTime.toFixed(3)} ms`
+                    : `${formatDecimalMinutes(taktTime)} min`
+              }`,
+              align: "right",
+              style: { color: "#0000FF" },
+            },
+          },
+        ],
+      },
+      tooltip: {
+        formatter() {
+          const duration =
+            durationMode === "hhmmssms"
+              ? formatDuration(this.y)
+              : durationMode === "ms"
+                ? `${this.y.toFixed(3)} ms`
+                : `${formatDecimalMinutes(this.y)} min`;
+          return `<b>Operation: ${this.x}</b><br>Task: ${this.series.name}<br>Duration: ${duration}`;
+        },
+      },
+      plotOptions: {
+        column: {
+          stacking: "normal",
+          grouping: false,
+          pointWidth: 50,
+          dataLabels: {
+            enabled: true,
+            formatter() {
+              return this.y > 0
+                ? durationMode === "hhmmssms"
                   ? formatDuration(this.y)
                   : durationMode === "ms"
-                    ? `${this.y.toFixed(3)} ms`
-                    : `${formatDecimalMinutes(this.y)} min`;
-              return `<b>Operation: ${this.x}</b><br>Task: ${this.series.name}<br>Duration: ${duration}`;
+                    ? this.y.toFixed(3)
+                    : formatDecimalMinutes(this.y)
+                : "";
             },
           },
-          plotOptions: {
-            column: {
-              stacking: "normal",
-              grouping: false,
-              pointWidth: 50,
-              dataLabels: {
-                enabled: true,
-                formatter() {
-                  return this.y > 0
-                    ? durationMode === "hhmmssms"
-                      ? formatDuration(this.y)
-                      : durationMode === "ms"
-                        ? this.y.toFixed(3)
-                        : formatDecimalMinutes(this.y)
-                    : "";
-                },
-              },
-            },
-          },
-          series,
-        });
+        },
+      },
+      series,
+    });
 
-        DOM.pieChartContainer.innerHTML = "";
-        for (let i = 0; i < yama.length; i += 1) {
-          const statusDurations = { VA: 0, NVA: 0, W: 0 };
-          if (yama[i] && Array.isArray(yama[i])) {
-            for (let j = 0; j < yama[i].length; j += 1) {
-              if (yama[i][j] && yama[i][j].taskStatus) {
-                const status = yama[i][j].taskStatus.toUpperCase();
-                if (status in statusDurations) {
-                  statusDurations[status] += yama[i][j].taskHeight;
-                }
-              } else {
-                toConsole("Invalid task data at", `Operation ${i}, Task ${j}`, debuggin);
-              }
+    DOM.pieChartContainer.innerHTML = "";
+    for (let i = 0; i < yama.length; i += 1) {
+      const statusDurations = { VA: 0, NVA: 0, W: 0 };
+      if (yama[i] && Array.isArray(yama[i])) {
+        for (let j = 0; j < yama[i].length; j += 1) {
+          if (yama[i][j]?.taskStatus) {
+            const status = yama[i][j].taskStatus.toUpperCase();
+            if (status in statusDurations) {
+              statusDurations[status] += yama[i][j].taskHeight;
             }
           } else {
-            toConsole("No tasks for operation", opNames[i], debuggin);
-            continue;
+            toConsole("Invalid task data at", `Operation ${i}, Task ${j}`, debuggin);
           }
-          toConsole(
-            "Pie chart data for operation",
-            `${opNames[i]}: VA=${statusDurations.VA}, NVA=${statusDurations.NVA}, W=${statusDurations.W}`,
-            debuggin
-          );
-          const pieData = [
-            { name: "VA", y: statusDurations.VA, color: "#00FF00" },
-            { name: "NVA", y: statusDurations.NVA, color: "#FFFF00" },
-            { name: "W", y: statusDurations.W, color: "#FF0000" },
-          ].filter(item => item.y > 0);
-          if (pieData.length === 0) {
-            toConsole("No valid pie chart data for operation", opNames[i], debuggin);
-            continue;
-          }
-          const pieDiv = document.createElement("div");
-          pieDiv.id = `pieChart${i}`;
-          pieDiv.className = "pieChart";
-          DOM.pieChartContainer.appendChild(pieDiv);
-          Highcharts.chart(`pieChart${i}`, {
-            chart: { type: "pie", height: 200 },
-            accessibility: { enabled: false },
-            title: { text: `${opNames[i]} Duration by Status` },
-            tooltip: {
-              pointFormatter() {
-                const duration =
+        }
+      } else {
+        toConsole("No tasks for operation", opNames[i], debuggin);
+        continue;
+      }
+      toConsole(
+        "Pie chart data for operation",
+        `${opNames[i]}: VA=${statusDurations.VA}, NVA=${statusDurations.NVA}, W=${statusDurations.W}`,
+        debuggin,
+      );
+      const pieData = [
+        { name: "VA", y: statusDurations.VA, color: "#00FF00" },
+        { name: "NVA", y: statusDurations.NVA, color: "#FFFF00" },
+        { name: "W", y: statusDurations.W, color: "#FF0000" },
+      ].filter((item) => item.y > 0);
+      if (pieData.length === 0) {
+        toConsole("No valid pie chart data for operation", opNames[i], debuggin);
+        continue;
+      }
+      const pieDiv = document.createElement("div");
+      pieDiv.id = `pieChart${i}`;
+      pieDiv.className = "pieChart";
+      DOM.pieChartContainer.appendChild(pieDiv);
+      Highcharts.chart(`pieChart${i}`, {
+        chart: { type: "pie", height: 200 },
+        accessibility: { enabled: false },
+        title: { text: `${opNames[i]} Duration by Status` },
+        tooltip: {
+          pointFormatter() {
+            const duration =
+              durationMode === "hhmmssms"
+                ? formatDuration(this.y)
+                : durationMode === "ms"
+                  ? `${this.y.toFixed(3)} ms`
+                  : `${formatDecimalMinutes(this.y)} min`;
+            return `Duration: <b>${duration} (${this.percentage.toFixed(1)}%)</b>`;
+          },
+        },
+        plotOptions: {
+          pie: {
+            allowPointSelect: true,
+            cursor: "pointer",
+            dataLabels: {
+              enabled: true,
+              formatter() {
+                return `${this.point.name}: ${
                   durationMode === "hhmmssms"
                     ? formatDuration(this.y)
                     : durationMode === "ms"
-                      ? `${this.y.toFixed(3)} ms`
-                      : `${formatDecimalMinutes(this.y)} min`;
-                return `Duration: <b>${duration} (${this.percentage.toFixed(1)}%)</b>`;
+                      ? this.y.toFixed(3)
+                      : formatDecimalMinutes(this.y)
+                }`;
               },
             },
-            plotOptions: {
-              pie: {
-                allowPointSelect: true,
-                cursor: "pointer",
-                dataLabels: {
-                  enabled: true,
-                  formatter() {
-                    return `${this.point.name}: ${
-                      durationMode === "hhmmssms"
-                        ? formatDuration(this.y)
-                        : durationMode === "ms"
-                          ? this.y.toFixed(3)
-                          : formatDecimalMinutes(this.y)
-                    }`;
-                  },
-                },
-              },
-            },
-            series: [
-              {
-                name: "Duration",
-                data: pieData,
-              },
-            ],
-          });
-        }
-      
+          },
+        },
+        series: [
+          {
+            name: "Duration",
+            data: pieData,
+          },
+        ],
+      });
+    }
   } catch (error) {
     toConsole("drawTable error", error.message, debuggin);
     alert("Failed to render charts. Please check the console for details.");
