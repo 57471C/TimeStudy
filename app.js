@@ -124,6 +124,31 @@ const setHighchartsTheme = isDark => {
   toConsole("Highcharts theme set", isDark ? "Dark" : "Light", debuggin);
 };
 
+const saveLocalState = () => {
+  const state = { yama, opNames, opStartTimes, opCount, taskCount, firstOp, processEndTime, taktTime };
+  localStorage.setItem("timeStudyData", JSON.stringify(state));
+};
+
+const loadLocalState = () => {
+  const data = localStorage.getItem("timeStudyData");
+  if (data) {
+    try {
+      const state = JSON.parse(data);
+      yama = state.yama || [];
+      opNames = state.opNames || [];
+      opStartTimes = state.opStartTimes || [];
+      opCount = state.opCount !== undefined ? state.opCount : 0;
+      taskCount = state.taskCount !== undefined ? state.taskCount : 0;
+      firstOp = state.firstOp || "y";
+      processEndTime = state.processEndTime || 0;
+      if (state.taktTime) taktTime = state.taktTime;
+      toConsole("Local state loaded", "Success", debuggin);
+    } catch (e) {
+      toConsole("Error parsing local state", e, debuggin);
+    }
+  }
+};
+
 const initializePlayer = () => {
   player = DOM.video;
   playerReady = true;
@@ -209,7 +234,16 @@ const initializePlayer = () => {
   volumeSlider = document.getElementById("volumeSlider");
   taktTimeInput = document.getElementById("taktTimeInput");
 
-  taktTime = parseTaktTime(taktTimeInput.value);
+  loadLocalState();
+  if (taktTime) {
+    taktTimeInput.value = formatTaktTime(taktTime);
+  } else {
+    taktTime = parseTaktTime(taktTimeInput.value);
+  }
+  if (yama.length > 0) {
+    updateTaskList();
+    drawTable();
+  }
 
   taktTimeInput.addEventListener(
     "input",
@@ -217,6 +251,7 @@ const initializePlayer = () => {
       const newTaktTime = parseTaktTime(event.target.value);
       if (newTaktTime !== null) {
         taktTime = newTaktTime;
+        saveLocalState();
         toConsole("Takt Time updated", taktTime, debuggin);
       } else {
         alert("Invalid Takt Time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
@@ -385,6 +420,7 @@ const initializePlayer = () => {
     DOM.chartContainer.innerHTML = "";
     updateTaskList();
     addTaskButton.disabled = true;
+    saveLocalState();
     toConsole("Cleared all previous data and charts", null, debuggin);
 
     player.playbackRate = 1;
@@ -691,6 +727,7 @@ const toggleVideoPlaceholder = show => {
       DOM.videoPlaceholder.style.display = "none";
       DOM.videoWrapper.style.display = "block";
     }
+    saveLocalState();
   } catch (error) {
     toConsole("toggleVideoPlaceholder error", error.message, debuggin);
     alert("Failed to toggle video placeholder. Please check the console for details.");
@@ -1122,6 +1159,7 @@ const updateProcessTimes = () => {
           toConsole("Process end time updated", processEndTime, debuggin);
           const durationSeconds = opStartTimes.length > 0 ? Math.max(0, processEndTime - opStartTimes[0]) : 0;
           document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
+          saveLocalState();
         } else {
           alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
           processEndTimeInput.value = formatTimeToHHMMSSMS(processEndTime);
@@ -1249,6 +1287,7 @@ const importFromCSV = csvText => {
     return;
   }
   updateTaskList();
+  saveLocalState();
   toConsole("CSV imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`, debuggin);
 };
 
