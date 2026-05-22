@@ -163,16 +163,16 @@ const initializePlayer = () => {
     setHighchartsTheme(isDarkMode);
   }
   if (isDarkMode) {
-    document.body.classList.add("dark-mode");
+    document.documentElement.classList.add("dark");
     DOM.darkModeIcon.textContent = "🌙";
   } else {
-    document.body.classList.remove("dark-mode");
+    document.documentElement.classList.remove("dark");
     DOM.darkModeIcon.textContent = "☀️";
   }
 
   DOM.darkModeToggle.addEventListener("click", () => {
-    document.body.classList.toggle("dark-mode");
-    const isDark = document.body.classList.contains("dark-mode");
+    document.documentElement.classList.toggle("dark");
+    const isDark = document.documentElement.classList.contains("dark");
     DOM.darkModeIcon.textContent = isDark ? "🌙" : "☀️";
     localStorage.setItem("darkMode", isDark);
     toConsole("Dark mode toggled", isDark ? "On" : "Off", debuggin);
@@ -326,6 +326,17 @@ const initializePlayer = () => {
     player.currentTime = Math.min(player.duration, player.currentTime + 5);
     toConsole("Forward 5s", player.currentTime, debuggin);
   });
+
+  // Help Modal Logic
+  const helpModal = document.getElementById("helpModal");
+  const openHelpBtn = document.getElementById("openHelpBtn");
+  const closeHelpBtn = document.getElementById("closeHelpBtn");
+  const closeHelpBtnX = document.getElementById("closeHelpBtnX");
+  
+  if (openHelpBtn) openHelpBtn.addEventListener("click", () => helpModal.showModal());
+  const closeModal = () => helpModal.close();
+  if (closeHelpBtn) closeHelpBtn.addEventListener("click", closeModal);
+  if (closeHelpBtnX) closeHelpBtnX.addEventListener("click", closeModal);
 
   muteButton.addEventListener("click", () => {
     player.muted = !player.muted;
@@ -1017,9 +1028,9 @@ const jumpToOperationTime = inputId => {
 const updateTaskList = () => {
   try {
     if (!DOM.taskList) throw new Error("Task list element not found");
-    const isDarkMode = document.body.classList.contains("dark-mode");
+    const isDarkMode = document.documentElement.classList.contains("dark");
     const rows = [
-      `<table class="table table-bordered task-table${isDarkMode ? " table-dark" : ""}">
+      `<table class="table task-table">
          <thead>
            <tr>
              <th scope="col">Operation</th>
