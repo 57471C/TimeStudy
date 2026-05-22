@@ -16,7 +16,6 @@ let forward1sButton;
 let forward5sButton;
 let muteButton;
 let volumeSlider;
-let taktTimeInput;
 
 const debuggin = 1;
 let opCount = 0;
@@ -25,7 +24,7 @@ let taskCount = 0;
 let yama = [];
 let opNames = [];
 let opStartTimes = [];
-let taktTime = null;
+let taktTime = 60000;
 let durationMode = "hhmmssms";
 let playerReady = false;
 let zoomLevel = 1;
@@ -191,6 +190,11 @@ const initializePlayer = () => {
       seekBar.style.setProperty("--tick-interval", `${tickInterval}%`);
     }
     processEndTime = duration;
+    if (duration > 0 && duration < 60) {
+      taktTime = Math.max(1000, Math.round(duration * 0.9) * 1000);
+      saveLocalState();
+      toConsole("Takt time auto-adjusted for short video", taktTime, debuggin);
+    }
     updateTimeDisplay(duration, "durationTime");
     positionControls();
     updateLoadButtonColor();
@@ -237,33 +241,15 @@ const initializePlayer = () => {
   forward5sButton = document.getElementById("forward5sButton");
   muteButton = document.getElementById("muteButton");
   volumeSlider = document.getElementById("volumeSlider");
-  taktTimeInput = document.getElementById("taktTimeInput");
 
   loadLocalState();
-  if (taktTime) {
-    taktTimeInput.value = formatTaktTime(taktTime);
-  } else {
-    taktTime = parseTaktTime(taktTimeInput.value);
+  if (!taktTime) {
+    taktTime = 60000;
   }
   if (yama.length > 0) {
     updateTaskList();
     drawTable();
   }
-
-  taktTimeInput.addEventListener(
-    "input",
-    debounce((event) => {
-      const newTaktTime = parseTaktTime(event.target.value);
-      if (newTaktTime !== null) {
-        taktTime = newTaktTime;
-        saveLocalState();
-        toConsole("Takt Time updated", taktTime, debuggin);
-      } else {
-        alert("Invalid Takt Time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
-        taktTimeInput.value = formatTaktTime(taktTime);
-      }
-    }, 100),
-  );
 
   addOpButton.addEventListener("click", () => {
     addTaskButton.disabled = false;
@@ -439,7 +425,6 @@ const initializePlayer = () => {
     opCount = 0;
     taskCount = 0;
     firstOp = "y";
-    taktTime = parseTaktTime(taktTimeInput.value);
     DOM.taskList.innerHTML = "";
     DOM.pieChartContainer.innerHTML = "";
     DOM.chartContainer.innerHTML = "";
@@ -487,6 +472,8 @@ const initializePlayer = () => {
   marqueeOverlay.addEventListener("mouseup", endMarquee);
 
   document.addEventListener("keydown", (e) => {
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
+
     switch (e.key) {
       case " ":
         e.preventDefault();
@@ -1094,14 +1081,13 @@ const updateTaskList = () => {
     if (!DOM.taskList) throw new Error("Task list element not found");
     const isDarkMode = document.documentElement.classList.contains("dark");
     const rows = [
-      `<table class="table task-table">
+      `<table class="table task-table font-mono text-base tabular-nums">
          <thead>
            <tr>
-             <th scope="col">Operation</th>
-             <th scope="col">Task</th>
-             <th scope="col">Duration</th>
-             <th scope="col">Status</th>
-             <th scope="col">Actions</th>
+             <th scope="col" class="text-center">Operations / Task</th>
+             <th scope="col" class="text-center w-0 whitespace-nowrap">Duration</th>
+             <th scope="col" class="text-center w-0 whitespace-nowrap">Status</th>
+             <th scope="col" class="text-center w-0 whitespace-nowrap">Actions</th>
            </tr>
          </thead>
          <tbody>`,
@@ -1112,16 +1098,21 @@ const updateTaskList = () => {
       rows.push(`
         <tr>
           <td colspan="4">
-            <a href="javascript:void(0)" onclick="jumpToOperationTime('${opTimeInputId}')">
-              Operation: ${opNames[i]}
-            </a>
-            <span class="op-time-container">
-              <label for="${opTimeInputId}" class="form-label" style="width: auto;">Start:</label>
-              <input type="text" id="${opTimeInputId}" class="form-control op-time-input" value="${formattedTime}">
-            </span>
-          </td>
-          <td>
-            <button onclick="deleteOperation(${i})" class="btn btn-danger">Delete Operation</button>
+            <div class="flex items-center justify-between w-full">
+              <div>
+                <a href="javascript:void(0)" onclick="jumpToOperationTime('${opTimeInputId}')" class="font-bold text-lg">
+                  ${opNames[i]}
+                </a>
+                <span class="op-time-container">
+                  <label for="${opTimeInputId}" class="form-label font-mono text-base mb-0" style="width: auto;">Start:</label>
+                  <input type="text" id="${opTimeInputId}" class="form-control op-time-input font-mono tabular-nums text-base" value="${formattedTime}">
+                </span>
+              </div>
+              <button onclick="deleteOperation(${i})" class="btn btn-danger font-bold flex items-center gap-2" title="Delete Operation">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                Delete Operation
+              </button>
+            </div>
           </td>
         </tr>
       `);
@@ -1133,17 +1124,35 @@ const updateTaskList = () => {
             : durationMode === "ms"
               ? `${task.taskHeight.toFixed(3)} ms`
               : `${formatDecimalMinutes(task.taskHeight)} min`;
+
+        let badgeClass = "";
+        if (task.taskStatus === "VA")
+          badgeClass = "border-emerald-500/50 text-emerald-600 dark:border-emerald-400/50 dark:text-emerald-400";
+        else if (task.taskStatus === "NVA")
+          badgeClass = "border-amber-500/50 text-amber-600 dark:border-amber-400/50 dark:text-amber-400";
+        else if (task.taskStatus === "W")
+          badgeClass = "border-rose-500/50 text-rose-600 dark:border-rose-400/50 dark:text-rose-400";
+
         rows.push(`
           <tr>
-            <td></td>
-            <td>${task.taskName}</td>
-            <td>${duration}</td>
-            <td>${task.taskStatus}</td>
-            <td>
-              <button onclick="editTask(${i}, ${j})" class="btn btn-sm btn-outline-primary">Edit</button>
-              <button onclick="editTaskDuration(${i}, ${j})" class="btn btn-sm btn-outline-primary">Edit Duration</button>
-              <button onclick="deleteTask(${i}, ${j})" class="btn btn-sm btn-outline-danger">Delete</button>
-              <button onclick="insertTask(${i}, ${j})" class="btn btn-sm btn-outline-secondary">Split Task</button>
+            <td><div class="ml-5">${task.taskName}</div></td>
+            <td class="text-center whitespace-nowrap">${duration}</td>
+            <td class="text-center whitespace-nowrap">
+              <span class="inline-block px-2 py-0.5 rounded border bg-transparent text-xs font-bold ${badgeClass}">${task.taskStatus}</span>
+            </td>
+            <td class="flex gap-1.5">
+              <button onclick="editTask(${i}, ${j})" class="btn btn-outline-primary p-1" title="Edit Task">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+              </button>
+              <button onclick="editTaskDuration(${i}, ${j})" class="btn btn-outline-primary p-1" title="Edit Duration">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </button>
+              <button onclick="insertTask(${i}, ${j})" class="btn btn-outline-secondary p-1" title="Split Task">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+              </button>
+              <button onclick="deleteTask(${i}, ${j})" class="btn btn-outline-danger p-1 ml-2" title="Delete Task">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              </button>
             </td>
           </tr>
         `);
@@ -1210,18 +1219,42 @@ const updateProcessTimes = () => {
 
     DOM.taskTableFoot.innerHTML = `
       <tr>
-        <td colspan="5" class="table-foot">
-          <span class="process-time-container">
-            <label for="processEndTimeInput" class="form-label" style="width: auto;">Process end time:</label>
-            <input type="text" id="processEndTimeInput" class="form-control process-time-input" value="${formattedEndTime}">
-          </span>
-          <span class="process-time-container">
-            <label for="totalProcessTimeInput" class="form-label" style="width: auto;">Total Process time:</label>
-            <input type="text" id="totalProcessTimeInput" class="form-control process-time-input" value="${totalProcessTime}" disabled>
-          </span>
+        <td colspan="4" class="table-foot">
+          <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 w-full py-1">
+            <span class="process-time-container">
+              <label for="taktTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Takt Time:</label>
+              <input type="text" id="taktTimeInput" class="form-control process-time-input font-mono tabular-nums text-sm" value="${formatTaktTime(taktTime)}">
+            </span>
+            <span class="process-time-container">
+              <label for="processEndTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Process end time:</label>
+              <input type="text" id="processEndTimeInput" class="form-control process-time-input font-mono tabular-nums text-sm" value="${formattedEndTime}">
+            </span>
+            <span class="process-time-container">
+              <label for="totalProcessTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Total Process time:</label>
+              <input type="text" id="totalProcessTimeInput" class="form-control process-time-input font-mono tabular-nums text-sm" value="${totalProcessTime}" disabled>
+            </span>
+          </div>
         </td>
       </tr>
     `;
+
+    const taktTimeInput = document.getElementById("taktTimeInput");
+    if (taktTimeInput) {
+      taktTimeInput.addEventListener(
+        "input",
+        debounce((event) => {
+          const newTaktTime = parseTaktTime(event.target.value);
+          if (newTaktTime !== null) {
+            taktTime = newTaktTime;
+            saveLocalState();
+            toConsole("Takt Time updated", taktTime, debuggin);
+          } else {
+            alert("Invalid Takt Time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
+            taktTimeInput.value = formatTaktTime(taktTime);
+          }
+        }, 100),
+      );
+    }
 
     const processEndTimeInput = document.getElementById("processEndTimeInput");
     if (!processEndTimeInput) throw new Error("Process end time input not found");
@@ -1266,6 +1299,13 @@ const importFromCSV = (csvText) => {
   processEndTime = parseTimeFromHHMMSSMS(metaDataLine[0]) || 0;
   toConsole("Imported Process end time", processEndTime, debuggin);
 
+  if (processEndTime > 0 && processEndTime < 60) {
+    taktTime = Math.max(1000, Math.round(processEndTime * 0.9) * 1000);
+    toConsole("Takt time auto-adjusted for short CSV", taktTime, debuggin);
+  } else if (!taktTime) {
+    taktTime = 60000;
+  }
+
   const opStartTimeHeaders = header.slice(1);
   opStartTimes = [];
   for (let i = 0; i < opStartTimeHeaders.length; i++) {
@@ -1299,7 +1339,6 @@ const importFromCSV = (csvText) => {
   opCount = -1;
   taskCount = 0;
   firstOp = "y";
-  taktTime = parseTaktTime(taktTimeInput.value);
 
   DOM.taskList.innerHTML = "";
   DOM.pieChartContainer.innerHTML = "";

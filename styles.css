@@ -1,5 +1,3 @@
-
-
 /* Custom styles for Highcharts containers */
 #chartContainer,
 #pieChartContainer {
@@ -77,16 +75,6 @@
 .load-button {
   margin-right: 10px;
 }
-/* Style for Takt Time input */
-.takt-time-container {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-#taktTimeInput {
-  width: 120px;
-  text-align: center;
-}
 /* Style for Operation time input */
 .op-time-container {
   display: inline-flex;
@@ -95,7 +83,9 @@
   margin-left: 10px;
 }
 .op-time-input {
-  width: 120px;
+  width: 125px;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
   text-align: center;
 }
 /* Style for footer inputs */
@@ -103,14 +93,12 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-right: 20px;
 }
 .process-time-input {
-  width: 120px;
+  width: 110px;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
   text-align: center;
-}
-.table-foot {
-  padding: 10px;
 }
 /* Style for task table */
 .task-table {
@@ -120,9 +108,6 @@
 .task-table th,
 .task-table td {
   vertical-align: middle;
-}
-.task-table .btn-sm {
-  margin-right: 5px;
 }
 /* Custom button colors with higher specificity to override Bootstrap */
 /* Play button width and centering */
@@ -190,14 +175,6 @@
     gap: 5px;
     justify-content: center;
   }
-  #taktTimeInput,
-  .op-time-input,
-  .process-time-input {
-    width: 100px;
-  }
-  .process-time-container {
-    margin-right: 10px;
-  }
   .task-table th,
   .task-table td {
     font-size: 0.9rem;
@@ -208,19 +185,19 @@
     padding: 0.2rem 0.4rem;
   }
 
-@media (min-width: 992px) {
-  .video-container {
-    height: 500px;
+  @media (min-width: 992px) {
+    .video-container {
+      height: 500px;
+    }
+    .controls-container {
+      margin-top: 0 !important;
+      padding: 10px !important;
+    }
+    #chartContainer,
+    #pieChartContainer {
+      width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+    }
   }
-  .controls-container {
-    margin-top: 0 !important;
-    padding: 10px !important;
-  }
-  #chartContainer,
-  #pieChartContainer {
-    width: 100%;
-    margin-left: 0;
-    margin-right: 0;
-  }
-}
 }

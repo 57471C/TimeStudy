@@ -41,7 +41,7 @@
         .btn-light-green { @apply bg-emerald-600/90 text-white hover:bg-emerald-600 border-transparent dark:bg-emerald-500/80 dark:hover:bg-emerald-500; }
         .btn-lighter-green { @apply bg-emerald-500/90 text-white hover:bg-emerald-500 border-transparent dark:bg-emerald-400/80 dark:hover:bg-emerald-400; }
         
-        .form-control { @apply w-full px-3 py-1.5 border border-zinc-300 rounded bg-white dark:bg-zinc-800 dark:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500; }
+        .form-control { @apply px-3 py-1.5 border border-zinc-300 rounded bg-white dark:bg-zinc-800 dark:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500; }
         .form-label { @apply block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300; }
         
         /* Modern sleek sliders (Mux inspired) */
@@ -244,25 +244,13 @@
         <div class="flex flex-col gap-4">
           <div class="w-full p-2.5 lg:p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm flex flex-col gap-3 z-0 transition-colors duration-200">
             <div class="control-row functions-row">
-              <div class="takt-time-container">
-                <label for="taktTimeInput" class="form-label">Takt Time:</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="taktTimeInput"
-                  value="00:01:00.00"
-                  placeholder="HH:MM:SS.MS"
-                />
-              </div>
               <button id="addOpButton" class="btn btn-primary">Add Operation</button>
               <button id="addTaskButton" class="btn btn-primary" disabled>Add Task</button>
-              <button id="toggleFormatButton" class="btn btn-dark-gray">Format (HH:MM:SS.MS)</button>
-            </div>
-            <div class="control-row functions-row">
-              <button id="addChartButton" class="btn btn-light-green">Chart</button>
-              <button id="csvExportButton" class="btn btn-orange">Export CSV</button>
+              <button id="addChartButton" class="btn btn-light-green ml-2 sm:ml-4">Chart</button>
+              <button id="csvExportButton" class="btn btn-orange ml-2 sm:ml-4">Export CSV</button>
               <button id="csvImportButton" class="btn btn-orange">Load CSV</button>
               <input type="file" id="csvFileInput" accept=".csv" style="display: none" />
+              <button id="toggleFormatButton" class="btn btn-dark-gray ml-2 sm:ml-4">Format (HH:MM:SS.MS)</button>
             </div>
           </div>
 
