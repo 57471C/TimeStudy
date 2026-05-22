@@ -44,21 +44,36 @@ const formatTaktTime = ms => {
 };
 
 const formatTimeToHHMMSSMS = seconds => {
-  if (!seconds || seconds < 0) return "00:00:00:00";
+  if (!seconds || seconds < 0) return "00:00:00";
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
   const milliseconds = Math.floor(((seconds % 1) * 1000) / 10);
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}:${milliseconds.toString().padStart(2, "0")}`;
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}:${milliseconds.toString().padStart(2, "0")}`;
+  }
+  return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}:${milliseconds.toString().padStart(2, "0")}`;
 };
 
 const parseTimeFromHHMMSSMS = input => {
   const parts = input.split(":");
-  if (parts.length !== 4) return null;
-  const hours = parseInt(parts[0], 10);
-  const minutes = parseInt(parts[1], 10);
-  const seconds = parseInt(parts[2], 10);
-  const milliseconds = parseInt(parts[3], 10) * 10;
+  if (parts.length < 3 || parts.length > 4) {
+    return null;
+  }
+
+  let hours = 0;
+  let minutes, seconds, milliseconds;
+
+  if (parts.length === 4) {
+    hours = parseInt(parts[0], 10);
+    minutes = parseInt(parts[1], 10);
+    seconds = parseInt(parts[2], 10);
+    milliseconds = parseInt(parts[3], 10) * 10;
+  } else {
+    minutes = parseInt(parts[0], 10);
+    seconds = parseInt(parts[1], 10);
+    milliseconds = parseInt(parts[2], 10) * 10;
+  }
   if (
     isNaN(hours) ||
     isNaN(minutes) ||

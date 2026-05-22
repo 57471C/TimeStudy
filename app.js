@@ -62,39 +62,6 @@ const DOM = {
   resetZoom: document.getElementById("resetZoom"),
 };
 
-const loadHighcharts = () => {
-  return new Promise((resolve, reject) => {
-    if (typeof Highcharts !== "undefined") {
-      toConsole("Highcharts already loaded", Highcharts.version, debuggin);
-      resolve();
-      return;
-    }
-    const scripts = [
-      "https://code.highcharts.com/highcharts.js",
-      "https://code.highcharts.com/modules/accessibility.js",
-    ];
-    let loaded = 0;
-    scripts.forEach(src => {
-      const script = document.createElement("script");
-      script.src = src;
-      script.async = true;
-      script.onload = () => {
-        loaded += 1;
-        toConsole("Highcharts script loaded", src, debuggin);
-        if (loaded === scripts.length) {
-          toConsole("Highcharts fully loaded", Highcharts.version, debuggin);
-          resolve();
-        }
-      };
-      script.onerror = () => {
-        toConsole("Highcharts script load error", src, debuggin);
-        reject(new Error(`Failed to load Highcharts script: ${src}`));
-      };
-      document.head.appendChild(script);
-    });
-  });
-};
-
 const setHighchartsTheme = isDark => {
   Highcharts.setOptions({
     chart: {
@@ -204,7 +171,7 @@ const initializePlayer = () => {
     updateProcessTimes();
     player.playbackRate = 1;
     speedSlider.value = 1;
-    DOM.speedValue.textContent = "1x";
+    DOM.speedValue.textContent = "1.0x";
     toConsole("Playback speed reset to 1x after load", "Success", debuggin);
     volumeSlider.value = player.volume;
   });
@@ -372,16 +339,16 @@ const initializePlayer = () => {
         const speed = parseFloat(event.target.value);
         if (!isNaN(speed)) {
           player.playbackRate = speed;
-          DOM.speedValue.textContent = `${speed}x`;
+          DOM.speedValue.textContent = `${speed.toFixed(1)}x`;
           toConsole("Speed slider input event fired", speed, debuggin);
-          toConsole("Speed value label updated", `${speed}x`, debuggin);
+          toConsole("Speed value label updated", `${speed.toFixed(1)}x`, debuggin);
         }
       }, 100)
     );
 
     player.playbackRate = 1;
     toConsole("Initial playback rate set", 1, debuggin);
-    DOM.speedValue.textContent = "1x";
+    DOM.speedValue.textContent = "1.0x";
   }
 
   if (seekBar) {
@@ -443,7 +410,7 @@ const initializePlayer = () => {
 
     player.playbackRate = 1;
     speedSlider.value = 1;
-    DOM.speedValue.textContent = "1x";
+    DOM.speedValue.textContent = "1.0x";
     toConsole("Playback speed reset to 1x after manual load", "Success", debuggin);
 
     updateLoadButtonColor();
@@ -1364,11 +1331,14 @@ const drawTable = () => {
       alert("Invalid Takt Time. Please set a valid Takt Time (HH:MM:SS:MS).");
       return;
     }
-    loadHighcharts()
-      .then(() => {
-        const isDarkMode = document.body.classList.contains("dark-mode");
-        setHighchartsTheme(isDarkMode);
-        const series = [];
+    if (typeof Highcharts === "undefined") {
+      alert("Highcharts failed to load. Please check your internet connection.");
+      return;
+    }
+
+    const isDarkMode = document.documentElement.classList.contains("dark");
+    setHighchartsTheme(isDarkMode);
+    const series = [];
         for (let j = 0; j < yama.length; j += 1) {
           if (yama[j] && Array.isArray(yama[j])) {
             for (let i = 0; i < yama[j].length; i += 1) {
@@ -1539,11 +1509,7 @@ const drawTable = () => {
             ],
           });
         }
-      })
-      .catch(error => {
-        toConsole("drawTable error", error.message, debuggin);
-        alert("Failed to load Highcharts for chart rendering. Please check the console for details.");
-      });
+      
   } catch (error) {
     toConsole("drawTable error", error.message, debuggin);
     alert("Failed to render charts. Please check the console for details.");

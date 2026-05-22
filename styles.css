@@ -1,11 +1,4 @@
 
-/* Speed Display */
-.speed-display {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-}
 
 /* Custom styles for Highcharts containers */
 #chartContainer,
@@ -75,20 +68,11 @@
   flex-wrap: wrap;
   margin-top: 10px;
 }
-/* Stack sliders vertically */
-.control-row.slider-row {
-  flex-direction: column;
-  align-items: flex-start;
-}
 /* Center the functions row */
 .control-row.functions-row {
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px;
-}
-/* Add padding to slider labels */
-.control-row.slider-row label {
-  padding-left: 20px;
 }
 .volume-slider {
   width: 70px;
@@ -213,7 +197,6 @@
   .controls-container {
     margin-top: 0 !important;
     padding: 5px !important;
-  }
     padding-left: 5%;
   }
   .play-button {
@@ -248,7 +231,7 @@
     font-size: 0.8rem;
     padding: 0.2rem 0.4rem;
   }
-}
+
 @media (min-width: 992px) {
   .video-container {
     height: 500px;
@@ -263,4 +246,5 @@
     margin-left: 0;
     margin-right: 0;
   }
+}
 }
