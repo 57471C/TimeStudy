@@ -1,6 +1,6 @@
 {
   "name": "timestudy",
-  "version": "0.3.2",
+  "version": "0.4.1",
   "description": "A web-based application for conducting time and motion studies.",
   "main": "index.html",
   "scripts": {
@@ -17,8 +17,6 @@
     "lint-staged": "^15.2.10"
   },
   "lint-staged": {
-    "**/*.{js,json,css,html,md}": [
-      "biome check --write"
-    ]
+    "**/*.{js,json,css,html,md}": ["biome check --write"]
   }
 }

@@ -31,7 +31,7 @@ let zoomLevel = 1;
 let translateX = 0;
 let translateY = 0;
 let processEndTime = 0;
-const APP_VERSION = "0.4.0";
+const APP_VERSION = "0.4.1";
 
 let isDrawing = false;
 let startX;
@@ -119,6 +119,7 @@ const loadLocalState = () => {
       processEndTime = state.processEndTime || 0;
       if (state.taktTime) taktTime = state.taktTime;
       toConsole("Local state loaded", "Success", debuggin);
+      showToast("Local session state restored.", "success");
     } catch (e) {
       toConsole("Error parsing local state", e, debuggin);
     }
@@ -250,10 +251,6 @@ const initializePlayer = () => {
     updateTaskList();
     drawTable();
   }
-
-  addOpButton.addEventListener("click", () => {
-    addTaskButton.disabled = false;
-  });
 
   const urlParams = new URLSearchParams(window.location.search);
   const videoUrl = urlParams.get("v");
@@ -391,7 +388,7 @@ const initializePlayer = () => {
     );
   }
 
-  DOM.videoFileInput.addEventListener("change", (event) => {
+  DOM.videoFileInput.addEventListener("change", async (event) => {
     const file = event.target.files[0];
     if (!file) {
       toConsole("No video file selected", null, debuggin);
@@ -399,15 +396,17 @@ const initializePlayer = () => {
     }
 
     if (player.src && yama.length > 0) {
-      const save = confirm(
+      const save = await asyncConfirm(
         "You have unsaved data. Would you like to save your data as a CSV file before loading a new video?",
+        "Unsaved Data",
       );
       if (save) {
         exportToCSV();
         toConsole("Data exported to CSV before loading new video", null, debuggin);
       }
-      const proceed = confirm(
+      const proceed = await asyncConfirm(
         "Loading a new video will clear all existing data and charts. Are you sure you want to proceed?",
+        "Load New Video",
       );
       if (!proceed) {
         toConsole("User cancelled loading new video", null, debuggin);
@@ -778,9 +777,9 @@ const toggleVideoPlaceholder = (show) => {
   }
 };
 
-const addOp = () => {
+const addOp = async () => {
   player.pause();
-  const opName = prompt("Please name the Operation");
+  const opName = await asyncPrompt("Please name the Operation", "", "New Operation");
   if (!opName) {
     alert("Operation name cannot be empty.");
     return;
@@ -802,18 +801,18 @@ const addOp = () => {
   updateTaskList();
 };
 
-const addTask = () => {
+const addTask = async () => {
   player.pause();
   toConsole("playPause", "play paused to add task", debuggin);
   if (yama.length === 0) {
     alert("There's no Operation yet! Please add an Operation first.");
     toConsole("Tried to add a Task, but No Operation exists", null, debuggin);
-    addOp();
+    await addOp();
     if (yama.length === 0) {
       return;
     }
   }
-  const taskName = prompt("Please name the Task");
+  const taskName = await asyncPrompt("Please name the Task", "", "New Task");
   if (!taskName) {
     alert("Task name cannot be empty.");
     return;
@@ -824,13 +823,20 @@ const addTask = () => {
   const opIndex = opCount;
   const opStartTimeInputId = `opTimeInput-${opIndex}`;
   const opTimeInput = document.getElementById(opStartTimeInputId);
+  if (!opTimeInput) {
+    alert("Error: Operation input not found. Please try refreshing the page.");
+    return;
+  }
   const opStartTime = parseTimeFromHHMMSSMS(opTimeInput.value) || 0;
   toConsole("opStartTime from input", opStartTime, debuggin);
+
+  taskCount = yama[opCount] ? yama[opCount].length : 0;
+
   const taskStart = taskCount === 0 ? opStartTime * 1000 : yama[opCount][taskCount - 1].taskEnd;
   toConsole("taskStart", taskStart, debuggin);
   const taskHeight = taskCount === 0 ? taskEnd - opStartTime * 1000 : taskEnd - taskStart;
   toConsole("taskHeight", taskHeight, debuggin);
-  let taskStatus = prompt("VA, NVA, W? (or 1=VA, 2=NVA, 3=W)");
+  let taskStatus = await asyncPrompt("VA, NVA, W? (or 1=VA, 2=NVA, 3=W)", "", "Task Status");
   if (!taskStatus) {
     alert("Task status cannot be empty.");
     return;
@@ -860,16 +866,16 @@ const addTask = () => {
 };
 
 /* eslint-disable no-unused-vars */
-const insertTask = (opIndex, taskIndex) => {
+const insertTask = async (opIndex, taskIndex) => {
   player.pause();
   toConsole("playPause", "play paused to insert task", debuggin);
-  const taskName = prompt("Please name the new Task");
+  const taskName = await asyncPrompt("Please name the new Task", "", "Split Task");
   if (!taskName) {
     alert("Task name cannot be empty.");
     return;
   }
   toConsole("taskName", taskName, debuggin);
-  let taskStatus = prompt("VA, NVA, W? (or 1=VA, 2=NVA, 3=W)");
+  let taskStatus = await asyncPrompt("VA, NVA, W? (or 1=VA, 2=NVA, 3=W)", "", "Task Status");
   if (!taskStatus) {
     alert("Task status cannot be empty.");
     return;
@@ -921,25 +927,36 @@ const insertTask = (opIndex, taskIndex) => {
   drawTable();
 };
 
-const editTask = (opIndex, taskIndex) => {
+const editTask = async (opIndex, taskIndex) => {
   const task = yama[opIndex][taskIndex];
-  const newTaskName = prompt("Edit Task Name", task.taskName);
+  const newTaskName = await asyncPrompt("Edit Task Name", task.taskName, "Edit Task");
   if (!newTaskName) {
     alert("Task name cannot be empty.");
     return;
   }
-  const newTaskStatus = prompt("Edit Task Status (VA, NVA, W)", task.taskStatus);
+  let newTaskStatus = await asyncPrompt("Edit Task Status (VA, NVA, W)", task.taskStatus, "Edit Status");
   if (!newTaskStatus) {
     alert("Task status cannot be empty.");
     return;
   }
+
+  newTaskStatus = newTaskStatus.toUpperCase();
+  if (newTaskStatus === "1") newTaskStatus = "VA";
+  if (newTaskStatus === "2") newTaskStatus = "NVA";
+  if (newTaskStatus === "3") newTaskStatus = "W";
+
+  if (!["VA", "NVA", "W"].includes(newTaskStatus)) {
+    alert("Invalid task status. Please enter VA, NVA, W, 1 (VA), 2 (NVA), or 3 (W).");
+    return;
+  }
+
   yama[opIndex][taskIndex].taskName = newTaskName;
   yama[opIndex][taskIndex].taskStatus = newTaskStatus;
   updateTaskList();
   drawTable();
 };
 
-const editTaskDuration = (opIndex, taskIndex) => {
+const editTaskDuration = async (opIndex, taskIndex) => {
   const task = yama[opIndex][taskIndex];
   const currentDuration =
     durationMode === "hhmmssms"
@@ -953,7 +970,7 @@ const editTaskDuration = (opIndex, taskIndex) => {
       : durationMode === "ms"
         ? "Enter new duration (milliseconds, e.g., 90500 for 90.5s)"
         : "Enter new duration (decimal minutes, e.g., 1.51 for 1.51 min)";
-  const newDurationInput = prompt(promptMessage, currentDuration);
+  const newDurationInput = await asyncPrompt(promptMessage, currentDuration, "Edit Duration");
   if (newDurationInput === null) {
     return;
   }
@@ -1014,8 +1031,8 @@ const editTaskDuration = (opIndex, taskIndex) => {
   drawTable();
 };
 
-const deleteTask = (opIndex, taskIndex) => {
-  if (confirm("Are you sure you want to delete this task?")) {
+const deleteTask = async (opIndex, taskIndex) => {
+  if (await asyncConfirm("Are you sure you want to delete this task?", "Delete Task")) {
     yama[opIndex].splice(taskIndex, 1);
     for (let i = taskIndex; i < yama[opIndex].length; i += 1) {
       yama[opIndex][i].taskStart = i === 0 ? 0 : yama[opIndex][i - 1].taskEnd;
@@ -1038,8 +1055,8 @@ const deleteTask = (opIndex, taskIndex) => {
   }
 };
 
-const renameOperation = (opIndex) => {
-  const newName = prompt("Rename Operation", opNames[opIndex]);
+const renameOperation = async (opIndex) => {
+  const newName = await asyncPrompt("Rename Operation", opNames[opIndex], "Rename Operation");
   if (newName === null) return; // User clicked Cancel
   if (newName.trim() === "") {
     alert("Operation name cannot be empty.");
@@ -1052,10 +1069,11 @@ const renameOperation = (opIndex) => {
   drawTable(); // Redraw chart to update axis labels
 };
 
-const deleteOperation = (opIndex) => {
+const deleteOperation = async (opIndex) => {
   if (
-    confirm(
+    await asyncConfirm(
       `Are you sure you want to delete the operation "${opNames[opIndex]}" and all its tasks? This action cannot be undone.`,
+      "Delete Operation",
     )
   ) {
     yama.splice(opIndex, 1);
@@ -1192,6 +1210,7 @@ const updateTaskList = () => {
     if (yama.length > 0) {
       table.style.display = "table";
       updateProcessTimes();
+      addTaskButton.disabled = false;
     } else {
       table.style.display = "none";
       addTaskButton.disabled = true;
@@ -1424,6 +1443,7 @@ const importFromCSV = (csvText) => {
   updateTaskList();
   saveLocalState();
   toConsole("CSV imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`, debuggin);
+  showToast("CSV imported successfully.", "success");
 };
 
 const exportToCSV = () => {
@@ -1466,6 +1486,7 @@ const exportToCSV = () => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  showToast("Data exported to CSV successfully.", "success");
 };
 
 const drawTable = () => {

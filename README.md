@@ -1,10 +1,10 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.4.0-blue)](https://github.com/57471C/TimeStudy/releases)
+[![Version](https://img.shields.io/badge/version-0.4.1-blue)](https://github.com/57471C/TimeStudy/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
-TimeStudy is a web-based application for analyzing video-based process times, enabling users to track operations and tasks, visualize durations with charts, and manage data via CSV import/export. Version `0.4.0` introduces a two-column layout, enhanced styling, XLSX handling, and lazy-loaded Highcharts for beta testing.
+TimeStudy is a web-based application for analyzing video-based process times, enabling users to track operations and tasks, visualize durations with charts, and manage data via CSV import/export. Version `0.4.1` introduces a two-column layout, enhanced styling, XLSX handling, and lazy-loaded Highcharts for beta testing.
 
 ## Features
 
@@ -17,7 +17,7 @@ TimeStudy is a web-based application for analyzing video-based process times, en
 - **Zoom Controls**: Marquee-based video zoom with reset functionality.
 - **Takt Time**: Set and visualize takt time for process optimization.
 
-## Version 0.4.0 Updates
+## Version 0.4.1 Updates
 
 - **UI Enhancements**: Two-column layout (`col-lg-6`) for better organization.
 - **Styling**: CSS variables (e.g., `--btn-orange-bg: #ff6200`), fixed 30px header, responsive button and slider sizes.
