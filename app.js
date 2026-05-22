@@ -47,7 +47,8 @@ const DOM = {
   pieChartContainer: document.getElementById("pieChartContainer"),
   taskTableFoot: null, // Initialize as null, set dynamically in updateTaskList
   darkModeToggle: document.getElementById("darkModeToggle"),
-  darkModeIcon: document.getElementById("darkModeIcon"),
+  sunIcon: document.getElementById("sunIcon"),
+  moonIcon: document.getElementById("moonIcon"),
   currentTime: document.getElementById("currentTime"),
   durationTime: document.getElementById("durationTime"),
   speedValue: document.getElementById("speedValue"),
@@ -96,7 +97,10 @@ const loadHighcharts = () => {
 
 const setHighchartsTheme = isDark => {
   Highcharts.setOptions({
-    chart: { backgroundColor: isDark ? "#1c2526" : "#ffffff" },
+    chart: {
+      backgroundColor: isDark ? "#1c2526" : "#ffffff",
+      style: { fontFamily: "'Inter', system-ui, sans-serif" },
+    },
     title: { style: { color: isDark ? "#d1d5db" : "#212529" } },
     xAxis: {
       labels: { style: { color: isDark ? "#d1d5db" : "#212529" } },
@@ -164,16 +168,19 @@ const initializePlayer = () => {
   }
   if (isDarkMode) {
     document.documentElement.classList.add("dark");
-    DOM.darkModeIcon.textContent = "🌙";
+    DOM.sunIcon.classList.add("hidden");
+    DOM.moonIcon.classList.remove("hidden");
   } else {
     document.documentElement.classList.remove("dark");
-    DOM.darkModeIcon.textContent = "☀️";
+    DOM.sunIcon.classList.remove("hidden");
+    DOM.moonIcon.classList.add("hidden");
   }
 
   DOM.darkModeToggle.addEventListener("click", () => {
     document.documentElement.classList.toggle("dark");
     const isDark = document.documentElement.classList.contains("dark");
-    DOM.darkModeIcon.textContent = isDark ? "🌙" : "☀️";
+    DOM.sunIcon.classList.toggle("hidden", isDark);
+    DOM.moonIcon.classList.toggle("hidden", !isDark);
     localStorage.setItem("darkMode", isDark);
     toConsole("Dark mode toggled", isDark ? "On" : "Off", debuggin);
     if (typeof Highcharts !== "undefined") {
