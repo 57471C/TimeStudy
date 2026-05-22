@@ -9,6 +9,7 @@ let csvImportButton;
 let speedSlider;
 let seekBar;
 let playPauseButton;
+let jumpToStartButton;
 let rewind5sButton;
 let rewind1sButton;
 let forward1sButton;
@@ -51,9 +52,12 @@ const DOM = {
   moonIcon: document.getElementById("moonIcon"),
   currentTime: document.getElementById("currentTime"),
   durationTime: document.getElementById("durationTime"),
+  playIcon: document.getElementById("playIcon"),
+  pauseIcon: document.getElementById("pauseIcon"),
   speedValue: document.getElementById("speedValue"),
   volumeOnIcon: document.getElementById("volumeOnIcon"),
   volumeOffIcon: document.getElementById("volumeOffIcon"),
+  volumeValue: document.getElementById("volumeValue"),
   video: document.getElementById("my_video"),
   marqueeOverlay: document.getElementById("marqueeOverlay"),
   marqueeRect: document.getElementById("marqueeRect"),
@@ -166,7 +170,24 @@ const initializePlayer = () => {
     const duration = player.duration;
     seekBar.max = duration;
     if (duration > 0) {
-      const tickInterval = (60 / duration) * 100;
+      let tickSeconds = 60;
+      if (duration <= 15)
+        tickSeconds = 2; // e.g. 10s video = 5 ticks
+      else if (duration <= 30)
+        tickSeconds = 5; // e.g. 25s video = 5 ticks
+      else if (duration <= 60)
+        tickSeconds = 10; // e.g. 50s video = 5 ticks
+      else if (duration <= 180)
+        tickSeconds = 30; // e.g. 2m video = 4 ticks
+      else if (duration <= 300)
+        tickSeconds = 60; // e.g. 4m video = 4 ticks
+      else if (duration <= 600)
+        tickSeconds = 120; // e.g. 8m video = 4 ticks
+      else if (duration <= 1800)
+        tickSeconds = 300; // e.g. 25m video = 5 ticks
+      else tickSeconds = 600; // 10m intervals for anything longer
+
+      const tickInterval = (tickSeconds / duration) * 100;
       seekBar.style.setProperty("--tick-interval", `${tickInterval}%`);
     }
     processEndTime = duration;
@@ -180,12 +201,15 @@ const initializePlayer = () => {
     DOM.speedValue.textContent = "1.0x";
     toConsole("Playback speed reset to 1x after load", "Success", debuggin);
     volumeSlider.value = player.volume;
+    DOM.volumeValue.textContent = Math.round(player.volume * 100);
   });
   player.addEventListener("play", () => {
-    playPauseButton.textContent = "Pause";
+    DOM.playIcon.classList.add("hidden");
+    DOM.pauseIcon.classList.remove("hidden");
   });
   player.addEventListener("pause", () => {
-    playPauseButton.textContent = "Play";
+    DOM.playIcon.classList.remove("hidden");
+    DOM.pauseIcon.classList.add("hidden");
   });
   player.addEventListener("error", () => {
     toConsole("Video load error", "Failed to load video from URL", debuggin);
@@ -206,6 +230,7 @@ const initializePlayer = () => {
   speedSlider = document.getElementById("speedSlider");
   seekBar = document.getElementById("seekBar");
   playPauseButton = document.getElementById("playPauseButton");
+  jumpToStartButton = document.getElementById("jumpToStartButton");
   rewind5sButton = document.getElementById("rewind5sButton");
   rewind1sButton = document.getElementById("rewind1sButton");
   forward1sButton = document.getElementById("forward1sButton");
@@ -234,7 +259,7 @@ const initializePlayer = () => {
         saveLocalState();
         toConsole("Takt Time updated", taktTime, debuggin);
       } else {
-        alert("Invalid Takt Time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
+        alert("Invalid Takt Time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
         taktTimeInput.value = formatTaktTime(taktTime);
       }
     }, 100),
@@ -277,7 +302,7 @@ const initializePlayer = () => {
       durationMode = "hhmmssms";
     }
     toggleFormatButton.textContent = `Format (${
-      durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "ms" : "min"
+      durationMode === "hhmmssms" ? "HH:MM:SS.MS" : durationMode === "ms" ? "ms" : "min"
     })`;
     updateTaskList();
     drawTable();
@@ -288,6 +313,11 @@ const initializePlayer = () => {
     } else {
       player.pause();
     }
+  });
+
+  jumpToStartButton.addEventListener("click", () => {
+    player.currentTime = 0;
+    toConsole("Jumped to Start", player.currentTime, debuggin);
   });
 
   rewind5sButton.addEventListener("click", () => {
@@ -324,6 +354,7 @@ const initializePlayer = () => {
     DOM.volumeOffIcon.classList.toggle("hidden", !player.muted);
     toConsole("Mute toggled", player.muted, debuggin);
     volumeSlider.value = player.muted ? 0 : player.volume;
+    DOM.volumeValue.textContent = player.muted ? "0" : Math.round(player.volume * 100);
   });
 
   volumeSlider.addEventListener(
@@ -335,6 +366,7 @@ const initializePlayer = () => {
         player.muted = volume === 0;
         DOM.volumeOnIcon.classList.toggle("hidden", player.muted);
         DOM.volumeOffIcon.classList.toggle("hidden", !player.muted);
+        DOM.volumeValue.textContent = Math.round(volume * 100);
         toConsole("Volume adjusted", volume, debuggin);
       }
     }, 100),
@@ -458,6 +490,7 @@ const initializePlayer = () => {
     switch (e.key) {
       case " ":
         e.preventDefault();
+        if (!player.src) return;
         if (player.paused) {
           player.play();
         } else {
@@ -466,39 +499,47 @@ const initializePlayer = () => {
         break;
       case "ArrowLeft":
         e.preventDefault();
+        if (!player.src) return;
         player.currentTime = Math.max(0, player.currentTime - 1);
         toConsole("Rewind 1s (Left Arrow)", player.currentTime, debuggin);
         break;
       case "ArrowDown":
         e.preventDefault();
+        if (!player.src) return;
         player.currentTime = Math.max(0, player.currentTime - 5);
         toConsole("Rewind 5s (Down Arrow)", player.currentTime, debuggin);
         break;
       case "ArrowRight":
         e.preventDefault();
+        if (!player.src) return;
         player.currentTime = Math.min(player.duration, player.currentTime + 1);
         toConsole("Forward 1s (Right Arrow)", player.currentTime, debuggin);
         break;
       case "ArrowUp":
         e.preventDefault();
+        if (!player.src) return;
         player.currentTime = Math.min(player.duration, player.currentTime + 5);
         toConsole("Forward 5s (Up Arrow)", player.currentTime, debuggin);
         break;
       case "t":
         e.preventDefault();
+        if (!player.src) return;
         if (!addTaskButton.disabled) addTask();
         break;
       case "o":
         e.preventDefault();
+        if (!player.src) return;
         addOp();
         break;
       case "m":
         e.preventDefault();
+        if (!player.src) return;
         player.muted = !player.muted;
         DOM.volumeOnIcon.classList.toggle("hidden", player.muted);
         DOM.volumeOffIcon.classList.toggle("hidden", !player.muted);
         toConsole("Mute toggled (M key)", player.muted, debuggin);
         volumeSlider.value = player.muted ? 0 : player.volume;
+        DOM.volumeValue.textContent = player.muted ? "0" : Math.round(player.volume * 100);
         break;
       case "=":
         e.preventDefault();
@@ -684,9 +725,20 @@ const updateLoadButtonColor = () => {
   if (loadVideoButton && player && playPauseButton) {
     const src = player.src;
     if (!src) {
-      loadVideoButton.classList.remove("btn-orange");
-      loadVideoButton.classList.add("btn-yellow");
+      loadVideoButton.classList.add(
+        "text-amber-500",
+        "hover:text-amber-600",
+        "dark:text-amber-400",
+        "dark:hover:text-amber-300",
+      );
+      loadVideoButton.classList.remove(
+        "text-zinc-500",
+        "hover:text-zinc-900",
+        "dark:text-zinc-400",
+        "dark:hover:text-zinc-100",
+      );
       playPauseButton.disabled = true;
+      jumpToStartButton.disabled = true;
       rewind5sButton.disabled = true;
       rewind1sButton.disabled = true;
       forward1sButton.disabled = true;
@@ -694,9 +746,20 @@ const updateLoadButtonColor = () => {
       muteButton.disabled = true;
       volumeSlider.disabled = true;
     } else {
-      loadVideoButton.classList.remove("btn-yellow");
-      loadVideoButton.classList.add("btn-orange");
+      loadVideoButton.classList.remove(
+        "text-amber-500",
+        "hover:text-amber-600",
+        "dark:text-amber-400",
+        "dark:hover:text-amber-300",
+      );
+      loadVideoButton.classList.add(
+        "text-zinc-500",
+        "hover:text-zinc-900",
+        "dark:text-zinc-400",
+        "dark:hover:text-zinc-100",
+      );
       playPauseButton.disabled = false;
+      jumpToStartButton.disabled = false;
       rewind5sButton.disabled = false;
       rewind1sButton.disabled = false;
       forward1sButton.disabled = false;
@@ -899,7 +962,7 @@ const editTaskDuration = (opIndex, taskIndex) => {
         : `${formatDecimalMinutes(task.taskHeight)} min`;
   const promptMessage =
     durationMode === "hhmmssms"
-      ? "Enter new duration (MM:SS:MS, e.g., 01:30:50 for 1m 30s 50ms)"
+      ? "Enter new duration (HH:MM:SS.MS, e.g., 00:01:30.50 for 1m 30.5s)"
       : durationMode === "ms"
         ? "Enter new duration (milliseconds, e.g., 90500 for 90.5s)"
         : "Enter new duration (decimal minutes, e.g., 1.51 for 1.51 min)";
@@ -909,15 +972,27 @@ const editTaskDuration = (opIndex, taskIndex) => {
   }
   let newDurationMs;
   if (durationMode === "hhmmssms") {
-    const parts = newDurationInput.split(":");
-    if (parts.length !== 3) {
-      alert("Invalid format. Please use MM:SS:MS (e.g., 01:30:50).");
+    const parts = newDurationInput.replace(".", ":").split(":");
+    if (parts.length < 3 || parts.length > 4) {
+      alert("Invalid format. Please use HH:MM:SS.MS (e.g., 00:01:30.50).");
       return;
     }
-    const minutes = Number.parseInt(parts[0], 10);
-    const seconds = Number.parseInt(parts[1], 10);
-    const milliseconds = Number.parseInt(parts[2], 10) * 10;
+    let hours = 0;
+    let minutes;
+    let seconds;
+    let milliseconds;
+    if (parts.length === 4) {
+      hours = Number.parseInt(parts[0], 10);
+      minutes = Number.parseInt(parts[1], 10);
+      seconds = Number.parseInt(parts[2], 10);
+      milliseconds = Number.parseInt(parts[3], 10) * 10;
+    } else {
+      minutes = Number.parseInt(parts[0], 10);
+      seconds = Number.parseInt(parts[1], 10);
+      milliseconds = Number.parseInt(parts[2], 10) * 10;
+    }
     if (
+      Number.isNaN(hours) ||
       Number.isNaN(minutes) ||
       Number.isNaN(seconds) ||
       Number.isNaN(milliseconds) ||
@@ -927,7 +1002,7 @@ const editTaskDuration = (opIndex, taskIndex) => {
       alert("Invalid duration. Ensure minutes, seconds (<60), and milliseconds (<100) are valid.");
       return;
     }
-    newDurationMs = minutes * 60 * 1000 + seconds * 1000 + milliseconds;
+    newDurationMs = hours * 3600000 + minutes * 60000 + seconds * 1000 + milliseconds;
   } else if (durationMode === "ms") {
     newDurationMs = Number.parseFloat(newDurationInput);
     if (Number.isNaN(newDurationMs) || newDurationMs < 0) {
@@ -1105,7 +1180,7 @@ const updateTaskList = () => {
             toConsole(`Operation ${i} start time updated`, opStartTimes[i], debuggin);
             updateProcessTimes();
           } else {
-            alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
+            alert("Invalid time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
             opTimeInput.value = formatTimeToHHMMSSMS(opStartTimes[i]);
           }
         }, 100),
@@ -1161,7 +1236,7 @@ const updateProcessTimes = () => {
           document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
           saveLocalState();
         } else {
-          alert("Invalid time format. Please use HH:MM:SS:MS (e.g., 00:01:00:00).");
+          alert("Invalid time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
           processEndTimeInput.value = formatTimeToHHMMSSMS(processEndTime);
         }
       }, 100),
@@ -1195,7 +1270,8 @@ const importFromCSV = (csvText) => {
   opStartTimes = [];
   for (let i = 0; i < opStartTimeHeaders.length; i++) {
     let timeStr = metaDataLine[i + 1];
-    const parts = timeStr.split(":");
+    const normalizedTimeStr = timeStr.replace(".", ":");
+    const parts = normalizedTimeStr.split(":");
     if (parts.length === 4) {
       const hours = Number.parseInt(parts[0], 10);
       const minutes = Number.parseInt(parts[1], 10);
@@ -1204,7 +1280,7 @@ const importFromCSV = (csvText) => {
       if (hours === 0 && minutes === 0 && seconds >= 60) {
         const newMinutes = Math.floor(seconds / 60);
         const newSeconds = seconds % 60;
-        timeStr = `00:${newMinutes.toString().padStart(2, "0")}:${newSeconds.toString().padStart(2, "0")}:${milliseconds.toString().padStart(2, "0")}`;
+        timeStr = `00:${newMinutes.toString().padStart(2, "0")}:${newSeconds.toString().padStart(2, "0")}.${milliseconds.toString().padStart(2, "0")}`;
         toConsole(`Fixed OpStartTime-${i}`, `${metaDataLine[i + 1]} -> ${timeStr}`, debuggin);
       }
     }
@@ -1383,7 +1459,7 @@ const drawTable = () => {
       yAxis: {
         title: {
           text: `Duration (${
-            durationMode === "hhmmssms" ? "MM:SS:MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
+            durationMode === "hhmmssms" ? "HH:MM:SS.MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
           })`,
         },
         labels: {

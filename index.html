@@ -141,7 +141,6 @@
                 <div id="marqueeRect" class="marquee-rect"></div>
               </div>
               <video id="my_video">
-                <source src="" type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
               <div class="zoom-controls">
@@ -154,18 +153,56 @@
           <div class="w-full p-2.5 lg:p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm flex flex-wrap gap-1.5 z-0 transition-colors duration-200">
             <div id="video_controls_bar">
               <div class="control-row items-center gap-4">
-                <span id="currentTime" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-20 text-center">00:00:00</span>
+                <span id="currentTime" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-24 text-center">00:00:00.00</span>
                 <input type="range" class="form-range flex-1 timeline-ticks" min="0" max="100" value="0" id="seekBar" aria-label="Seek Video" />
-                <span id="durationTime" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-20 text-center">00:00:00</span>
+                <span id="durationTime" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-24 text-center">00:00:00.00</span>
               </div>
               <div class="control-row button-row">
-                <button id="loadVideoButton" class="btn btn-yellow load-button">Load</button>
-                <button id="rewind5sButton" class="btn btn-lighter-green nudge-button">-5s</button>
-                <button id="rewind1sButton" class="btn btn-lighter-green nudge-button">-1s</button>
-                <button id="playPauseButton" class="btn btn-light-green play-button">Play</button>
-                <button id="forward1sButton" class="btn btn-lighter-green nudge-button">+1s</button>
-                <button id="forward5sButton" class="btn btn-lighter-green nudge-button">+5s</button>
-                <button id="muteButton" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors ml-4 focus:outline-none disabled:opacity-50 disabled:cursor-default" title="Mute/Unmute">
+                <button id="loadVideoButton" class="text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300 transition-colors mr-8 focus:outline-none disabled:opacity-50 disabled:cursor-default" title="Load Video">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m6 14 1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+                <button id="jumpToStartButton" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-default" title="Jump to Start">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                    <line x1="5" y1="19" x2="5" y2="5"></line>
+                  </svg>
+                </button>
+                <button id="rewind5sButton" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-default" title="Rewind 5s">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 19 2 12 11 5 11 19"></polygon>
+                    <polygon points="22 19 13 12 22 5 22 19"></polygon>
+                  </svg>
+                </button>
+                <button id="rewind1sButton" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-default" title="Rewind 1s">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                </button>
+                <button id="playPauseButton" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-default" title="Play / Pause">
+                  <!-- Play -->
+                  <svg id="playIcon" xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <!-- Pause -->
+                  <svg id="pauseIcon" xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                  </svg>
+                </button>
+                <button id="forward1sButton" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-default" title="Forward 1s">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
+                <button id="forward5sButton" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-default" title="Forward 5s">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 19 22 12 13 5 13 19"></polygon>
+                    <polygon points="2 19 11 12 2 5 2 19"></polygon>
+                  </svg>
+                </button>
+                <button id="muteButton" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors ml-8 focus:outline-none disabled:opacity-50 disabled:cursor-default" title="Mute/Unmute">
                   <!-- Volume High (Unmuted) -->
                   <svg id="volumeOnIcon" xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -179,10 +216,10 @@
                     <line x1="17" y1="9" x2="23" y2="15"></line>
                   </svg>
                 </button>
-                <div class="flex items-center w-24 sm:w-32 shrink min-w-[60px]">
+                <div class="flex items-center w-32 sm:w-40 shrink min-w-[100px] gap-2">
                   <input
                     type="range"
-                    class="form-range slider-ticks"
+                    class="form-range slider-ticks flex-1"
                     min="0"
                     max="1"
                     step="0.01"
@@ -190,11 +227,12 @@
                     id="volumeSlider"
                     aria-label="Volume Slider"
                   />
+                  <span id="volumeValue" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-7 text-right">100</span>
                 </div>
               </div>
               <div class="control-row items-center gap-4 mt-2">
                 <span class="font-mono text-sm text-zinc-500 dark:text-zinc-400 w-20 text-center">Speed</span>
-                <input type="range" class="form-range flex-1" min="0.5" max="8" step="0.1" value="1" id="speedSlider" aria-label="Playback Speed" />
+                <input type="range" class="form-range flex-1 timeline-ticks" style="--tick-interval: 6.6667%;" min="0.5" max="8" step="0.1" value="1" id="speedSlider" aria-label="Playback Speed" />
                 <span id="speedValue" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-20 text-center">1.0x</span>
               </div>
             </div>
@@ -204,7 +242,7 @@
 
         <!-- Right Column: Controls and Task Table -->
         <div class="flex flex-col gap-4">
-          <div class="w-full p-2.5 lg:p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm flex flex-wrap gap-1.5 z-0 transition-colors duration-200">
+          <div class="w-full p-2.5 lg:p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm flex flex-col gap-3 z-0 transition-colors duration-200">
             <div class="control-row functions-row">
               <div class="takt-time-container">
                 <label for="taktTimeInput" class="form-label">Takt Time:</label>
@@ -212,14 +250,16 @@
                   type="text"
                   class="form-control"
                   id="taktTimeInput"
-                  value="00:01:00:00"
-                  placeholder="HH:MM:SS:MS"
+                  value="00:01:00.00"
+                  placeholder="HH:MM:SS.MS"
                 />
               </div>
               <button id="addOpButton" class="btn btn-primary">Add Operation</button>
               <button id="addTaskButton" class="btn btn-primary" disabled>Add Task</button>
+              <button id="toggleFormatButton" class="btn btn-dark-gray">Format (HH:MM:SS.MS)</button>
+            </div>
+            <div class="control-row functions-row">
               <button id="addChartButton" class="btn btn-light-green">Chart</button>
-              <button id="toggleFormatButton" class="btn btn-dark-gray">Format (MM:SS:MS)</button>
               <button id="csvExportButton" class="btn btn-orange">Export CSV</button>
               <button id="csvImportButton" class="btn btn-orange">Load CSV</button>
               <input type="file" id="csvFileInput" accept=".csv" style="display: none" />
