@@ -43,10 +43,6 @@
         .table { @apply w-full text-left border-collapse text-sm; }
         .table th, .table td { @apply p-2 border border-slate-200 dark:border-slate-700; }
         .table thead th { @apply bg-slate-100 dark:bg-slate-800 font-semibold; }
-        
-        /* Structural layout elements replacing old CSS */
-        .controls-container { @apply w-full p-2.5 lg:p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-wrap gap-1.5 z-0 transition-colors duration-200; }
-        .video-placeholder { @apply w-full h-full min-h-[500px] bg-slate-900 text-slate-400 flex items-center justify-center text-lg p-5 absolute top-0 left-0 z-10 cursor-pointer border border-transparent dark:border-slate-700 transition-colors duration-200; }
       }
     </style>
     <!-- Custom styles -->
@@ -110,7 +106,7 @@
         <!-- Left Column: Video and Controls -->
         <div class="flex flex-col gap-4">
           <div class="video-container">
-            <div id="videoPlaceholder" class="video-placeholder">Load a video to get started</div>
+            <div id="videoPlaceholder" class="w-full h-full min-h-[500px] bg-slate-900 text-slate-400 flex items-center justify-center text-lg p-5 absolute top-0 left-0 z-10 cursor-pointer border border-transparent dark:border-slate-700 transition-colors duration-200">Load a video to get started</div>
             <div id="videoWrapper">
               <div id="marqueeOverlay" class="marquee-overlay">
                 <div id="marqueeRect" class="marquee-rect"></div>
@@ -126,7 +122,7 @@
               </div>
             </div>
           </div>
-          <div class="controls-container">
+          <div class="w-full p-2.5 lg:p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-wrap gap-1.5 z-0 transition-colors duration-200">
             <div id="video_controls_bar">
               <div class="control-row time-row">
                 <div class="time-display">
@@ -175,7 +171,7 @@
 
         <!-- Right Column: Controls and Task Table -->
         <div class="flex flex-col gap-4">
-          <div class="controls-container">
+          <div class="w-full p-2.5 lg:p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-wrap gap-1.5 z-0 transition-colors duration-200">
             <div class="control-row functions-row">
               <div class="takt-time-container">
                 <label for="taktTimeInput" class="form-label">Takt Time:</label>
