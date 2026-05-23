@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TimeStudy v0.4.3</title>
+    <title>TimeStudy v0.4.4</title>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,54 +15,14 @@
     <!-- Highcharts -->
     <script src="https://cdn.jsdelivr.net/npm/highcharts@11/highcharts.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/highcharts@11/modules/gantt.js" defer></script>
-    <!-- SheetJS (for XLSX Handling) -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script type="text/javascript">
-      var gk_isXlsx = false;
-      var gk_xlsxFileLookup = {};
-      var gk_fileData = {};
-      function filledCell(cell) {
-        return cell !== "" && cell != null;
-      }
-      function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-          try {
-            var workbook = XLSX.read(gk_fileData[filename], { type: "base64" });
-            var firstSheetName = workbook.SheetNames[0];
-            var worksheet = workbook.Sheets[firstSheetName];
-
-            // Convert sheet to JSON to filter blank rows
-            var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: "" });
-            // Filter out blank rows (rows where all cells are empty, null, or undefined)
-            var filteredData = jsonData.filter(row => row.some(filledCell));
-
-            // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-            var headerRowIndex = filteredData.findIndex(
-              (row, index) => row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-            );
-            // Fallback
-            if (headerRowIndex === -1 || headerRowIndex > 25) {
-              headerRowIndex = 0;
-            }
-
-            // Convert filtered JSON back to CSV
-            var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-            csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-            return csv;
-          } catch (e) {
-            console.error(e);
-            return "";
-          }
-        }
-        return gk_fileData[filename] || "";
-      }
-    </script>
+    <!-- SheetJS (for XLSX Handling - Currently Disabled) -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script> -->
   </head>
   <body class="font-sans bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 min-h-screen flex flex-col transition-colors duration-200">
     <!-- Header -->
     <header class="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 shadow-sm p-4 flex justify-between items-center z-10">
       <div class="flex items-center gap-2 sm:gap-3">
-        <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap hidden lg:block">TimeStudy v0.4.3</h1>
+        <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap hidden lg:block">TimeStudy v0.4.4</h1>
         <span class="text-zinc-300 dark:text-zinc-600 hidden lg:inline font-light text-xl">/</span>
         <input type="text" id="projectNameInput" placeholder="Untitled Project" class="project-name-input" />
         <span class="text-zinc-300 dark:text-zinc-600 hidden sm:inline font-light text-xl">/</span>

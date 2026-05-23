@@ -46,7 +46,7 @@ let unitsPerCycle = 1;
 let playbackSpeed = 1;
 let volumeLevel = 1;
 
-const APP_VERSION = "0.4.3";
+const APP_VERSION = "0.4.4";
 
 let isDrawing = false;
 let startX;
