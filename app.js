@@ -24,6 +24,10 @@ let firstOp = true;
 let taskCount = 0;
 let videoFileName = "";
 let projectName = "";
+let projectComments = "";
+let trials = [];
+let activeTrialIndex = 0;
+let videoBlobCache = {};
 let yama = [];
 let opNames = [];
 let opStartTimes = [];
@@ -77,6 +81,13 @@ const DOM = {
   zoomOut: document.getElementById("zoomOut"),
   resetZoom: document.getElementById("resetZoom"),
   projectNameInput: document.getElementById("projectNameInput"),
+  trialSelect: document.getElementById("trialSelect"),
+  addTrialBtn: document.getElementById("addTrialBtn"),
+  editTrialBtn: document.getElementById("editTrialBtn"),
+  compareTrialsBtn: document.getElementById("compareTrialsBtn"),
+  compareModal: document.getElementById("compareModal"),
+  closeCompareBtn: document.getElementById("closeCompareBtn"),
+  projectCommentsInput: document.getElementById("projectCommentsInput"),
   openSettingsBtn: document.getElementById("openSettingsBtn"),
   settingsBackdrop: document.getElementById("settingsBackdrop"),
   settingsPanel: document.getElementById("settingsPanel"),
@@ -127,24 +138,219 @@ const setHighchartsTheme = (isDark) => {
 };
 
 const saveLocalState = () => {
+  if (!trials[activeTrialIndex]) {
+    trials[activeTrialIndex] = {
+      trialId: activeTrialIndex + 1,
+      trialName: `Trial ${activeTrialIndex + 1}`,
+      costingConfig: {},
+      appState: {}
+    };
+  }
+
+  // Sync active global variables to the current trial object
+  trials[activeTrialIndex].videoFileName = videoFileName;
+  trials[activeTrialIndex].processEndTime = processEndTime;
+  trials[activeTrialIndex].taktTime = taktTime;
+  trials[activeTrialIndex].costingConfig = { hourlyRate, shiftLength, targetEfficiency };
+  trials[activeTrialIndex].appState = { yama, opNames, opStartTimes, opCount, taskCount, firstOp };
+
   const state = {
-    yama,
-    opNames,
-    opStartTimes,
-    opCount,
-    taskCount,
-    firstOp,
-    processEndTime,
-    taktTime,
-    videoFileName,
-    projectName,
-    hourlyRate,
-    shiftLength,
-    targetEfficiency,
-    playbackSpeed,
-    volumeLevel,
+    projectMeta: {
+      projectName,
+      projectComments,
+      lastSaved: new Date().toISOString(),
+      appVersion: APP_VERSION
+    },
+    appConfig: {
+      playbackSpeed,
+      volumeLevel
+    },
+    trials,
+    activeTrialIndex
   };
+
   localStorage.setItem("timeStudyData", JSON.stringify(state));
+};
+
+const renderTrialSelect = () => {
+  if (!DOM.trialSelect) return;
+  DOM.trialSelect.innerHTML = "";
+  trials.forEach((trial, index) => {
+    const option = document.createElement("option");
+    option.value = index;
+    option.textContent = trial.trialName;
+    option.className = "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white";
+    if (index === activeTrialIndex) {
+      option.selected = true;
+    }
+    DOM.trialSelect.appendChild(option);
+  });
+};
+
+const switchTrial = async (index) => {
+  if (index === activeTrialIndex) return;
+
+  saveLocalState();
+
+  activeTrialIndex = index;
+  const currentTrial = trials[activeTrialIndex];
+
+  videoFileName = currentTrial.videoFileName || "";
+  processEndTime = currentTrial.processEndTime || 0;
+  taktTime = currentTrial.taktTime || 60000;
+  hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
+  shiftLength = currentTrial.costingConfig?.shiftLength || 480;
+  targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
+  yama = currentTrial.appState?.yama || [];
+  opNames = currentTrial.appState?.opNames || [];
+  opStartTimes = currentTrial.appState?.opStartTimes || [];
+  opCount = currentTrial.appState?.opCount !== undefined ? currentTrial.appState.opCount : 0;
+  taskCount = currentTrial.appState?.taskCount !== undefined ? currentTrial.appState.taskCount : 0;
+  firstOp = currentTrial.appState?.firstOp !== undefined ? currentTrial.appState.firstOp : true;
+
+  renderTrialSelect();
+  updateTaskList();
+  drawTable();
+
+  player.pause();
+  if (videoFileName && videoBlobCache[videoFileName]) {
+    player.src = videoBlobCache[videoFileName];
+    toggleVideoPlaceholder(false);
+  } else {
+    player.removeAttribute("src");
+    DOM.videoPlaceholder.textContent = videoFileName 
+      ? `Trial switched. Click here to locate video: ${videoFileName}` 
+      : "Load a video to get started";
+    toggleVideoPlaceholder(true);
+  }
+  updateLoadButtonColor();
+
+  if (!DOM.settingsPanel.classList.contains("translate-x-full")) {
+    toggleSettings(true);
+  }
+
+  showToast(`Switched to: ${currentTrial.trialName}`, "success");
+};
+
+const addTrial = async () => {
+  const trialName = await asyncPrompt("Enter a name for the new trial:", `Trial ${trials.length + 1}`, "New Trial");
+  if (!trialName) return;
+  const duplicate = await asyncConfirm("Would you like to duplicate the current trial's tasks and video? (Click 'Cancel' to create a blank trial)", "Duplicate Data?");
+
+  saveLocalState();
+  const newTrialId = trials.length > 0 ? Math.max(...trials.map(t => t.trialId)) + 1 : 1;
+  
+  let newTrial = duplicate 
+    ? { ...JSON.parse(JSON.stringify(trials[activeTrialIndex])), trialId: newTrialId, trialName } 
+    : { trialId: newTrialId, trialName, videoFileName: "", processEndTime: 0, taktTime, costingConfig: { hourlyRate, shiftLength, targetEfficiency }, appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true } };
+
+  trials.push(newTrial);
+  await switchTrial(trials.length - 1);
+};
+
+const editTrial = async () => {
+  const currentName = trials[activeTrialIndex].trialName;
+  const newName = await asyncPrompt("Rename Trial:", currentName, "Edit Trial Name");
+  if (!newName || newName.trim() === "") return;
+
+  trials[activeTrialIndex].trialName = newName.trim();
+  saveLocalState();
+  renderTrialSelect();
+  showToast("Trial renamed successfully.", "success");
+};
+
+const openCompareDashboard = () => {
+  saveLocalState();
+
+  const categories = [];
+  const vaData = [];
+  const nvaData = [];
+  const wData = [];
+  const totalTimeData = [];
+  const costData = [];
+
+  trials.forEach((trial) => {
+    categories.push(trial.trialName);
+
+    let va = 0, nva = 0, w = 0;
+    const yamaData = trial.appState.yama || [];
+    yamaData.forEach((op) => {
+      if (Array.isArray(op)) {
+        op.forEach((task) => {
+          const height = task.taskHeight || 0;
+          if (task.taskStatus === "VA") va += height;
+          else if (task.taskStatus === "NVA") nva += height;
+          else if (task.taskStatus === "W") w += height;
+        });
+      }
+    });
+
+    vaData.push(va);
+    nvaData.push(nva);
+    wData.push(w);
+
+    const totalMs = va + nva + w;
+    totalTimeData.push(totalMs);
+
+    const rate = trial.costingConfig?.hourlyRate || 0;
+    // Cost = (Total time in hours) * Hourly Rate
+    const cost = (totalMs / 3600000) * rate;
+    costData.push(cost);
+  });
+
+  DOM.compareModal.showModal();
+
+  const isDark = document.documentElement.classList.contains("dark");
+  setHighchartsTheme(isDark);
+
+  const formatVal = (val) => {
+    if (durationMode === "hhmmssms") return formatDuration(val);
+    if (durationMode === "ms") return `${val.toFixed(0)} ms`;
+    return `${formatDecimalMinutes(val)} min`;
+  };
+
+  // Render charts *after* modal is shown so Highcharts can calculate width properly
+  setTimeout(() => {
+    Highcharts.chart("compareVaNvaChart", {
+      chart: { type: "column" },
+      title: { text: "Value Analysis Breakdown" },
+      xAxis: { categories },
+      yAxis: {
+        title: { text: "Time" },
+        labels: { formatter: function () { return formatVal(this.value); } },
+      },
+      tooltip: { formatter: function () { return `<b>${this.series.name}</b>: ${formatVal(this.y)}`; } },
+      plotOptions: { column: { stacking: "normal" } },
+      series: [
+        { name: "Value-Add (VA)", data: vaData, color: "#10b981" },
+        { name: "Non-Value-Add (NVA)", data: nvaData, color: "#f59e0b" },
+        { name: "Waste (W)", data: wData, color: "#f43f5e" },
+      ],
+    });
+
+    Highcharts.chart("compareTotalTimeChart", {
+      chart: { type: "column" },
+      title: { text: "Total Task Time" },
+      xAxis: { categories },
+      yAxis: {
+        title: { text: "Time" },
+        labels: { formatter: function () { return formatVal(this.value); } },
+      },
+      tooltip: { formatter: function () { return `<b>Total Time</b>: ${formatVal(this.y)}`; } },
+      plotOptions: { column: { dataLabels: { enabled: true, formatter: function () { return formatVal(this.y); } } } },
+      series: [{ name: "Total Time", data: totalTimeData, color: "#3b82f6", showInLegend: false }],
+    });
+
+    Highcharts.chart("compareCostChart", {
+      chart: { type: "column" },
+      title: { text: "Estimated Labor Cost per Cycle" },
+      xAxis: { categories },
+      yAxis: { title: { text: "Cost ($)" }, labels: { format: "${value:.4f}" } },
+      tooltip: { pointFormat: "<b>${point.y:.4f}</b>" },
+      plotOptions: { column: { dataLabels: { enabled: true, format: "${y:.4f}" } } },
+      series: [{ name: "Cost", data: costData, color: "#8b5cf6", showInLegend: false }],
+    });
+  }, 10);
 };
 
 const loadLocalState = () => {
@@ -152,32 +358,84 @@ const loadLocalState = () => {
   if (data) {
     try {
       const state = JSON.parse(data);
-      yama = state.yama || [];
-      opNames = state.opNames || [];
-      opStartTimes = state.opStartTimes || [];
-      opCount = state.opCount !== undefined ? state.opCount : 0;
-      taskCount = state.taskCount !== undefined ? state.taskCount : 0;
-      firstOp = state.firstOp !== undefined ? state.firstOp : true;
-      videoFileName = state.videoFileName || "";
-      processEndTime = state.processEndTime || 0;
-      projectName = state.projectName || "";
-      if (DOM.projectNameInput) {
-        DOM.projectNameInput.value = projectName;
+
+      // Backward Compatibility & Migration for old flat save states
+      if (!state.trials) {
+        trials = [{
+          trialId: 1,
+          trialName: "Current State",
+          videoFileName: state.videoFileName || "",
+          processEndTime: state.processEndTime || 0,
+          taktTime: state.taktTime || 60000,
+          costingConfig: {
+            hourlyRate: state.hourlyRate || 0,
+            shiftLength: state.shiftLength || 480,
+            targetEfficiency: state.targetEfficiency || 100
+          },
+          appState: {
+            yama: state.yama || [],
+            opNames: state.opNames || [],
+            opStartTimes: state.opStartTimes || [],
+            opCount: state.opCount !== undefined ? state.opCount : 0,
+            taskCount: state.taskCount !== undefined ? state.taskCount : 0,
+            firstOp: state.firstOp !== undefined ? state.firstOp : true
+          }
+        }];
+        activeTrialIndex = 0;
+        projectName = state.projectName || "";
+        projectComments = "";
+        playbackSpeed = state.playbackSpeed !== undefined ? state.playbackSpeed : 1;
+        volumeLevel = state.volumeLevel !== undefined ? state.volumeLevel : 1;
+      } else {
+        // Load new Multi-Trial format
+        trials = state.trials || [];
+        activeTrialIndex = state.activeTrialIndex || 0;
+        projectName = state.projectMeta?.projectName || "";
+        projectComments = state.projectMeta?.projectComments || "";
+        playbackSpeed = state.appConfig?.playbackSpeed !== undefined ? state.appConfig.playbackSpeed : 1;
+        volumeLevel = state.appConfig?.volumeLevel !== undefined ? state.appConfig.volumeLevel : 1;
       }
-      hourlyRate = state.hourlyRate || 0;
-      shiftLength = state.shiftLength || 480;
-      if (shiftLength <= 24) { // Auto-migrate old hours format to minutes
-        shiftLength *= 60;
-      }
-      targetEfficiency = state.targetEfficiency || 100;
-      playbackSpeed = state.playbackSpeed !== undefined ? state.playbackSpeed : 1;
-      volumeLevel = state.volumeLevel !== undefined ? state.volumeLevel : 1;
-      if (state.taktTime) taktTime = state.taktTime;
+
+      // Hydrate memory with the active trial data
+      const currentTrial = trials[activeTrialIndex] || trials[0];
+      videoFileName = currentTrial.videoFileName || "";
+      processEndTime = currentTrial.processEndTime || 0;
+      taktTime = currentTrial.taktTime || 60000;
+      
+      hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
+      shiftLength = currentTrial.costingConfig?.shiftLength || 480;
+      if (shiftLength <= 24) shiftLength *= 60; // Auto-migrate old hours format
+      targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
+
+      yama = currentTrial.appState?.yama || [];
+      opNames = currentTrial.appState?.opNames || [];
+      opStartTimes = currentTrial.appState?.opStartTimes || [];
+      opCount = currentTrial.appState?.opCount !== undefined ? currentTrial.appState.opCount : 0;
+      taskCount = currentTrial.appState?.taskCount !== undefined ? currentTrial.appState.taskCount : 0;
+      firstOp = currentTrial.appState?.firstOp !== undefined ? currentTrial.appState.firstOp : true;
+
+      // Sync UI
+      if (DOM.projectNameInput) DOM.projectNameInput.value = projectName;
+      renderTrialSelect();
+
       toConsole("Local state loaded", "Success", debuggin);
       showToast("Local session state restored.", "success");
     } catch (e) {
       toConsole("Error parsing local state", e, debuggin);
     }
+  } else {
+    // Initialize a blank trial if no prior state exists
+    trials = [{
+      trialId: 1,
+      trialName: "Current State",
+      videoFileName: "",
+      processEndTime: 0,
+      taktTime: 60000,
+      costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100 },
+      appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true }
+    }];
+    activeTrialIndex = 0;
+    projectComments = "";
   }
 };
 
@@ -220,6 +478,23 @@ const initializePlayer = () => {
     }
   });
 
+  if (DOM.trialSelect) {
+    DOM.trialSelect.addEventListener("change", (e) => {
+      switchTrial(Number.parseInt(e.target.value, 10));
+    });
+  }
+  if (DOM.addTrialBtn) {
+    DOM.addTrialBtn.addEventListener("click", addTrial);
+  }
+  if (DOM.editTrialBtn) {
+    DOM.editTrialBtn.addEventListener("click", editTrial);
+  }
+  if (DOM.compareTrialsBtn) {
+    DOM.compareTrialsBtn.addEventListener("click", openCompareDashboard);
+  }
+  if (DOM.closeCompareBtn) {
+    DOM.closeCompareBtn.addEventListener("click", () => DOM.compareModal.close());
+  }
   if (DOM.projectNameInput) {
     DOM.projectNameInput.addEventListener("blur", (e) => {
       e.target.value = sanitizeFilename(e.target.value);
@@ -243,6 +518,7 @@ const initializePlayer = () => {
       hourlyRate = Number.parseFloat(DOM.hourlyRateInput.value) || 0;
       shiftLength = Number.parseFloat(DOM.shiftLengthInput.value) || 480;
       targetEfficiency = Number.parseFloat(DOM.targetEfficiencyInput.value) || 100;
+      if (DOM.projectCommentsInput) projectComments = DOM.projectCommentsInput.value;
       saveLocalState();
       toggleSettings(false);
       showToast("Project variables saved successfully.", "success");
@@ -380,7 +656,20 @@ const initializePlayer = () => {
     taskCount = 0;
     firstOp = true;
     projectName = "";
+    projectComments = "";
     processEndTime = 0;
+    
+    trials = [{
+      trialId: 1,
+      trialName: "Current State",
+      videoFileName: "",
+      processEndTime: 0,
+      taktTime: taktTime,
+      costingConfig: { hourlyRate, shiftLength, targetEfficiency },
+      appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true }
+    }];
+    activeTrialIndex = 0;
+    renderTrialSelect();
 
     if (DOM.projectNameInput) DOM.projectNameInput.value = "";
     DOM.taskList.innerHTML = "";
@@ -554,6 +843,7 @@ const initializePlayer = () => {
 
     videoFileName = file.name;
     const fileURL = URL.createObjectURL(file);
+    videoBlobCache[videoFileName] = fileURL;
     player.src = fileURL;
     player.load();
 
@@ -918,6 +1208,7 @@ const toggleSettings = (show) => {
     DOM.hourlyRateInput.value = hourlyRate || "";
     DOM.shiftLengthInput.value = shiftLength || 480;
     DOM.targetEfficiencyInput.value = targetEfficiency || 100;
+    if (DOM.projectCommentsInput) DOM.projectCommentsInput.value = projectComments || "";
   } else {
     DOM.settingsPanel.classList.add("translate-x-full");
     DOM.settingsBackdrop.classList.add("opacity-0");
@@ -1493,31 +1784,10 @@ const updateProcessTimes = () => {
 };
 
 const exportToJSON = () => {
-  const projectData = {
-    projectMeta: {
-      projectName: projectName || "Untitled Project",
-      videoFileName: videoFileName || "",
-      processEndTime: processEndTime,
-      lastSaved: new Date().toISOString(),
-      appVersion: APP_VERSION
-    },
-    costingConfig: {
-      hourlyRate: hourlyRate,
-      shiftLength: shiftLength,
-      targetEfficiency: targetEfficiency,
-      taktTime: taktTime
-    },
-    appState: {
-      yama: yama,
-      opNames: opNames,
-      opStartTimes: opStartTimes,
-      opCount: opCount,
-      taskCount: taskCount,
-      firstOp: firstOp
-    }
-  };
+  saveLocalState(); // Force sync of globals to current trial before export
+  const dataStr = localStorage.getItem("timeStudyData");
+  if (!dataStr) return;
 
-  const dataStr = JSON.stringify(projectData, null, 2);
   const blob = new Blob([dataStr], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -1538,50 +1808,74 @@ const exportToJSON = () => {
 const importFromJSON = (jsonText) => {
   try {
     const data = JSON.parse(jsonText);
-    
-    if (!data.appState) {
-      alert("Invalid project file format. Missing appState array.");
+
+    if (data.appState) {
+      // Legacy v0.4.3 support: Wrap the old format into a Trial
+      trials = [{
+        trialId: 1,
+        trialName: "Current State",
+        videoFileName: data.projectMeta?.videoFileName || "",
+        processEndTime: data.projectMeta?.processEndTime || 0,
+        taktTime: data.costingConfig?.taktTime || 60000,
+        costingConfig: data.costingConfig || { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100 },
+        appState: data.appState
+      }];
+      activeTrialIndex = 0;
+      projectName = data.projectMeta?.projectName || "";
+      projectComments = "";
+    } else if (data.trials) {
+      // New Multi-Trial format
+      trials = data.trials;
+      activeTrialIndex = data.activeTrialIndex || 0;
+      projectName = data.projectMeta?.projectName || "";
+      projectComments = data.projectMeta?.projectComments || "";
+    } else {
+      alert("Invalid project file format.");
       return;
     }
 
-    // Restore Meta
-    videoFileName = data.projectMeta?.videoFileName || "";
-    projectName = data.projectMeta?.projectName || "";
-    if (DOM.projectNameInput) {
-      DOM.projectNameInput.value = projectName;
-    }
-    processEndTime = data.projectMeta?.processEndTime || 0;
+    // Load active trial into memory
+    const currentTrial = trials[activeTrialIndex];
+    videoFileName = currentTrial.videoFileName || "";
+    processEndTime = currentTrial.processEndTime || 0;
+    taktTime = currentTrial.taktTime || 60000;
+    
+    hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
+    shiftLength = currentTrial.costingConfig?.shiftLength || 480;
+    targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
 
-    // Restore Config
-    hourlyRate = data.costingConfig?.hourlyRate || 0;
-    shiftLength = data.costingConfig?.shiftLength || 480;
-    targetEfficiency = data.costingConfig?.targetEfficiency || 100;
-    taktTime = data.costingConfig?.taktTime || 60000;
+    yama = currentTrial.appState?.yama || [];
+    opNames = currentTrial.appState?.opNames || [];
+    opStartTimes = currentTrial.appState?.opStartTimes || [];
+    opCount = currentTrial.appState?.opCount !== undefined ? currentTrial.appState.opCount : 0;
+    taskCount = currentTrial.appState?.taskCount !== undefined ? currentTrial.appState.taskCount : 0;
+    firstOp = currentTrial.appState?.firstOp !== undefined ? currentTrial.appState.firstOp : true;
 
-    // Restore State
-    yama = data.appState.yama || [];
-    opNames = data.appState.opNames || [];
-    opStartTimes = data.appState.opStartTimes || [];
-    opCount = data.appState.opCount !== undefined ? data.appState.opCount : 0;
-    taskCount = data.appState.taskCount !== undefined ? data.appState.taskCount : 0;
-    firstOp = data.appState.firstOp !== undefined ? data.appState.firstOp : true;
+    if (DOM.projectNameInput) DOM.projectNameInput.value = projectName;
+    renderTrialSelect();
 
     DOM.taskList.innerHTML = "";
     DOM.pieChartContainer.innerHTML = "";
     DOM.chartContainer.innerHTML = "";
     DOM.ganttChartContainer.innerHTML = "";
 
-    // Prompt for missing video
-    if (videoFileName && !player.src) {
-      DOM.videoPlaceholder.textContent = `Project loaded. Click here to locate video: ${videoFileName}`;
+    // Handle Video Relinking
+    player.pause();
+    if (videoFileName && videoBlobCache[videoFileName]) {
+      player.src = videoBlobCache[videoFileName];
+      toggleVideoPlaceholder(false);
+    } else {
+      player.removeAttribute("src");
+      DOM.videoPlaceholder.textContent = videoFileName ? `Project loaded. Click here to locate video: ${videoFileName}` : "Load a video to get started";
       toggleVideoPlaceholder(true);
     }
 
     updateTaskList();
     saveLocalState();
     drawTable();
+    updateLoadButtonColor();
     
-    toConsole("Project imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`, debuggin);
+    toConsole("Project imported successfully", `Loaded Trial: ${currentTrial.trialName}`, debuggin);
     showToast("Project loaded successfully.", "success");
   } catch (e) {
     toConsole("Error importing JSON", e, debuggin);

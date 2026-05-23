@@ -62,9 +62,19 @@
     <!-- Header -->
     <header class="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 shadow-sm p-4 flex justify-between items-center z-10">
       <div class="flex items-center gap-2 sm:gap-3">
-        <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap">TimeStudy v0.4.3</h1>
-        <span class="text-zinc-300 dark:text-zinc-600 hidden sm:inline font-light text-xl">/</span>
+        <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap hidden lg:block">TimeStudy v0.4.3</h1>
+        <span class="text-zinc-300 dark:text-zinc-600 hidden lg:inline font-light text-xl">/</span>
         <input type="text" id="projectNameInput" placeholder="Untitled Project" class="project-name-input" />
+        <span class="text-zinc-300 dark:text-zinc-600 hidden sm:inline font-light text-xl">/</span>
+        <div class="flex items-center gap-1">
+          <select id="trialSelect" class="trial-select" title="Switch Trial"></select>
+          <button id="addTrialBtn" class="btn btn-sm border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 p-1 flex items-center justify-center rounded-full w-7 h-7 transition-colors" title="Add Trial">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <button id="editTrialBtn" class="btn btn-sm border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 p-1 flex items-center justify-center rounded-full w-7 h-7 transition-colors" title="Rename Trial">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+          </button>
+        </div>
       </div>
       <div class="flex items-center gap-4">
         <button id="darkModeToggle" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors" title="Toggle Dark Mode">
@@ -203,6 +213,7 @@
             <div class="control-row functions-row">
               <button id="addOpButton" class="btn btn-primary">Add Operation</button>
               <button id="addTaskButton" class="btn btn-primary" disabled>Add Task</button>
+              <button id="compareTrialsBtn" class="btn btn-light-green ml-2 sm:ml-4">Compare Trials</button>
               <button id="csvExportButton" class="btn btn-outline-orange ml-2 sm:ml-4 px-2 flex items-center justify-center" title="Export CSV">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -249,6 +260,10 @@
       </div>
       <div class="p-5 overflow-y-auto flex-1 flex flex-col gap-6">
         <div>
+          <label for="projectCommentsInput" class="form-label">Project Comments</label>
+          <textarea id="projectCommentsInput" class="form-control w-full" rows="3" placeholder="Notes about this study or trial..."></textarea>
+        </div>
+        <div>
           <label for="hourlyRateInput" class="form-label">Labor Hourly Rate</label>
           <div class="relative">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 font-medium">$</span>
@@ -294,6 +309,32 @@
         <div class="flex justify-end gap-3">
           <button type="button" id="promptCancelBtn" class="btn btn-outline-secondary">Cancel</button>
           <button type="button" id="promptOkBtn" class="btn btn-primary">OK</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Compare Trials Modal -->
+    <dialog id="compareModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-[95vw] max-w-6xl h-[90vh] fixed inset-0 m-auto">
+      <div class="flex flex-col h-full w-full">
+        <div class="flex justify-between items-center p-4 border-b border-zinc-200 dark:border-zinc-700 shrink-0">
+          <h5 class="text-xl font-bold flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Trial Comparison Dashboard
+          </h5>
+          <button type="button" id="closeCompareBtn" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl font-bold px-2 leading-none">&times;</button>
+        </div>
+        <div class="p-4 overflow-y-auto flex-1 bg-zinc-50 dark:bg-zinc-900/50">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-white dark:bg-zinc-800 p-4 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700">
+              <div id="compareVaNvaChart" class="w-full h-80"></div>
+            </div>
+            <div class="bg-white dark:bg-zinc-800 p-4 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700">
+              <div id="compareTotalTimeChart" class="w-full h-80"></div>
+            </div>
+            <div class="bg-white dark:bg-zinc-800 p-4 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 lg:col-span-2">
+              <div id="compareCostChart" class="w-full h-80"></div>
+            </div>
+          </div>
         </div>
       </div>
     </dialog>
