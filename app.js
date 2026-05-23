@@ -1,8 +1,7 @@
 let player;
+let loadVideoButton;
 let addTaskButton;
 let addOpButton;
-let addChartButton;
-let loadVideoButton;
 let toggleFormatButton;
 let csvExportButton;
 let csvImportButton;
@@ -31,6 +30,7 @@ let zoomLevel = 1;
 let translateX = 0;
 let translateY = 0;
 let processEndTime = 0;
+let chartMode = "column";
 const APP_VERSION = "0.4.1";
 
 let isDrawing = false;
@@ -44,6 +44,7 @@ const DOM = {
   videoPlaceholder: document.getElementById("videoPlaceholder"),
   videoWrapper: document.getElementById("videoWrapper"),
   chartContainer: document.getElementById("chartContainer"),
+  ganttChartContainer: document.getElementById("ganttChartContainer"),
   pieChartContainer: document.getElementById("pieChartContainer"),
   taskTableFoot: null, // Initialize as null, set dynamically in updateTaskList
   darkModeToggle: document.getElementById("darkModeToggle"),
@@ -67,33 +68,39 @@ const DOM = {
   resetZoom: document.getElementById("resetZoom"),
 };
 
+const toggleChartMode = () => {
+  chartMode = chartMode === "column" ? "gantt" : "column";
+  updateTaskList();
+  drawTable();
+};
+
 const setHighchartsTheme = (isDark) => {
   Highcharts.setOptions({
     chart: {
-      backgroundColor: isDark ? "#1c2526" : "#ffffff",
+      backgroundColor: "transparent",
       style: { fontFamily: "'Inter', system-ui, sans-serif" },
     },
-    title: { style: { color: isDark ? "#d1d5db" : "#212529" } },
+    title: { style: { color: isDark ? "#e4e4e7" : "#27272a" } },
     xAxis: {
-      labels: { style: { color: isDark ? "#d1d5db" : "#212529" } },
-      lineColor: isDark ? "#374151" : "#dee2e6",
-      tickColor: isDark ? "#374151" : "#dee2e6",
+      labels: { style: { color: isDark ? "#a1a1aa" : "#52525b" } },
+      lineColor: isDark ? "#3f3f46" : "#e4e4e7",
+      tickColor: isDark ? "#3f3f46" : "#e4e4e7",
     },
     yAxis: {
-      labels: { style: { color: isDark ? "#d1d5db" : "#212529" } },
-      title: { style: { color: isDark ? "#d1d5db" : "#212529" } },
-      gridLineColor: isDark ? "#374151" : "#dee2e6",
+      labels: { style: { color: isDark ? "#a1a1aa" : "#52525b" } },
+      title: { style: { color: isDark ? "#e4e4e7" : "#27272a" } },
+      gridLineColor: isDark ? "#3f3f46" : "#e4e4e7",
     },
     tooltip: {
-      backgroundColor: isDark ? "#1c2526" : "#ffffff",
-      borderColor: isDark ? "#374151" : "#dee2e6",
-      style: { color: isDark ? "#d1d5db" : "#212529" },
+      backgroundColor: isDark ? "#27272a" : "#ffffff",
+      borderColor: isDark ? "#3f3f46" : "#e4e4e7",
+      style: { color: isDark ? "#e4e4e7" : "#27272a" },
     },
     plotOptions: {
-      series: { dataLabels: { style: { color: isDark ? "#d1d5db" : "#212529" } } },
+      series: { dataLabels: { style: { color: isDark ? "#e4e4e7" : "#27272a" } } },
     },
     legend: {
-      itemStyle: { color: isDark ? "#d1d5db" : "#212529" },
+      itemStyle: { color: isDark ? "#e4e4e7" : "#27272a" },
       itemHoverStyle: { color: isDark ? "#60a5fa" : "#0d6efd" },
     },
   });
@@ -227,9 +234,7 @@ const initializePlayer = () => {
 
   addTaskButton = document.getElementById("addTaskButton");
   addOpButton = document.getElementById("addOpButton");
-  addChartButton = document.getElementById("addChartButton");
   csvExportButton = document.getElementById("csvExportButton");
-  csvImportButton = document.getElementById("csvImportButton");
   loadVideoButton = document.getElementById("loadVideoButton");
   toggleFormatButton = document.getElementById("toggleFormatButton");
   speedSlider = document.getElementById("speedSlider");
@@ -262,7 +267,6 @@ const initializePlayer = () => {
 
   addTaskButton.addEventListener("click", addTask, false);
   addOpButton.addEventListener("click", addOp, false);
-  addChartButton.addEventListener("click", drawTable, false);
   csvExportButton.addEventListener("click", exportToCSV, false);
   csvImportButton.addEventListener("click", () => {
     DOM.csvFileInput.click();
@@ -427,6 +431,7 @@ const initializePlayer = () => {
     DOM.taskList.innerHTML = "";
     DOM.pieChartContainer.innerHTML = "";
     DOM.chartContainer.innerHTML = "";
+    DOM.ganttChartContainer.innerHTML = "";
     updateTaskList();
     addTaskButton.disabled = true;
     saveLocalState();
@@ -799,6 +804,7 @@ const addOp = async () => {
   yama[opCount] = [];
   toConsole("taskCount has been reset", taskCount, debuggin);
   updateTaskList();
+  drawTable();
 };
 
 const addTask = async () => {
@@ -863,6 +869,7 @@ const addTask = async () => {
   console.table(yama[opCount][taskCount]);
   taskCount += 1;
   updateTaskList();
+  drawTable();
 };
 
 /* eslint-disable no-unused-vars */
@@ -1116,7 +1123,18 @@ const updateTaskList = () => {
       `<table class="table task-table font-mono text-base tabular-nums">
          <thead>
            <tr>
-             <th scope="col" class="text-center">Operations / Task</th>
+             <th scope="col" class="text-left align-middle">
+               <div class="flex items-center gap-2">
+                 <button onclick="toggleChartMode()" class="btn btn-sm btn-outline-secondary p-1 flex items-center justify-center" title="Toggle Chart View (Show ${chartMode === "column" ? "Gantt" : "Column"})">
+                   ${
+                     chartMode === "column"
+                       ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 8h6"/><path d="M11 12h5"/><path d="M14 16h6"/></svg>`
+                       : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`
+                   }
+                 </button>
+                 <span>Operation</span>
+               </div>
+             </th>
              <th scope="col" class="text-center w-0 whitespace-nowrap">Duration</th>
              <th scope="col" class="text-center w-0 whitespace-nowrap">Status</th>
              <th scope="col" class="text-center w-0 whitespace-nowrap">Actions</th>
@@ -1382,6 +1400,7 @@ const importFromCSV = (csvText) => {
   DOM.taskList.innerHTML = "";
   DOM.pieChartContainer.innerHTML = "";
   DOM.chartContainer.innerHTML = "";
+  DOM.ganttChartContainer.innerHTML = "";
 
   const taskHeaders = lines[2].split(",").map((h) => h.trim());
   const expectedTaskHeaders = ["Operation", "Task", "VA", "NVA", "W"];
@@ -1442,6 +1461,7 @@ const importFromCSV = (csvText) => {
   }
   updateTaskList();
   saveLocalState();
+  drawTable();
   toConsole("CSV imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`, debuggin);
   showToast("CSV imported successfully.", "success");
 };
@@ -1495,113 +1515,175 @@ const drawTable = () => {
       throw new Error("Chart container elements not found");
     }
     if (yama.length === 0) {
-      alert("No operations or tasks to chart.");
+      DOM.chartContainer.innerHTML = "";
+      DOM.ganttChartContainer.innerHTML = "";
+      DOM.pieChartContainer.innerHTML = "";
       return;
     }
     if (taktTime === null || taktTime <= 0) {
-      alert("Invalid Takt Time. Please set a valid Takt Time (HH:MM:SS:MS).");
       return;
     }
     if (typeof Highcharts === "undefined") {
-      alert("Highcharts failed to load. Please check your internet connection.");
       return;
     }
-
     const isDarkMode = document.documentElement.classList.contains("dark");
     setHighchartsTheme(isDarkMode);
-    const series = [];
-    for (let j = 0; j < yama.length; j += 1) {
-      if (yama[j] && Array.isArray(yama[j])) {
-        for (let i = 0; i < yama[j].length; i += 1) {
-          const task = yama[j][i];
-          const status = task.taskStatus.toUpperCase();
-          const color = status === "VA" ? "#00FF00" : status === "NVA" ? "#FFFF00" : "#FF0000";
-          const dataPoint = new Array(opNames.length).fill(0);
-          dataPoint[j] = task.taskHeight;
-          series.push({
-            name: `${opNames[j]}: ${task.name || task.taskName} (${status})`,
-            data: dataPoint,
-            stack: opNames[j],
-            color,
-          });
+
+    if (chartMode === "column") {
+      DOM.chartContainer.style.display = "block";
+      DOM.ganttChartContainer.style.display = "none";
+      DOM.ganttChartContainer.innerHTML = "";
+
+      const series = [];
+      for (let j = 0; j < yama.length; j += 1) {
+        if (yama[j] && Array.isArray(yama[j])) {
+          for (let i = 0; i < yama[j].length; i += 1) {
+            const task = yama[j][i];
+            const status = task.taskStatus.toUpperCase();
+            const color = status === "VA" ? "#10b981" : status === "NVA" ? "#f59e0b" : "#f43f5e";
+            const dataPoint = new Array(opNames.length).fill(0);
+            dataPoint[j] = task.taskHeight;
+            series.push({
+              name: `${opNames[j]}: ${task.name || task.taskName} (${status})`,
+              data: dataPoint,
+              stack: opNames[j],
+              color,
+            });
+          }
+        } else {
+          toConsole("Invalid task array for operation", j, debuggin);
         }
-      } else {
-        toConsole("Invalid task array for operation", j, debuggin);
       }
-    }
-    toConsole("Generated series", JSON.stringify(series), debuggin);
-    toConsole("xAxis categories", JSON.stringify(opNames), debuggin);
-    Highcharts.chart(DOM.chartContainer, {
-      chart: { type: "column" },
-      accessibility: { enabled: false },
-      title: { text: "Operation Task Durations by Status" },
-      xAxis: { categories: opNames },
-      yAxis: {
-        title: {
-          text: `Duration (${
-            durationMode === "hhmmssms" ? "HH:MM:SS.MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
-          })`,
-        },
-        labels: {
-          formatter() {
-            return durationMode === "hhmmssms"
-              ? formatDuration(this.value)
-              : durationMode === "ms"
-                ? this.value.toFixed(3)
-                : formatDecimalMinutes(this.value);
+      toConsole("Generated series", JSON.stringify(series), debuggin);
+      toConsole("xAxis categories", JSON.stringify(opNames), debuggin);
+      Highcharts.chart(DOM.chartContainer, {
+        chart: { type: "column" },
+        accessibility: { enabled: false },
+        title: { text: "Operation Task Durations by Status" },
+        xAxis: { categories: opNames },
+        yAxis: {
+          title: {
+            text: `Duration (${
+              durationMode === "hhmmssms" ? "HH:MM:SS.MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
+            })`,
           },
-        },
-        plotLines: [
-          {
-            value: taktTime,
-            color: "#0000FF",
-            width: 2,
-            label: {
-              text: `Takt: ${
-                durationMode === "hhmmssms"
-                  ? formatDuration(taktTime)
-                  : durationMode === "ms"
-                    ? `${taktTime.toFixed(3)} ms`
-                    : `${formatDecimalMinutes(taktTime)} min`
-              }`,
-              align: "right",
-              style: { color: "#0000FF" },
-            },
-          },
-        ],
-      },
-      tooltip: {
-        formatter() {
-          const duration =
-            durationMode === "hhmmssms"
-              ? formatDuration(this.y)
-              : durationMode === "ms"
-                ? `${this.y.toFixed(3)} ms`
-                : `${formatDecimalMinutes(this.y)} min`;
-          return `<b>Operation: ${this.x}</b><br>Task: ${this.series.name}<br>Duration: ${duration}`;
-        },
-      },
-      plotOptions: {
-        column: {
-          stacking: "normal",
-          grouping: false,
-          pointWidth: 50,
-          dataLabels: {
-            enabled: true,
+          labels: {
             formatter() {
-              return this.y > 0
-                ? durationMode === "hhmmssms"
-                  ? formatDuration(this.y)
-                  : durationMode === "ms"
-                    ? this.y.toFixed(3)
-                    : formatDecimalMinutes(this.y)
-                : "";
+              return durationMode === "hhmmssms"
+                ? formatDuration(this.value)
+                : durationMode === "ms"
+                  ? this.value.toFixed(3)
+                  : formatDecimalMinutes(this.value);
+            },
+          },
+          plotLines: [
+            {
+              value: taktTime,
+              color: "#0000FF",
+              width: 2,
+              label: {
+                text: `Takt: ${
+                  durationMode === "hhmmssms"
+                    ? formatDuration(taktTime)
+                    : durationMode === "ms"
+                      ? `${taktTime.toFixed(3)} ms`
+                      : `${formatDecimalMinutes(taktTime)} min`
+                }`,
+                align: "right",
+                style: { color: "#0000FF" },
+              },
+            },
+          ],
+        },
+        tooltip: {
+          formatter() {
+            const duration =
+              durationMode === "hhmmssms"
+                ? formatDuration(this.y)
+                : durationMode === "ms"
+                  ? `${this.y.toFixed(3)} ms`
+                  : `${formatDecimalMinutes(this.y)} min`;
+            const cleanTaskName = this.series.name.replace(`${this.x}: `, "");
+            return `<b>Operation: ${this.x}</b><br>Task: ${cleanTaskName}<br>Duration: ${duration}`;
+          },
+        },
+        plotOptions: {
+          column: {
+            stacking: "normal",
+            grouping: false,
+            pointWidth: 50,
+            dataLabels: {
+              enabled: true,
+              formatter() {
+                return this.y > 0
+                  ? durationMode === "hhmmssms"
+                    ? formatDuration(this.y)
+                    : durationMode === "ms"
+                      ? this.y.toFixed(3)
+                      : formatDecimalMinutes(this.y)
+                  : "";
+              },
             },
           },
         },
-      },
-      series,
-    });
+        series,
+      });
+    } else {
+      DOM.chartContainer.style.display = "none";
+      DOM.ganttChartContainer.style.display = "block";
+      DOM.chartContainer.innerHTML = "";
+
+      const ganttData = [];
+      for (let i = 0; i < yama.length; i += 1) {
+        if (yama[i] && Array.isArray(yama[i])) {
+          for (let j = 0; j < yama[i].length; j += 1) {
+            const task = yama[i][j];
+            const status = task.taskStatus.toUpperCase();
+            const color = status === "VA" ? "#10b981" : status === "NVA" ? "#f59e0b" : "#f43f5e";
+            ganttData.push({
+              name: task.taskName,
+              start: task.taskStart,
+              end: task.taskEnd,
+              y: i,
+              color,
+              status,
+            });
+          }
+        }
+      }
+
+      Highcharts.ganttChart(DOM.ganttChartContainer, {
+        accessibility: { enabled: false },
+        title: { text: "Task Timeline (Gantt)" },
+        xAxis: {
+          labels: {
+            formatter() {
+              return durationMode === "hhmmssms"
+                ? formatDuration(this.value)
+                : durationMode === "ms"
+                  ? this.value.toFixed(3)
+                  : formatDecimalMinutes(this.value);
+            },
+          },
+        },
+        yAxis: {
+          categories: opNames,
+          title: { text: "Operations" },
+        },
+        tooltip: {
+          formatter() {
+            const duration =
+              durationMode === "hhmmssms"
+                ? formatDuration(this.point.end - this.point.start)
+                : durationMode === "ms"
+                  ? `${(this.point.end - this.point.start).toFixed(3)} ms`
+                  : `${formatDecimalMinutes(this.point.end - this.point.start)} min`;
+            return `<b>Operation:</b> ${this.series.yAxis.categories[this.point.y]}<br/><b>Task:</b> ${this.point.name}<br/><b>Status:</b> ${this.point.status}<br/><b>Duration:</b> ${duration}`;
+          },
+        },
+        series: [{ name: "Tasks", data: ganttData }],
+      });
+    }
 
     DOM.pieChartContainer.innerHTML = "";
     for (let i = 0; i < yama.length; i += 1) {
@@ -1627,9 +1709,9 @@ const drawTable = () => {
         debuggin,
       );
       const pieData = [
-        { name: "VA", y: statusDurations.VA, color: "#00FF00" },
-        { name: "NVA", y: statusDurations.NVA, color: "#FFFF00" },
-        { name: "W", y: statusDurations.W, color: "#FF0000" },
+        { name: "VA", y: statusDurations.VA, color: "#10b981" },
+        { name: "NVA", y: statusDurations.NVA, color: "#f59e0b" },
+        { name: "W", y: statusDurations.W, color: "#f43f5e" },
       ].filter((item) => item.y > 0);
       if (pieData.length === 0) {
         toConsole("No valid pie chart data for operation", opNames[i], debuggin);
