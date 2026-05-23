@@ -217,7 +217,7 @@
     <div id="toastContainer" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- Confirm Modal -->
-    <dialog id="confirmModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-sm m-auto">
+    <dialog id="confirmModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-sm fixed inset-0 m-auto">
       <div class="p-5">
         <h5 class="text-lg font-semibold mb-2" id="confirmTitle">Confirm Action</h5>
         <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-6" id="confirmMessage">Are you sure?</p>
@@ -229,7 +229,7 @@
     </dialog>
 
     <!-- Prompt Modal -->
-    <dialog id="promptModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-sm m-auto">
+    <dialog id="promptModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-sm fixed inset-0 m-auto">
       <div class="p-5">
         <h5 class="text-lg font-semibold mb-2" id="promptTitle">Input Required</h5>
         <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4" id="promptMessage"></p>
@@ -242,7 +242,7 @@
     </dialog>
 
     <!-- Help Modal -->
-    <dialog id="helpModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-lg m-auto">
+    <dialog id="helpModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-lg fixed inset-0 m-auto">
       <div class="flex justify-between items-center p-4 border-b border-zinc-200 dark:border-zinc-700">
         <h5 class="text-lg font-semibold" id="helpModalLabel">Help / Keyboard Shortcuts</h5>
         <button type="button" id="closeHelpBtnX" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl font-bold px-2 leading-none">&times;</button>
