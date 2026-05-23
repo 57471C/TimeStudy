@@ -4,7 +4,9 @@ let addTaskButton;
 let addOpButton;
 let toggleFormatButton;
 let csvExportButton;
-let csvImportButton;
+let projectExportButton;
+let projectImportButton;
+let newProjectButton;
 let speedSlider;
 let seekBar;
 let playPauseButton;
@@ -67,7 +69,7 @@ const DOM = {
   marqueeOverlay: document.getElementById("marqueeOverlay"),
   marqueeRect: document.getElementById("marqueeRect"),
   videoFileInput: document.getElementById("videoFileInput"),
-  csvFileInput: document.getElementById("csvFileInput"),
+  projectFileInput: document.getElementById("projectFileInput"),
   zoomIn: document.getElementById("zoomIn"),
   zoomOut: document.getElementById("zoomOut"),
   resetZoom: document.getElementById("resetZoom"),
@@ -301,7 +303,9 @@ const initializePlayer = () => {
   addTaskButton = document.getElementById("addTaskButton");
   addOpButton = document.getElementById("addOpButton");
   csvExportButton = document.getElementById("csvExportButton");
-  csvImportButton = document.getElementById("csvImportButton");
+  projectExportButton = document.getElementById("projectExportButton");
+  projectImportButton = document.getElementById("projectImportButton");
+  newProjectButton = document.getElementById("newProjectButton");
   loadVideoButton = document.getElementById("loadVideoButton");
   toggleFormatButton = document.getElementById("toggleFormatButton");
   speedSlider = document.getElementById("speedSlider");
@@ -335,8 +339,42 @@ const initializePlayer = () => {
   addTaskButton.addEventListener("click", addTask, false);
   addOpButton.addEventListener("click", addOp, false);
   csvExportButton.addEventListener("click", exportToCSV, false);
-  csvImportButton.addEventListener("click", () => {
-    DOM.csvFileInput.click();
+  projectExportButton.addEventListener("click", exportToJSON, false);
+  projectImportButton.addEventListener("click", () => {
+    DOM.projectFileInput.click();
+  });
+
+  newProjectButton.addEventListener("click", async () => {
+    if (yama.length > 0 || player.src) {
+      const proceed = await asyncConfirm("Are you sure you want to start a new project? All unsaved data will be lost.", "New Project");
+      if (!proceed) return;
+    }
+
+    player.pause();
+    player.removeAttribute("src");
+    player.load();
+
+    yama = [];
+    opNames = [];
+    opStartTimes = [];
+    opCount = 0;
+    taskCount = 0;
+    firstOp = true;
+    projectName = "";
+    processEndTime = 0;
+
+    if (DOM.projectNameInput) DOM.projectNameInput.value = "";
+    DOM.taskList.innerHTML = "";
+    DOM.pieChartContainer.innerHTML = "";
+    DOM.chartContainer.innerHTML = "";
+    DOM.ganttChartContainer.innerHTML = "";
+
+    toggleVideoPlaceholder(true);
+    updateLoadButtonColor();
+    updateTaskList();
+    saveLocalState();
+
+    showToast("New project started.", "success");
   });
   loadVideoButton.addEventListener("click", () => {
     DOM.videoFileInput.click();
@@ -516,15 +554,16 @@ const initializePlayer = () => {
     updateLoadButtonColor();
   });
 
-  DOM.csvFileInput.addEventListener("change", (event) => {
+  DOM.projectFileInput.addEventListener("change", (event) => {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        importFromCSV(e.target.result);
+        importFromJSON(e.target.result);
       };
       reader.readAsText(file);
     }
+    event.target.value = ""; // Reset input so the same file can be loaded again if needed
   });
 
   DOM.zoomIn.addEventListener("click", () => {
