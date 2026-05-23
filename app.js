@@ -266,7 +266,7 @@ const openCompareDashboard = () => {
   const vaData = [];
   const nvaData = [];
   const wData = [];
-  const totalTimeData = [];
+  const unitsData = [];
   const costData = [];
 
   trials.forEach((trial) => {
@@ -290,7 +290,14 @@ const openCompareDashboard = () => {
     wData.push(w);
 
     const totalMs = va + nva + w;
-    totalTimeData.push(totalMs);
+    
+    // Calculate Units per Shift (Shift Length * Efficiency / Total Task Time)
+    const shiftMs = (trial.costingConfig?.shiftLength || 480) * 60 * 1000;
+    const efficiency = (trial.costingConfig?.targetEfficiency || 100) / 100;
+    const effectiveMs = shiftMs * efficiency;
+    
+    const units = totalMs > 0 ? Math.floor(effectiveMs / totalMs) : 0;
+    unitsData.push(units);
 
     const rate = trial.costingConfig?.hourlyRate || 0;
     // Cost = (Total time in hours) * Hourly Rate
@@ -318,8 +325,22 @@ const openCompareDashboard = () => {
       yAxis: {
         title: { text: "Time" },
         labels: { formatter: function () { return formatVal(this.value); } },
+        stackLabels: {
+          enabled: true,
+          formatter: function () { return formatVal(this.total); },
+          style: { color: isDark ? "#e4e4e7" : "#27272a", textOutline: "none", fontWeight: "bold" }
+        },
+        plotLines: [
+          {
+            value: taktTime,
+            color: "#0000FF",
+            width: 2,
+            zIndex: 5,
+            label: { text: `Takt: ${formatVal(taktTime)}`, align: "right", style: { color: "#0000FF" } }
+          }
+        ]
       },
-      tooltip: { formatter: function () { return `<b>${this.series.name}</b>: ${formatVal(this.y)}`; } },
+      tooltip: { formatter: function () { return `<b>${this.series.name}</b>: ${formatVal(this.y)}<br/><b>Total Time</b>: ${formatVal(this.point.stackTotal)}`; } },
       plotOptions: { column: { stacking: "normal" } },
       series: [
         { name: "Value-Add (VA)", data: vaData, color: "#10b981" },
@@ -328,17 +349,16 @@ const openCompareDashboard = () => {
       ],
     });
 
-    Highcharts.chart("compareTotalTimeChart", {
+    Highcharts.chart("compareUnitsChart", {
       chart: { type: "column" },
-      title: { text: "Total Task Time" },
+      title: { text: "Estimated Units per Shift" },
       xAxis: { categories },
       yAxis: {
-        title: { text: "Time" },
-        labels: { formatter: function () { return formatVal(this.value); } },
+        title: { text: "Units" }
       },
-      tooltip: { formatter: function () { return `<b>Total Time</b>: ${formatVal(this.y)}`; } },
-      plotOptions: { column: { dataLabels: { enabled: true, formatter: function () { return formatVal(this.y); } } } },
-      series: [{ name: "Total Time", data: totalTimeData, color: "#3b82f6", showInLegend: false }],
+      tooltip: { formatter: function () { return `<b>Est. Capacity</b>: ${this.y} units`; } },
+      plotOptions: { column: { dataLabels: { enabled: true } } },
+      series: [{ name: "Units", data: unitsData, color: "#3b82f6", showInLegend: false }],
     });
 
     Highcharts.chart("compareCostChart", {
