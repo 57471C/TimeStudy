@@ -38,6 +38,8 @@ let chartMode = "column";
 let hourlyRate = 0;
 let shiftLength = 480;
 let targetEfficiency = 100;
+let playbackSpeed = 1;
+let volumeLevel = 1;
 
 const APP_VERSION = "0.4.2";
 
@@ -139,6 +141,8 @@ const saveLocalState = () => {
     hourlyRate,
     shiftLength,
     targetEfficiency,
+    playbackSpeed,
+    volumeLevel,
   };
   localStorage.setItem("timeStudyData", JSON.stringify(state));
 };
@@ -166,6 +170,8 @@ const loadLocalState = () => {
         shiftLength *= 60;
       }
       targetEfficiency = state.targetEfficiency || 100;
+      playbackSpeed = state.playbackSpeed !== undefined ? state.playbackSpeed : 1;
+      volumeLevel = state.volumeLevel !== undefined ? state.volumeLevel : 1;
       if (state.taktTime) taktTime = state.taktTime;
       toConsole("Local state loaded", "Success", debuggin);
       showToast("Local session state restored.", "success");
@@ -279,12 +285,19 @@ const initializePlayer = () => {
     updateLoadButtonColor();
     toggleVideoPlaceholder(false);
     updateProcessTimes();
-    player.playbackRate = 1;
-    speedSlider.value = 1;
-    DOM.speedValue.textContent = "1.0x";
-    toConsole("Playback speed reset to 1x after load", "Success", debuggin);
-    volumeSlider.value = player.volume;
-    DOM.volumeValue.textContent = Math.round(player.volume * 100);
+    
+    player.playbackRate = playbackSpeed;
+    speedSlider.value = playbackSpeed;
+    DOM.speedValue.textContent = `${playbackSpeed.toFixed(1)}x`;
+    toConsole("Playback speed restored", playbackSpeed, debuggin);
+    
+    player.volume = volumeLevel;
+    player.muted = true;
+    DOM.volumeOnIcon.classList.add("hidden");
+    DOM.volumeOffIcon.classList.remove("hidden");
+    volumeSlider.value = 0;
+    DOM.volumeValue.textContent = "0";
+    toConsole("Video muted on load", "Success", debuggin);
   });
   player.addEventListener("play", () => {
     DOM.playIcon.classList.add("hidden");
@@ -452,8 +465,13 @@ const initializePlayer = () => {
     DOM.volumeOnIcon.classList.toggle("hidden", player.muted);
     DOM.volumeOffIcon.classList.toggle("hidden", !player.muted);
     toConsole("Mute toggled", player.muted, debuggin);
-    volumeSlider.value = player.muted ? 0 : player.volume;
-    DOM.volumeValue.textContent = player.muted ? "0" : Math.round(player.volume * 100);
+    if (!player.muted && volumeLevel === 0) {
+      volumeLevel = 1;
+      player.volume = 1;
+      saveLocalState();
+    }
+    volumeSlider.value = player.muted ? 0 : volumeLevel;
+    DOM.volumeValue.textContent = player.muted ? "0" : Math.round(volumeLevel * 100);
   });
 
   volumeSlider.addEventListener(
@@ -462,11 +480,13 @@ const initializePlayer = () => {
       const volume = Number.parseFloat(event.target.value);
       if (!Number.isNaN(volume)) {
         player.volume = volume;
+            volumeLevel = volume;
         player.muted = volume === 0;
         DOM.volumeOnIcon.classList.toggle("hidden", player.muted);
         DOM.volumeOffIcon.classList.toggle("hidden", !player.muted);
         DOM.volumeValue.textContent = Math.round(volume * 100);
         toConsole("Volume adjusted", volume, debuggin);
+            saveLocalState();
       }
     }, 100),
   );
@@ -478,16 +498,16 @@ const initializePlayer = () => {
         const speed = Number.parseFloat(event.target.value);
         if (!Number.isNaN(speed)) {
           player.playbackRate = speed;
+              playbackSpeed = speed;
           DOM.speedValue.textContent = `${speed.toFixed(1)}x`;
           toConsole("Speed slider input event fired", speed, debuggin);
-          toConsole("Speed value label updated", `${speed.toFixed(1)}x`, debuggin);
+              saveLocalState();
         }
       }, 100),
     );
 
-    player.playbackRate = 1;
-    toConsole("Initial playback rate set", 1, debuggin);
-    DOM.speedValue.textContent = "1.0x";
+        speedSlider.value = playbackSpeed;
+        DOM.speedValue.textContent = `${playbackSpeed.toFixed(1)}x`;
   }
 
   if (seekBar) {
@@ -561,11 +581,6 @@ const initializePlayer = () => {
     
     DOM.videoPlaceholder.textContent = "Load a video to get started";
     saveLocalState();
-
-    player.playbackRate = 1;
-    speedSlider.value = 1;
-    DOM.speedValue.textContent = "1.0x";
-    toConsole("Playback speed reset to 1x after manual load", "Success", debuggin);
 
     updateLoadButtonColor();
   });
@@ -655,8 +670,13 @@ const initializePlayer = () => {
         DOM.volumeOnIcon.classList.toggle("hidden", player.muted);
         DOM.volumeOffIcon.classList.toggle("hidden", !player.muted);
         toConsole("Mute toggled (M key)", player.muted, debuggin);
-        volumeSlider.value = player.muted ? 0 : player.volume;
-        DOM.volumeValue.textContent = player.muted ? "0" : Math.round(player.volume * 100);
+        if (!player.muted && volumeLevel === 0) {
+          volumeLevel = 1;
+          player.volume = 1;
+          saveLocalState();
+        }
+        volumeSlider.value = player.muted ? 0 : volumeLevel;
+        DOM.volumeValue.textContent = player.muted ? "0" : Math.round(volumeLevel * 100);
         break;
       case "=":
         e.preventDefault();
