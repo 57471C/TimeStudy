@@ -17,6 +17,11 @@ const escapeHTML = (str) => {
     .replace(/'/g, '&#039;');
 };
 
+const sanitizeFilename = (name) => {
+  if (typeof name !== 'string') return '';
+  return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
+};
+
 const toConsole = (message, value, debuggin = 1) => {
   if (debuggin === 1) {
     console.log(`${message}:`, value);

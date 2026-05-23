@@ -20,6 +20,7 @@ const debuggin = 1;
 let opCount = 0;
 let firstOp = true;
 let taskCount = 0;
+let projectName = "";
 let yama = [];
 let opNames = [];
 let opStartTimes = [];
@@ -66,6 +67,7 @@ const DOM = {
   zoomIn: document.getElementById("zoomIn"),
   zoomOut: document.getElementById("zoomOut"),
   resetZoom: document.getElementById("resetZoom"),
+  projectNameInput: document.getElementById("projectNameInput"),
 };
 
 const toggleChartMode = () => {
@@ -108,7 +110,7 @@ const setHighchartsTheme = (isDark) => {
 };
 
 const saveLocalState = () => {
-  const state = { yama, opNames, opStartTimes, opCount, taskCount, firstOp, processEndTime, taktTime };
+  const state = { yama, opNames, opStartTimes, opCount, taskCount, firstOp, processEndTime, taktTime, projectName };
   localStorage.setItem("timeStudyData", JSON.stringify(state));
 };
 
@@ -124,6 +126,10 @@ const loadLocalState = () => {
       taskCount = state.taskCount !== undefined ? state.taskCount : 0;
       firstOp = state.firstOp !== undefined ? state.firstOp : true;
       processEndTime = state.processEndTime || 0;
+      projectName = state.projectName || "";
+      if (DOM.projectNameInput) {
+        DOM.projectNameInput.value = projectName;
+      }
       if (state.taktTime) taktTime = state.taktTime;
       toConsole("Local state loaded", "Success", debuggin);
       showToast("Local session state restored.", "success");
@@ -171,6 +177,19 @@ const initializePlayer = () => {
       drawTable();
     }
   });
+
+  if (DOM.projectNameInput) {
+    DOM.projectNameInput.addEventListener("blur", (e) => {
+      e.target.value = sanitizeFilename(e.target.value);
+      projectName = e.target.value;
+      saveLocalState();
+    });
+    DOM.projectNameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.target.blur();
+      }
+    });
+  }
 
   player.addEventListener("timeupdate", seektimeupdate);
   player.addEventListener("loadedmetadata", () => {
@@ -429,6 +448,10 @@ const initializePlayer = () => {
     opCount = 0;
     taskCount = 0;
     firstOp = true;
+    projectName = "";
+    if (DOM.projectNameInput) {
+      DOM.projectNameInput.value = "";
+    }
     DOM.taskList.innerHTML = "";
     DOM.pieChartContainer.innerHTML = "";
     DOM.chartContainer.innerHTML = "";
@@ -716,18 +739,8 @@ const updateLoadButtonColor = () => {
   if (loadVideoButton && player && playPauseButton) {
     const src = player.src;
     if (!src) {
-      loadVideoButton.classList.add(
-        "text-amber-500",
-        "hover:text-amber-600",
-        "dark:text-amber-400",
-        "dark:hover:text-amber-300",
-      );
-      loadVideoButton.classList.remove(
-        "text-zinc-500",
-        "hover:text-zinc-900",
-        "dark:text-zinc-400",
-        "dark:hover:text-zinc-100",
-      );
+        loadVideoButton.classList.add("btn-icon-highlight");
+        loadVideoButton.classList.remove("btn-icon");
       playPauseButton.disabled = true;
       jumpToStartButton.disabled = true;
       rewind5sButton.disabled = true;
@@ -737,18 +750,8 @@ const updateLoadButtonColor = () => {
       muteButton.disabled = true;
       volumeSlider.disabled = true;
     } else {
-      loadVideoButton.classList.remove(
-        "text-amber-500",
-        "hover:text-amber-600",
-        "dark:text-amber-400",
-        "dark:hover:text-amber-300",
-      );
-      loadVideoButton.classList.add(
-        "text-zinc-500",
-        "hover:text-zinc-900",
-        "dark:text-zinc-400",
-        "dark:hover:text-zinc-100",
-      );
+        loadVideoButton.classList.remove("btn-icon-highlight");
+        loadVideoButton.classList.add("btn-icon");
       playPauseButton.disabled = false;
       jumpToStartButton.disabled = false;
       rewind5sButton.disabled = false;
@@ -1505,7 +1508,11 @@ const exportToCSV = () => {
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
   link.setAttribute("href", url);
-  link.setAttribute("download", "operation_task_durations.csv");
+  let filename = "operation_task_durations.csv";
+  if (projectName) {
+    filename = `${sanitizeFilename(projectName)}.csv`;
+  }
+  link.setAttribute("download", filename);
   link.style.visibility = "hidden";
   document.body.appendChild(link);
   link.click();
