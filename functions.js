@@ -7,6 +7,16 @@ const debounce = (func, wait) => {
   };
 };
 
+const escapeHTML = (str) => {
+  if (typeof str !== 'string') return str;
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 const toConsole = (message, value, debuggin = 1) => {
   if (debuggin === 1) {
     console.log(`${message}:`, value);

@@ -18,7 +18,7 @@ let volumeSlider;
 
 const debuggin = 1;
 let opCount = 0;
-let firstOp = "y";
+let firstOp = true;
 let taskCount = 0;
 let yama = [];
 let opNames = [];
@@ -31,7 +31,7 @@ let translateX = 0;
 let translateY = 0;
 let processEndTime = 0;
 let chartMode = "column";
-const APP_VERSION = "0.4.1";
+const APP_VERSION = "0.4.2";
 
 let isDrawing = false;
 let startX;
@@ -122,7 +122,7 @@ const loadLocalState = () => {
       opStartTimes = state.opStartTimes || [];
       opCount = state.opCount !== undefined ? state.opCount : 0;
       taskCount = state.taskCount !== undefined ? state.taskCount : 0;
-      firstOp = state.firstOp || "y";
+      firstOp = state.firstOp !== undefined ? state.firstOp : true;
       processEndTime = state.processEndTime || 0;
       if (state.taktTime) taktTime = state.taktTime;
       toConsole("Local state loaded", "Success", debuggin);
@@ -235,6 +235,7 @@ const initializePlayer = () => {
   addTaskButton = document.getElementById("addTaskButton");
   addOpButton = document.getElementById("addOpButton");
   csvExportButton = document.getElementById("csvExportButton");
+  csvImportButton = document.getElementById("csvImportButton");
   loadVideoButton = document.getElementById("loadVideoButton");
   toggleFormatButton = document.getElementById("toggleFormatButton");
   speedSlider = document.getElementById("speedSlider");
@@ -427,7 +428,7 @@ const initializePlayer = () => {
     opStartTimes = [];
     opCount = 0;
     taskCount = 0;
-    firstOp = "y";
+    firstOp = true;
     DOM.taskList.innerHTML = "";
     DOM.pieChartContainer.innerHTML = "";
     DOM.chartContainer.innerHTML = "";
@@ -552,7 +553,6 @@ const initializePlayer = () => {
     }
   });
 
-  toConsole("jQuery version", $.fn.jquery, debuggin);
   updateLoadButtonColor();
 };
 
@@ -791,11 +791,11 @@ const addOp = async () => {
   }
   const startTime = player.currentTime;
   toConsole("Operation start time", startTime, debuggin);
-  if (firstOp === "n") {
+  if (!firstOp) {
     opCount += 1;
     toConsole("Creating Operation opCount has increased by 1", opCount, debuggin);
   } else {
-    firstOp = "n";
+    firstOp = false;
     toConsole("Creating first operation yama[0]", opCount, debuggin);
   }
   opNames[opCount] = opName;
@@ -1052,7 +1052,7 @@ const deleteTask = async (opIndex, taskIndex) => {
       opCount -= 1;
       if (opCount < 0) {
         opCount = 0;
-        firstOp = "y";
+        firstOp = true;
         addTaskButton.disabled = true;
       }
     }
@@ -1089,7 +1089,7 @@ const deleteOperation = async (opIndex) => {
     opCount -= 1;
     if (opCount < 0) {
       opCount = 0;
-      firstOp = "y";
+      firstOp = true;
       addTaskButton.disabled = true;
     }
     taskCount = yama[opCount]?.length ?? 0;
@@ -1145,13 +1145,15 @@ const updateTaskList = () => {
     for (let i = 0; i < yama.length; i += 1) {
       const opTimeInputId = `opTimeInput-${i}`;
       const formattedTime = formatTimeToHHMMSSMS(opStartTimes[i]);
+      const safeOpName = escapeHTML(opNames[i]);
+      
       rows.push(`
         <tr>
           <td colspan="4">
             <div class="flex items-center justify-between w-full">
               <div>
                 <a href="javascript:void(0)" onclick="jumpToOperationTime('${opTimeInputId}')" class="font-bold text-lg">
-                  ${opNames[i]}
+                  ${safeOpName}
                 </a>
                 <span class="op-time-container">
                   <label for="${opTimeInputId}" class="form-label font-mono text-base mb-0" style="width: auto;">Start:</label>
@@ -1180,6 +1182,8 @@ const updateTaskList = () => {
             : durationMode === "ms"
               ? `${task.taskHeight.toFixed(3)} ms`
               : `${formatDecimalMinutes(task.taskHeight)} min`;
+              
+        const safeTaskName = escapeHTML(task.taskName);
 
         let badgeClass = "";
         if (task.taskStatus === "VA")
@@ -1191,7 +1195,7 @@ const updateTaskList = () => {
 
         rows.push(`
           <tr>
-            <td><div class="ml-5">${task.taskName}</div></td>
+            <td><div class="ml-5">${safeTaskName}</div></td>
             <td class="text-center whitespace-nowrap">${duration}</td>
             <td class="text-center whitespace-nowrap">
               <span class="inline-block px-2 py-0.5 rounded border bg-transparent text-xs font-bold ${badgeClass}">${task.taskStatus}</span>
@@ -1395,7 +1399,7 @@ const importFromCSV = (csvText) => {
   opNames = [];
   opCount = -1;
   taskCount = 0;
-  firstOp = "y";
+  firstOp = true;
 
   DOM.taskList.innerHTML = "";
   DOM.pieChartContainer.innerHTML = "";
@@ -1440,7 +1444,7 @@ const importFromCSV = (csvText) => {
       yama[opCount] = [];
       taskIndex = 0;
       currentOpName = opName;
-      firstOp = "n";
+      firstOp = false;
     }
     const taskStart = lastEndTime;
     const taskEnd = taskStart + taskHeight;

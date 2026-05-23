@@ -3,73 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TimeStudy v0.4.1</title>
+    <title>TimeStudy v0.4.2</title>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS (Play CDN for local runtime) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class', // Uses standard Tailwind '.dark' class
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'system-ui', 'sans-serif'],
-            }
-          }
-        }
-      }
-    </script>
-    <!-- Intercepting Bootstrap classes via Tailwind to avoid JS breakage during staging -->
-    <style type="text/tailwindcss">
-      @layer utilities {
-        /* Modern sleek buttons (Mux inspired) */
-        .btn { @apply px-3 py-1.5 text-sm font-medium transition-all duration-200 border border-slate-200/60 dark:border-white/5 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 active:scale-95 cursor-pointer backdrop-blur-sm; }
-        .btn:disabled { @apply opacity-50 cursor-default active:scale-100; }
-        .btn-sm { @apply px-2.5 py-1 text-xs rounded; }
-        .btn-primary { @apply bg-blue-600/90 text-white hover:bg-blue-600 border-transparent dark:bg-blue-500/80 dark:hover:bg-blue-500; }
-        .btn-outline-primary { @apply bg-transparent border-blue-500/50 text-blue-600 hover:bg-blue-50 dark:border-blue-400/50 dark:text-blue-400 dark:hover:bg-blue-500/10; }
-        .btn-danger { @apply bg-rose-600/90 text-white hover:bg-rose-600 border-transparent dark:bg-rose-500/80 dark:hover:bg-rose-500; }
-        .btn-outline-danger { @apply bg-transparent border-rose-500/50 text-rose-600 hover:bg-rose-50 dark:border-rose-400/50 dark:text-rose-400 dark:hover:bg-rose-500/10; }
-        .btn-secondary { @apply bg-zinc-500/90 text-white hover:bg-zinc-500 border-transparent dark:bg-zinc-600/80 dark:hover:bg-zinc-600; }
-        .btn-outline-secondary { @apply bg-transparent border-zinc-400/50 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-500/50 dark:text-zinc-300 dark:hover:bg-zinc-700/50; }
-        .btn-dark-gray { @apply bg-zinc-700/90 text-white hover:bg-zinc-700 border-transparent dark:bg-zinc-700/80 dark:hover:bg-zinc-600; }
-        .btn-yellow { @apply bg-amber-500/90 text-white hover:bg-amber-500 border-transparent dark:bg-amber-500/80 dark:hover:bg-amber-500; }
-        .btn-orange { @apply bg-orange-500/90 text-white hover:bg-orange-500 border-transparent dark:bg-orange-500/80 dark:hover:bg-orange-500; }
-        .btn-light-green { @apply bg-emerald-600/90 text-white hover:bg-emerald-600 border-transparent dark:bg-emerald-500/80 dark:hover:bg-emerald-500; }
-        .btn-lighter-green { @apply bg-emerald-500/90 text-white hover:bg-emerald-500 border-transparent dark:bg-emerald-400/80 dark:hover:bg-emerald-400; }
-        
-        .form-control { @apply px-3 py-1.5 border border-zinc-300 rounded bg-white dark:bg-zinc-800 dark:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500; }
-        .form-label { @apply block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300; }
-        
-        /* Modern sleek sliders (Mux inspired) */
-        .form-range { @apply w-full h-1.5 bg-zinc-200 dark:bg-zinc-700/80 rounded-full appearance-none cursor-pointer outline-none shadow-inner; }
-        .form-range::-webkit-slider-thumb { @apply appearance-none w-1.5 h-4 rounded-full bg-blue-500 hover:bg-blue-400 hover:scale-110 active:scale-95 transition-all duration-200 shadow-md border-0; }
-        .form-range::-moz-range-thumb { @apply appearance-none w-1.5 h-4 rounded-full bg-blue-500 hover:bg-blue-400 hover:scale-110 active:scale-95 transition-all duration-200 shadow-md border-0; }
-        
-        .slider-ticks { background-image: repeating-linear-gradient(to right, transparent, transparent calc(10% - 1px), rgba(0, 0, 0, 0.15) calc(10% - 1px), rgba(0, 0, 0, 0.15) 10%); }
-        .dark .slider-ticks { background-image: repeating-linear-gradient(to right, transparent, transparent calc(10% - 1px), rgba(255, 255, 255, 0.15) calc(10% - 1px), rgba(255, 255, 255, 0.15) 10%); }
-
-        .timeline-ticks { background-image: repeating-linear-gradient(to right, transparent, transparent calc(var(--tick-interval, 100%) - 1px), rgba(0, 0, 0, 0.15) calc(var(--tick-interval, 100%) - 1px), rgba(0, 0, 0, 0.15) var(--tick-interval, 100%)); }
-        .dark .timeline-ticks { background-image: repeating-linear-gradient(to right, transparent, transparent calc(var(--tick-interval, 100%) - 1px), rgba(255, 255, 255, 0.15) calc(var(--tick-interval, 100%) - 1px), rgba(255, 255, 255, 0.15) var(--tick-interval, 100%)); }
-
-        .table { @apply w-full text-left border-collapse text-sm; }
-        .table th, .table td { @apply p-2 border border-zinc-200 dark:border-zinc-700; }
-        .table thead th { @apply bg-zinc-100 dark:bg-zinc-800 font-semibold; }
-      }
-    </style>
+    <!-- Tailwind CSS (Compiled for production) -->
+    <link rel="stylesheet" href="tailwind.css" />
     <!-- Custom styles -->
     <link rel="stylesheet" href="styles.css" />
-    <!-- jQuery -->
-    <script
-      src="https://code.jquery.com/jquery-3.7.1.min.js"
-      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
-      crossorigin="anonymous"
-    ></script>
     <!-- Highcharts -->
-    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/highcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/highcharts.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/modules/gantt.js" defer></script>
     <!-- SheetJS (for XLSX Handling) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script type="text/javascript">
@@ -116,7 +61,7 @@
   <body class="font-sans bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 min-h-screen flex flex-col transition-colors duration-200">
     <!-- Header -->
     <header class="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 shadow-sm p-4 flex justify-between items-center z-10">
-      <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">TimeStudy v0.4.1</h1>
+      <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">TimeStudy v0.4.2</h1>
       <div class="flex items-center gap-4">
         <button id="darkModeToggle" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors" title="Toggle Dark Mode">
           <!-- Sun Icon -->
@@ -248,7 +193,6 @@
             <div class="control-row functions-row">
               <button id="addOpButton" class="btn btn-primary">Add Operation</button>
               <button id="addTaskButton" class="btn btn-primary" disabled>Add Task</button>
-              <button id="addChartButton" class="btn btn-light-green ml-2 sm:ml-4">Chart</button>
               <button id="csvExportButton" class="btn btn-orange ml-2 sm:ml-4">Export CSV</button>
               <button id="csvImportButton" class="btn btn-orange">Load CSV</button>
               <input type="file" id="csvFileInput" accept=".csv" style="display: none" />
@@ -264,6 +208,7 @@
       <!-- Full-Width Charts -->
       <div class="mt-8 space-y-6">
         <div id="chartContainer"></div>
+        <div id="ganttChartContainer"></div>
         <div id="pieChartContainer" class="flex flex-wrap gap-4"></div>
       </div>
     </div>
@@ -272,7 +217,7 @@
     <div id="toastContainer" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- Confirm Modal -->
-    <dialog id="confirmModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-sm">
+    <dialog id="confirmModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-sm m-auto">
       <div class="p-5">
         <h5 class="text-lg font-semibold mb-2" id="confirmTitle">Confirm Action</h5>
         <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-6" id="confirmMessage">Are you sure?</p>
@@ -284,7 +229,7 @@
     </dialog>
 
     <!-- Prompt Modal -->
-    <dialog id="promptModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-sm">
+    <dialog id="promptModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-sm m-auto">
       <div class="p-5">
         <h5 class="text-lg font-semibold mb-2" id="promptTitle">Input Required</h5>
         <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4" id="promptMessage"></p>
@@ -297,7 +242,7 @@
     </dialog>
 
     <!-- Help Modal -->
-    <dialog id="helpModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-lg">
+    <dialog id="helpModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-lg m-auto">
       <div class="flex justify-between items-center p-4 border-b border-zinc-200 dark:border-zinc-700">
         <h5 class="text-lg font-semibold" id="helpModalLabel">Help / Keyboard Shortcuts</h5>
         <button type="button" id="closeHelpBtnX" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl font-bold px-2 leading-none">&times;</button>

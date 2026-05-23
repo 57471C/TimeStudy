@@ -1,5 +1,6 @@
 /* Custom styles for Highcharts containers */
 #chartContainer,
+#ganttChartContainer,
 #pieChartContainer {
   margin: 20px 0;
 }
