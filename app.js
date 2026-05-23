@@ -22,6 +22,7 @@ const debuggin = 1;
 let opCount = 0;
 let firstOp = true;
 let taskCount = 0;
+let videoFileName = "";
 let projectName = "";
 let yama = [];
 let opNames = [];
@@ -133,6 +134,7 @@ const saveLocalState = () => {
     firstOp,
     processEndTime,
     taktTime,
+    videoFileName,
     projectName,
     hourlyRate,
     shiftLength,
@@ -152,6 +154,7 @@ const loadLocalState = () => {
       opCount = state.opCount !== undefined ? state.opCount : 0;
       taskCount = state.taskCount !== undefined ? state.taskCount : 0;
       firstOp = state.firstOp !== undefined ? state.firstOp : true;
+      videoFileName = state.videoFileName || "";
       processEndTime = state.processEndTime || 0;
       projectName = state.projectName || "";
       if (DOM.projectNameInput) {
@@ -266,7 +269,7 @@ const initializePlayer = () => {
       seekBar.style.setProperty("--tick-interval", `${tickInterval}%`);
     }
     processEndTime = duration;
-    if (duration > 0 && duration < 60) {
+    if (duration > 0 && duration < 60 && yama.length === 0) {
       taktTime = Math.max(1000, Math.round(duration * 0.9) * 1000);
       saveLocalState();
       toConsole("Takt time auto-adjusted for short video", taktTime, debuggin);
@@ -332,8 +335,10 @@ const initializePlayer = () => {
   const videoUrl = urlParams.get("v");
   if (videoUrl) {
     toConsole("Found video URL in GET parameter", videoUrl, debuggin);
+    videoFileName = videoUrl.split('/').pop().split('?')[0] || videoUrl;
     player.src = videoUrl;
     player.load();
+    saveLocalState();
   }
 
   addTaskButton.addEventListener("click", addTask, false);
@@ -355,6 +360,7 @@ const initializePlayer = () => {
     player.load();
 
     yama = [];
+    videoFileName = "";
     opNames = [];
     opStartTimes = [];
     opCount = 0;
@@ -369,6 +375,7 @@ const initializePlayer = () => {
     DOM.chartContainer.innerHTML = "";
     DOM.ganttChartContainer.innerHTML = "";
 
+    DOM.videoPlaceholder.textContent = "Load a video to get started";
     toggleVideoPlaceholder(true);
     updateLoadButtonColor();
     updateTaskList();
@@ -523,28 +530,37 @@ const initializePlayer = () => {
       }
     }
 
+    const isRelinking = !player.src && yama.length > 0;
+
+    videoFileName = file.name;
     const fileURL = URL.createObjectURL(file);
     player.src = fileURL;
     player.load();
 
-    yama = [];
-    opNames = [];
-    opStartTimes = [];
-    opCount = 0;
-    taskCount = 0;
-    firstOp = true;
-    projectName = "";
-    if (DOM.projectNameInput) {
-      DOM.projectNameInput.value = "";
+    if (!isRelinking) {
+      yama = [];
+      opNames = [];
+      opStartTimes = [];
+      opCount = 0;
+      taskCount = 0;
+      firstOp = true;
+      projectName = "";
+      if (DOM.projectNameInput) {
+        DOM.projectNameInput.value = "";
+      }
+      DOM.taskList.innerHTML = "";
+      DOM.pieChartContainer.innerHTML = "";
+      DOM.chartContainer.innerHTML = "";
+      DOM.ganttChartContainer.innerHTML = "";
+      updateTaskList();
+      addTaskButton.disabled = true;
+      toConsole("Cleared all previous data and charts", null, debuggin);
+    } else {
+      toConsole("Re-linked video to existing project", videoFileName, debuggin);
     }
-    DOM.taskList.innerHTML = "";
-    DOM.pieChartContainer.innerHTML = "";
-    DOM.chartContainer.innerHTML = "";
-    DOM.ganttChartContainer.innerHTML = "";
-    updateTaskList();
-    addTaskButton.disabled = true;
+    
+    DOM.videoPlaceholder.textContent = "Load a video to get started";
     saveLocalState();
-    toConsole("Cleared all previous data and charts", null, debuggin);
 
     player.playbackRate = 1;
     speedSlider.value = 1;
@@ -1460,6 +1476,7 @@ const exportToJSON = () => {
   const projectData = {
     projectMeta: {
       projectName: projectName || "Untitled Project",
+      videoFileName: videoFileName || "",
       processEndTime: processEndTime,
       lastSaved: new Date().toISOString(),
       appVersion: APP_VERSION
@@ -1508,6 +1525,7 @@ const importFromJSON = (jsonText) => {
     }
 
     // Restore Meta
+    videoFileName = data.projectMeta?.videoFileName || "";
     projectName = data.projectMeta?.projectName || "";
     if (DOM.projectNameInput) {
       DOM.projectNameInput.value = projectName;
@@ -1532,6 +1550,12 @@ const importFromJSON = (jsonText) => {
     DOM.pieChartContainer.innerHTML = "";
     DOM.chartContainer.innerHTML = "";
     DOM.ganttChartContainer.innerHTML = "";
+
+    // Prompt for missing video
+    if (videoFileName && !player.src) {
+      DOM.videoPlaceholder.textContent = `Project loaded. Click here to locate video: ${videoFileName}`;
+      toggleVideoPlaceholder(true);
+    }
 
     updateTaskList();
     saveLocalState();
