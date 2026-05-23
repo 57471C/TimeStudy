@@ -41,7 +41,7 @@ let targetEfficiency = 100;
 let playbackSpeed = 1;
 let volumeLevel = 1;
 
-const APP_VERSION = "0.4.2";
+const APP_VERSION = "0.4.3";
 
 let isDrawing = false;
 let startX;

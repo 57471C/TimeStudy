@@ -1,10 +1,10 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.4.2-blue)](https://github.com/57471C/TimeStudy/releases)
+[![Version](https://img.shields.io/badge/version-0.4.3-blue)](https://github.com/57471C/TimeStudy/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
-TimeStudy is a web-based application for analyzing video-based process times, enabling users to track operations and tasks, visualize durations with charts, and manage data via CSV import/export. Version `0.4.2` introduces a two-column layout, enhanced styling, XLSX handling, and lazy-loaded Highcharts for beta testing.
+TimeStudy is a web-based application for analyzing video-based process times, enabling users to track operations and tasks, visualize durations with charts, and manage data via CSV import/export. Version `0.4.3` introduces project variable settings, JSON project exports, and preparations for multi-trial Kaizen comparisons.
 
 ## Features
 
@@ -17,14 +17,12 @@ TimeStudy is a web-based application for analyzing video-based process times, en
 - **Zoom Controls**: Marquee-based video zoom with reset functionality.
 - **Takt Time**: Set and visualize takt time for process optimization.
 
-## Version 0.4.2 Updates
+## Version 0.4.3 Updates
 
-- **UI Enhancements**: Two-column layout (`col-lg-6`) for better organization.
-- **Styling**: CSS variables (e.g., `--btn-orange-bg: #ff6200`), fixed 30px header, responsive button and slider sizes.
-- **XLSX Handling**: Inline script in `index.html` filters blank rows during CSV import.
-- **Performance**: Lazy-loaded Highcharts scripts in `app.js` to reduce initial page load time.
-- **Optimizations**: Cache DOM Queries, Optimize String Concatenation, Debounce Event Listeners, Error Boundary.
-- **Beta Testing**: Ready for broader testing on the `main` branch.
+- **JSON Project Export**: Save and load complete project states, including metadata and configurations, to `.json` files.
+- **Project Variables Panel**: Configurable labor hourly rate, shift length, and target efficiency metrics.
+- **Persistent Audio & Speed**: Custom volume and playback speed are automatically remembered between sessions.
+- **Robust State Management**: Added extensive `localStorage` auto-saving points and improved application stability.
 
 ## Installation
 
