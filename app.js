@@ -32,6 +32,10 @@ let translateX = 0;
 let translateY = 0;
 let processEndTime = 0;
 let chartMode = "column";
+let hourlyRate = 0;
+let shiftLength = 480;
+let targetEfficiency = 100;
+
 const APP_VERSION = "0.4.2";
 
 let isDrawing = false;
@@ -68,6 +72,14 @@ const DOM = {
   zoomOut: document.getElementById("zoomOut"),
   resetZoom: document.getElementById("resetZoom"),
   projectNameInput: document.getElementById("projectNameInput"),
+  openSettingsBtn: document.getElementById("openSettingsBtn"),
+  settingsBackdrop: document.getElementById("settingsBackdrop"),
+  settingsPanel: document.getElementById("settingsPanel"),
+  closeSettingsBtn: document.getElementById("closeSettingsBtn"),
+  saveSettingsBtn: document.getElementById("saveSettingsBtn"),
+  hourlyRateInput: document.getElementById("hourlyRateInput"),
+  shiftLengthInput: document.getElementById("shiftLengthInput"),
+  targetEfficiencyInput: document.getElementById("targetEfficiencyInput"),
 };
 
 const toggleChartMode = () => {
@@ -110,7 +122,20 @@ const setHighchartsTheme = (isDark) => {
 };
 
 const saveLocalState = () => {
-  const state = { yama, opNames, opStartTimes, opCount, taskCount, firstOp, processEndTime, taktTime, projectName };
+  const state = {
+    yama,
+    opNames,
+    opStartTimes,
+    opCount,
+    taskCount,
+    firstOp,
+    processEndTime,
+    taktTime,
+    projectName,
+    hourlyRate,
+    shiftLength,
+    targetEfficiency,
+  };
   localStorage.setItem("timeStudyData", JSON.stringify(state));
 };
 
@@ -130,6 +155,12 @@ const loadLocalState = () => {
       if (DOM.projectNameInput) {
         DOM.projectNameInput.value = projectName;
       }
+      hourlyRate = state.hourlyRate || 0;
+      shiftLength = state.shiftLength || 480;
+      if (shiftLength <= 24) { // Auto-migrate old hours format to minutes
+        shiftLength *= 60;
+      }
+      targetEfficiency = state.targetEfficiency || 100;
       if (state.taktTime) taktTime = state.taktTime;
       toConsole("Local state loaded", "Success", debuggin);
       showToast("Local session state restored.", "success");
@@ -188,6 +219,22 @@ const initializePlayer = () => {
       if (e.key === "Enter") {
         e.target.blur();
       }
+    });
+  }
+
+  // Settings Panel Logic
+  if (DOM.openSettingsBtn) {
+    DOM.openSettingsBtn.addEventListener("click", () => toggleSettings(true));
+    DOM.closeSettingsBtn.addEventListener("click", () => toggleSettings(false));
+    DOM.settingsBackdrop.addEventListener("click", () => toggleSettings(false));
+
+    DOM.saveSettingsBtn.addEventListener("click", () => {
+      hourlyRate = Number.parseFloat(DOM.hourlyRateInput.value) || 0;
+      shiftLength = Number.parseFloat(DOM.shiftLengthInput.value) || 480;
+      targetEfficiency = Number.parseFloat(DOM.targetEfficiencyInput.value) || 100;
+      saveLocalState();
+      toggleSettings(false);
+      showToast("Project variables saved successfully.", "success");
     });
   }
 
@@ -782,6 +829,24 @@ const toggleVideoPlaceholder = (show) => {
   } catch (error) {
     toConsole("toggleVideoPlaceholder error", error.message, debuggin);
     alert("Failed to toggle video placeholder. Please check the console for details.");
+  }
+};
+
+const toggleSettings = (show) => {
+  if (!DOM.settingsPanel || !DOM.settingsBackdrop) return;
+  if (show) {
+    DOM.settingsBackdrop.classList.remove("hidden");
+    requestAnimationFrame(() => {
+      DOM.settingsBackdrop.classList.remove("opacity-0");
+      DOM.settingsPanel.classList.remove("translate-x-full");
+    });
+    DOM.hourlyRateInput.value = hourlyRate || "";
+    DOM.shiftLengthInput.value = shiftLength || 480;
+    DOM.targetEfficiencyInput.value = targetEfficiency || 100;
+  } else {
+    DOM.settingsPanel.classList.add("translate-x-full");
+    DOM.settingsBackdrop.classList.add("opacity-0");
+    setTimeout(() => DOM.settingsBackdrop.classList.add("hidden"), 300);
   }
 };
 
