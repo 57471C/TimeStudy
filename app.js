@@ -871,6 +871,7 @@ const addOp = async () => {
   taskCount = 0;
   yama[opCount] = [];
   toConsole("taskCount has been reset", taskCount, debuggin);
+  saveLocalState();
   updateTaskList();
   drawTable();
 };
@@ -936,6 +937,7 @@ const addTask = async () => {
   };
   console.table(yama[opCount][taskCount]);
   taskCount += 1;
+  saveLocalState();
   updateTaskList();
   drawTable();
 };
@@ -998,6 +1000,7 @@ const insertTask = async (opIndex, taskIndex) => {
   }
 
   taskCount = yama[opIndex].length;
+  saveLocalState();
   updateTaskList();
   drawTable();
 };
@@ -1027,6 +1030,7 @@ const editTask = async (opIndex, taskIndex) => {
 
   yama[opIndex][taskIndex].taskName = newTaskName;
   yama[opIndex][taskIndex].taskStatus = newTaskStatus;
+  saveLocalState();
   updateTaskList();
   drawTable();
 };
@@ -1102,6 +1106,7 @@ const editTaskDuration = async (opIndex, taskIndex) => {
     yama[opIndex][i].taskStart = yama[opIndex][i - 1].taskEnd;
     yama[opIndex][i].taskEnd = yama[opIndex][i].taskStart + yama[opIndex][i].taskHeight;
   }
+  saveLocalState();
   updateTaskList();
   drawTable();
 };
@@ -1125,6 +1130,7 @@ const deleteTask = async (opIndex, taskIndex) => {
       }
     }
     taskCount = yama[opIndex]?.length ?? 0;
+    saveLocalState();
     updateTaskList();
     drawTable();
   }
@@ -1162,6 +1168,7 @@ const deleteOperation = async (opIndex) => {
     }
     taskCount = yama[opCount]?.length ?? 0;
     toConsole(`Deleted operation at index ${opIndex}`, `opCount: ${opCount}, taskCount: ${taskCount}`, debuggin);
+    saveLocalState();
     updateTaskList();
     drawTable();
   }
@@ -1316,6 +1323,7 @@ const updateTaskList = () => {
           if (newTime !== null) {
             opStartTimes[i] = newTime;
             toConsole(`Operation ${i} start time updated`, opStartTimes[i], debuggin);
+            saveLocalState();
             updateProcessTimes();
           } else {
             alert("Invalid time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
@@ -1409,133 +1417,93 @@ const updateProcessTimes = () => {
   }
 };
 
-const importFromCSV = (csvText) => {
-  const lines = csvText
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line);
-  if (lines.length < 2) {
-    alert("CSV file is empty or missing metadata.");
-    return;
-  }
-  const header = lines[0].split(",").map((h) => h.trim());
-  if (header[0] !== "ProcessEndTime" || !header[1].startsWith("OpStartTime")) {
-    alert("Invalid CSV format. Expected header: ProcessEndTime,OpStartTime-0,...");
-    return;
-  }
-
-  const metaDataLine = lines[1].split(",").map((val) => val.trim());
-  processEndTime = parseTimeFromHHMMSSMS(metaDataLine[0]) || 0;
-  toConsole("Imported Process end time", processEndTime, debuggin);
-
-  if (processEndTime > 0 && processEndTime < 60) {
-    taktTime = Math.max(1000, Math.round(processEndTime * 0.9) * 1000);
-    toConsole("Takt time auto-adjusted for short CSV", taktTime, debuggin);
-  } else if (!taktTime) {
-    taktTime = 60000;
-  }
-
-  const opStartTimeHeaders = header.slice(1);
-  opStartTimes = [];
-  for (let i = 0; i < opStartTimeHeaders.length; i++) {
-    let timeStr = metaDataLine[i + 1];
-    const normalizedTimeStr = timeStr.replace(".", ":");
-    const parts = normalizedTimeStr.split(":");
-    if (parts.length === 4) {
-      const hours = Number.parseInt(parts[0], 10);
-      const minutes = Number.parseInt(parts[1], 10);
-      const seconds = Number.parseInt(parts[2], 10);
-      const milliseconds = Number.parseInt(parts[3], 10);
-      if (hours === 0 && minutes === 0 && seconds >= 60) {
-        const newMinutes = Math.floor(seconds / 60);
-        const newSeconds = seconds % 60;
-        timeStr = `00:${newMinutes.toString().padStart(2, "0")}:${newSeconds.toString().padStart(2, "0")}.${milliseconds.toString().padStart(2, "0")}`;
-        toConsole(`Fixed OpStartTime-${i}`, `${metaDataLine[i + 1]} -> ${timeStr}`, debuggin);
-      }
+const exportToJSON = () => {
+  const projectData = {
+    projectMeta: {
+      projectName: projectName || "Untitled Project",
+      processEndTime: processEndTime,
+      lastSaved: new Date().toISOString(),
+      appVersion: APP_VERSION
+    },
+    costingConfig: {
+      hourlyRate: hourlyRate,
+      shiftLength: shiftLength,
+      targetEfficiency: targetEfficiency,
+      taktTime: taktTime
+    },
+    appState: {
+      yama: yama,
+      opNames: opNames,
+      opStartTimes: opStartTimes,
+      opCount: opCount,
+      taskCount: taskCount,
+      firstOp: firstOp
     }
-    const time = parseTimeFromHHMMSSMS(timeStr);
-    if (time !== null) {
-      opStartTimes[i] = time;
-    } else {
-      opStartTimes[i] = 0;
-      toConsole("Invalid OpStartTime, defaulting to 0", `OpStartTime-${i}`, debuggin);
-    }
+  };
+
+  const dataStr = JSON.stringify(projectData, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  let filename = "project.json";
+  if (projectName) {
+    filename = `${sanitizeFilename(projectName)}.json`;
   }
-  toConsole("Imported OpStartTimes", opStartTimes, debuggin);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  showToast("Project saved successfully.", "success");
+};
 
-  yama = [];
-  opNames = [];
-  opCount = -1;
-  taskCount = 0;
-  firstOp = true;
-
-  DOM.taskList.innerHTML = "";
-  DOM.pieChartContainer.innerHTML = "";
-  DOM.chartContainer.innerHTML = "";
-  DOM.ganttChartContainer.innerHTML = "";
-
-  const taskHeaders = lines[2].split(",").map((h) => h.trim());
-  const expectedTaskHeaders = ["Operation", "Task", "VA", "NVA", "W"];
-  if (taskHeaders.length !== expectedTaskHeaders.length || !taskHeaders.every((h, i) => h === expectedTaskHeaders[i])) {
-    alert("Invalid CSV format. Expected task headers: Operation,Task,VA,NVA,W");
-    return;
-  }
-  let currentOpName = "";
-  let taskIndex = 0;
-  let lastEndTime = 0;
-  for (let i = 3; i < lines.length; i += 1) {
-    const row = lines[i].split(",").map((cell) => cell.trim());
-    if (row.length < 5) {
-      toConsole("Skipping invalid row", `Line ${i + 1}: ${lines[i]}`, debuggin);
-      continue;
-    }
-    const opName = row[0].replace(/^"|"$/g, "");
-    const taskName = row[1].replace(/^"|"$/g, "");
-    const va = Number.parseFloat(row[2]);
-    const nva = Number.parseFloat(row[3]);
-    const w = Number.parseFloat(row[4]);
-    const durations = [va, nva, w];
-    const nonZeroCount = durations.filter((d) => d > 0).length;
-    if (nonZeroCount !== 1) {
-      alert(`Invalid row ${i + 1}: Exactly one of VA, NVA, W must be non-zero.`);
+const importFromJSON = (jsonText) => {
+  try {
+    const data = JSON.parse(jsonText);
+    
+    if (!data.appState) {
+      alert("Invalid project file format. Missing appState array.");
       return;
     }
-    if (durations.some((d) => Number.isNaN(d) || d < 0)) {
-      alert(`Invalid row ${i + 1}: Durations must be non-negative numbers.`);
-      return;
+
+    // Restore Meta
+    projectName = data.projectMeta?.projectName || "";
+    if (DOM.projectNameInput) {
+      DOM.projectNameInput.value = projectName;
     }
-    const taskHeight = durations.find((d) => d > 0);
-    const taskStatus = va > 0 ? "VA" : nva > 0 ? "NVA" : "W";
-    if (opName !== currentOpName) {
-      opCount += 1;
-      opNames[opCount] = opName;
-      yama[opCount] = [];
-      taskIndex = 0;
-      currentOpName = opName;
-      firstOp = false;
-    }
-    const taskStart = lastEndTime;
-    const taskEnd = taskStart + taskHeight;
-    yama[opCount][taskIndex] = {
-      taskName,
-      taskStart,
-      taskEnd,
-      taskHeight,
-      taskStatus,
-    };
-    lastEndTime = taskEnd;
-    taskIndex += 1;
-    taskCount = taskIndex;
+    processEndTime = data.projectMeta?.processEndTime || 0;
+
+    // Restore Config
+    hourlyRate = data.costingConfig?.hourlyRate || 0;
+    shiftLength = data.costingConfig?.shiftLength || 480;
+    targetEfficiency = data.costingConfig?.targetEfficiency || 100;
+    taktTime = data.costingConfig?.taktTime || 60000;
+
+    // Restore State
+    yama = data.appState.yama || [];
+    opNames = data.appState.opNames || [];
+    opStartTimes = data.appState.opStartTimes || [];
+    opCount = data.appState.opCount !== undefined ? data.appState.opCount : 0;
+    taskCount = data.appState.taskCount !== undefined ? data.appState.taskCount : 0;
+    firstOp = data.appState.firstOp !== undefined ? data.appState.firstOp : true;
+
+    DOM.taskList.innerHTML = "";
+    DOM.pieChartContainer.innerHTML = "";
+    DOM.chartContainer.innerHTML = "";
+    DOM.ganttChartContainer.innerHTML = "";
+
+    updateTaskList();
+    saveLocalState();
+    drawTable();
+    
+    toConsole("Project imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`, debuggin);
+    showToast("Project loaded successfully.", "success");
+  } catch (e) {
+    toConsole("Error importing JSON", e, debuggin);
+    alert("Error reading project file. It may be corrupted or in an invalid format.");
   }
-  if (yama.length === 0) {
-    alert("No valid tasks found in CSV.");
-    return;
-  }
-  updateTaskList();
-  saveLocalState();
-  drawTable();
-  toConsole("CSV imported successfully", `Operations: ${opCount + 1}, Tasks: ${taskCount}`, debuggin);
-  showToast("CSV imported successfully.", "success");
 };
 
 const exportToCSV = () => {
