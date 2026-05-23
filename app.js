@@ -42,6 +42,7 @@ let chartMode = "column";
 let hourlyRate = 0;
 let shiftLength = 480;
 let targetEfficiency = 100;
+let unitsPerCycle = 1;
 let playbackSpeed = 1;
 let volumeLevel = 1;
 
@@ -96,6 +97,7 @@ const DOM = {
   hourlyRateInput: document.getElementById("hourlyRateInput"),
   shiftLengthInput: document.getElementById("shiftLengthInput"),
   targetEfficiencyInput: document.getElementById("targetEfficiencyInput"),
+  unitsPerCycleInput: document.getElementById("unitsPerCycleInput"),
 };
 
 const toggleChartMode = () => {
@@ -151,7 +153,7 @@ const saveLocalState = () => {
   trials[activeTrialIndex].videoFileName = videoFileName;
   trials[activeTrialIndex].processEndTime = processEndTime;
   trials[activeTrialIndex].taktTime = taktTime;
-  trials[activeTrialIndex].costingConfig = { hourlyRate, shiftLength, targetEfficiency };
+  trials[activeTrialIndex].costingConfig = { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle };
   trials[activeTrialIndex].appState = { yama, opNames, opStartTimes, opCount, taskCount, firstOp };
 
   const state = {
@@ -201,6 +203,7 @@ const switchTrial = async (index) => {
   hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
   shiftLength = currentTrial.costingConfig?.shiftLength || 480;
   targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
+  unitsPerCycle = currentTrial.costingConfig?.unitsPerCycle || 1;
   yama = currentTrial.appState?.yama || [];
   opNames = currentTrial.appState?.opNames || [];
   opStartTimes = currentTrial.appState?.opStartTimes || [];
@@ -296,13 +299,15 @@ const openCompareDashboard = () => {
     const efficiency = (trial.costingConfig?.targetEfficiency || 100) / 100;
     const effectiveMs = shiftMs * efficiency;
     
-    const units = totalMs > 0 ? Math.floor(effectiveMs / totalMs) : 0;
+    const cycleUnits = trial.costingConfig?.unitsPerCycle || 1;
+    const units = totalMs > 0 ? Math.floor((effectiveMs / totalMs) * cycleUnits) : 0;
     unitsData.push(units);
 
     const rate = trial.costingConfig?.hourlyRate || 0;
     // Cost = (Total time in hours) * Hourly Rate
-    const cost = (totalMs / 3600000) * rate;
-    costData.push(cost);
+    const cycleCost = (totalMs / 3600000) * rate;
+    const costPerUnit = cycleCost / cycleUnits;
+    costData.push(costPerUnit);
   });
 
   DOM.compareModal.showModal();
@@ -363,7 +368,7 @@ const openCompareDashboard = () => {
 
     Highcharts.chart("compareCostChart", {
       chart: { type: "column" },
-      title: { text: "Estimated Labor Cost per Cycle" },
+      title: { text: "Estimated Labor Cost per Unit" },
       xAxis: { categories },
       yAxis: { title: { text: "Cost ($)" }, labels: { format: "${value:.4f}" } },
       tooltip: { pointFormat: "<b>${point.y:.4f}</b>" },
@@ -390,7 +395,8 @@ const loadLocalState = () => {
           costingConfig: {
             hourlyRate: state.hourlyRate || 0,
             shiftLength: state.shiftLength || 480,
-            targetEfficiency: state.targetEfficiency || 100
+            targetEfficiency: state.targetEfficiency || 100,
+            unitsPerCycle: state.unitsPerCycle || 1
           },
           appState: {
             yama: state.yama || [],
@@ -426,6 +432,7 @@ const loadLocalState = () => {
       shiftLength = currentTrial.costingConfig?.shiftLength || 480;
       if (shiftLength <= 24) shiftLength *= 60; // Auto-migrate old hours format
       targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
+      unitsPerCycle = currentTrial.costingConfig?.unitsPerCycle || 1;
 
       yama = currentTrial.appState?.yama || [];
       opNames = currentTrial.appState?.opNames || [];
@@ -451,7 +458,7 @@ const loadLocalState = () => {
       videoFileName: "",
       processEndTime: 0,
       taktTime: 60000,
-      costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100 },
+      costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
       appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true }
     }];
     activeTrialIndex = 0;
@@ -530,16 +537,29 @@ const initializePlayer = () => {
 
   // Settings Panel Logic
   if (DOM.openSettingsBtn) {
-    DOM.openSettingsBtn.addEventListener("click", () => toggleSettings(true));
-    DOM.closeSettingsBtn.addEventListener("click", () => toggleSettings(false));
-    DOM.settingsBackdrop.addEventListener("click", () => toggleSettings(false));
-
-    DOM.saveSettingsBtn.addEventListener("click", () => {
+    const saveSettingsData = () => {
       hourlyRate = Number.parseFloat(DOM.hourlyRateInput.value) || 0;
       shiftLength = Number.parseFloat(DOM.shiftLengthInput.value) || 480;
       targetEfficiency = Number.parseFloat(DOM.targetEfficiencyInput.value) || 100;
+      unitsPerCycle = Number.parseFloat(DOM.unitsPerCycleInput.value) || 1;
       if (DOM.projectCommentsInput) projectComments = DOM.projectCommentsInput.value;
       saveLocalState();
+    };
+
+    DOM.openSettingsBtn.addEventListener("click", () => toggleSettings(true));
+    
+    DOM.closeSettingsBtn.addEventListener("click", () => {
+      saveSettingsData();
+      toggleSettings(false);
+    });
+    
+    DOM.settingsBackdrop.addEventListener("click", () => {
+      saveSettingsData();
+      toggleSettings(false);
+    });
+
+    DOM.saveSettingsBtn.addEventListener("click", () => {
+      saveSettingsData();
       toggleSettings(false);
       showToast("Project variables saved successfully.", "success");
     });
@@ -685,7 +705,7 @@ const initializePlayer = () => {
       videoFileName: "",
       processEndTime: 0,
       taktTime: taktTime,
-      costingConfig: { hourlyRate, shiftLength, targetEfficiency },
+      costingConfig: { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle },
       appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true }
     }];
     activeTrialIndex = 0;
@@ -1228,6 +1248,7 @@ const toggleSettings = (show) => {
     DOM.hourlyRateInput.value = hourlyRate || "";
     DOM.shiftLengthInput.value = shiftLength || 480;
     DOM.targetEfficiencyInput.value = targetEfficiency || 100;
+  DOM.unitsPerCycleInput.value = unitsPerCycle || 1;
     if (DOM.projectCommentsInput) DOM.projectCommentsInput.value = projectComments || "";
   } else {
     DOM.settingsPanel.classList.add("translate-x-full");
@@ -1837,7 +1858,7 @@ const importFromJSON = (jsonText) => {
         videoFileName: data.projectMeta?.videoFileName || "",
         processEndTime: data.projectMeta?.processEndTime || 0,
         taktTime: data.costingConfig?.taktTime || 60000,
-        costingConfig: data.costingConfig || { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100 },
+        costingConfig: data.costingConfig || { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
         appState: data.appState
       }];
       activeTrialIndex = 0;
@@ -1863,6 +1884,7 @@ const importFromJSON = (jsonText) => {
     hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
     shiftLength = currentTrial.costingConfig?.shiftLength || 480;
     targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
+    unitsPerCycle = currentTrial.costingConfig?.unitsPerCycle || 1;
 
     yama = currentTrial.appState?.yama || [];
     opNames = currentTrial.appState?.opNames || [];
