@@ -1277,9 +1277,21 @@ const toggleSettings = (show) => {
   }
 };
 
+const getAllTaskNames = () => {
+  const names = [];
+  yama.forEach((op) => {
+    if (Array.isArray(op)) {
+      op.forEach((task) => {
+        if (task && task.taskName) names.push(task.taskName);
+      });
+    }
+  });
+  return names;
+};
+
 const addOp = async () => {
   player.pause();
-  const opName = await asyncPrompt("Please name the Operation", "", "New Operation");
+  const opName = await asyncPrompt("Please name the Operation", "", "New Operation", opNames);
   if (!opName) {
     alert("Operation name cannot be empty.");
     return;
@@ -1314,7 +1326,7 @@ const addTask = async () => {
       return;
     }
   }
-  const taskName = await asyncPrompt("Please name the Task", "", "New Task");
+  const taskName = await asyncPrompt("Please name the Task", "", "New Task", getAllTaskNames());
   if (!taskName) {
     alert("Task name cannot be empty.");
     return;
@@ -1373,7 +1385,7 @@ const addTask = async () => {
 const insertTask = async (opIndex, taskIndex) => {
   player.pause();
   toConsole("playPause", "play paused to insert task", debuggin);
-  const taskName = await asyncPrompt("Please name the new Task", "", "Split Task");
+  const taskName = await asyncPrompt("Please name the new Task", "", "Split Task", getAllTaskNames());
   if (!taskName) {
     alert("Task name cannot be empty.");
     return;
@@ -1434,7 +1446,7 @@ const insertTask = async (opIndex, taskIndex) => {
 
 const editTask = async (opIndex, taskIndex) => {
   const task = yama[opIndex][taskIndex];
-  const newTaskName = await asyncPrompt("Edit Task Name", task.taskName, "Edit Task");
+  const newTaskName = await asyncPrompt("Edit Task Name", task.taskName, "Edit Task", getAllTaskNames());
   if (!newTaskName) {
     alert("Task name cannot be empty.");
     return;
@@ -1564,7 +1576,7 @@ const deleteTask = async (opIndex, taskIndex) => {
 };
 
 const renameOperation = async (opIndex) => {
-  const newName = await asyncPrompt("Rename Operation", opNames[opIndex], "Rename Operation");
+  const newName = await asyncPrompt("Rename Operation", opNames[opIndex], "Rename Operation", opNames);
   if (newName === null) return; // User clicked Cancel
   if (newName.trim() === "") {
     alert("Operation name cannot be empty.");

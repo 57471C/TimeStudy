@@ -270,7 +270,8 @@
       <div class="p-5">
         <h5 class="text-lg font-semibold mb-2" id="promptTitle">Input Required</h5>
         <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4" id="promptMessage"></p>
-        <input type="text" id="promptInput" class="form-control w-full mb-6" autocomplete="off">
+        <input type="text" id="promptInput" class="form-control w-full mb-6" autocomplete="off" list="promptDatalist">
+        <datalist id="promptDatalist"></datalist>
         <div class="flex justify-end gap-3">
           <button type="button" id="promptCancelBtn" class="btn btn-outline-secondary">Cancel</button>
           <button type="button" id="promptOkBtn" class="btn btn-primary">OK</button>

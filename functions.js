@@ -113,7 +113,7 @@ const asyncConfirm = (message, title = "Confirm") => {
   });
 };
 
-const asyncPrompt = (message, defaultValue = "", title = "Input Needed") => {
+const asyncPrompt = (message, defaultValue = "", title = "Input Needed", suggestions = []) => {
   return new Promise((resolve) => {
     const modal = document.getElementById("promptModal");
     document.getElementById("promptTitle").textContent = title;
@@ -121,6 +121,22 @@ const asyncPrompt = (message, defaultValue = "", title = "Input Needed") => {
 
     const input = document.getElementById("promptInput");
     input.value = defaultValue;
+
+    const datalist = document.getElementById("promptDatalist");
+    if (datalist) {
+      datalist.innerHTML = "";
+      if (suggestions && suggestions.length > 0) {
+        const uniqueSuggestions = [...new Set(suggestions)].filter(Boolean);
+        uniqueSuggestions.forEach(suggestion => {
+          const option = document.createElement("option");
+          option.value = suggestion;
+          datalist.appendChild(option);
+        });
+        input.setAttribute("list", "promptDatalist");
+      } else {
+        input.removeAttribute("list");
+      }
+    }
 
     const btnOk = document.getElementById("promptOkBtn");
     const btnCancel = document.getElementById("promptCancelBtn");
