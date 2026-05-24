@@ -1025,6 +1025,26 @@ const initializePlayer = () => {
         translateY = 0;
         updateZoom();
         break;
+      case "`":
+      case "1":
+      case "2":
+      case "3":
+      case "4":
+      case "5":
+      case "6":
+      case "7":
+      case "8": {
+        e.preventDefault();
+        if (!player.src) return;
+        const newSpeed = e.key === "`" ? 0.5 : Number.parseInt(e.key, 10);
+        player.playbackRate = newSpeed;
+        playbackSpeed = newSpeed;
+        if (speedSlider) speedSlider.value = newSpeed;
+        if (DOM.speedValue) DOM.speedValue.textContent = `${newSpeed.toFixed(1)}x`;
+        toConsole("Playback speed shortcut", newSpeed, debuggin);
+        saveLocalState();
+        break;
+      }
     }
   });
 
