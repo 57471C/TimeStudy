@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.4.4-een)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.4.5-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -14,6 +14,12 @@
 - **Dark/Light Mode**: Toggle between themes for improved usability.
 - **Zoom Controls**: Marquee-based video zoom with reset functionality.
 - **Takt Time**: Set and visualize takt time for process optimization.
+
+## Version 0.4.5 Updates
+- **UI Cleanup**: Reorganized the Operations Panel and moved file management tools (Save/Load/New) to the top header.
+- **Auto-Complete**: Added dynamic auto-complete suggestions for Operation and Task names based on prior entries.
+- **Keyboard Shortcuts**: Implemented shortcuts (`1`-`8`, `` ` ``) for quickly adjusting playback speeds.
+- **Accessibility**: Improved touch targets for Trial management buttons.
 
 ## Version 0.4.4 Updates
 - **Multi-Trial Support**: Added the ability to create, duplicate, and seamlessly switch between multiple trials within a single project.

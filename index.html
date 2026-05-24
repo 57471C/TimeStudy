@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TimeStudy v0.4.4</title>
+    <title>TimeStudy v0.4.5</title>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,21 +22,38 @@
     <!-- Header -->
     <header class="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 shadow-sm p-4 flex justify-between items-center z-10">
       <div class="flex items-center gap-2 sm:gap-3">
-        <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap hidden lg:block">TimeStudy v0.4.4</h1>
+        <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap hidden lg:block">TimeStudy v0.4.5</h1>
         <span class="text-zinc-300 dark:text-zinc-600 hidden lg:inline font-light text-xl">/</span>
         <input type="text" id="projectNameInput" placeholder="Untitled Project" class="project-name-input" />
         <span class="text-zinc-300 dark:text-zinc-600 hidden sm:inline font-light text-xl">/</span>
         <div class="flex items-center gap-1">
           <select id="trialSelect" class="trial-select" title="Switch Trial"></select>
-          <button id="addTrialBtn" class="btn btn-sm border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 p-1 flex items-center justify-center rounded-full w-7 h-7 transition-colors" title="Add Trial">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <button id="addTrialBtn" class="btn border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 p-1.5 flex items-center justify-center rounded-md w-8 h-8 transition-colors shadow-none" title="Add Trial">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           </button>
-          <button id="editTrialBtn" class="btn btn-sm border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 p-1 flex items-center justify-center rounded-full w-7 h-7 transition-colors" title="Rename Trial">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+          <button id="editTrialBtn" class="btn border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 p-1.5 flex items-center justify-center rounded-md w-8 h-8 transition-colors shadow-none" title="Rename Trial">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
           </button>
         </div>
       </div>
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-3 sm:gap-4">
+        <!-- File Management Actions -->
+        <div class="flex items-center gap-1 sm:gap-2 border-r border-zinc-200 dark:border-zinc-700 pr-2 sm:pr-4">
+          <button id="newProjectButton" class="btn btn-sm btn-outline-secondary flex items-center gap-1 sm:gap-1.5 shadow-sm" title="New Project">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M12 18v-6"/></svg>
+            <span class="hidden md:inline">New</span>
+          </button>
+          <button id="projectImportButton" class="btn btn-sm btn-outline-secondary flex items-center gap-1 sm:gap-1.5 shadow-sm" title="Load Project">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            <span class="hidden md:inline">Load</span>
+          </button>
+          <button id="projectExportButton" class="btn btn-sm btn-outline-secondary flex items-center gap-1 sm:gap-1.5 shadow-sm" title="Save Project">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.5l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
+            <span class="hidden md:inline">Save</span>
+          </button>
+          <input type="file" id="projectFileInput" accept=".json" style="display: none" />
+        </div>
+
         <button id="darkModeToggle" class="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors" title="Toggle Dark Mode">
           <!-- Sun Icon -->
           <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden">
@@ -170,22 +187,35 @@
         <!-- Right Column: Controls and Task Table -->
         <div class="flex flex-col gap-4">
           <div class="w-full p-2.5 lg:p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm flex flex-col gap-3 z-0 transition-colors duration-200">
-            <div class="control-row functions-row">
-              <button id="addOpButton" class="btn btn-primary">Add Operation</button>
-              <button id="addTaskButton" class="btn btn-primary" disabled>Add Task</button>
-              <button id="compareTrialsBtn" class="btn btn-light-green ml-2 sm:ml-4">Compare Trials</button>
-              <button id="csvExportButton" class="btn btn-outline-orange ml-2 sm:ml-4 px-2 flex items-center justify-center" title="Export CSV">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <text x="12" y="16.5" font-size="6" font-weight="bold" font-family="sans-serif" text-anchor="middle" dominant-baseline="middle" stroke="none" fill="currentColor">CSV</text>
-                </svg>
-              </button>
-          <button id="projectExportButton" class="btn btn-orange ml-2 sm:ml-4">Save Project</button>
-          <button id="projectImportButton" class="btn btn-outline-orange">Load Project</button>
-          <input type="file" id="projectFileInput" accept=".json" style="display: none" />
-          <button id="newProjectButton" class="btn btn-outline-danger ml-2 sm:ml-4">New Project</button>
-              <button id="toggleFormatButton" class="btn btn-dark-gray ml-2 sm:ml-4">Format (HH:MM:SS.MS)</button>
+            <div class="flex justify-between items-center w-full flex-wrap gap-3">
+              <!-- Left Side: Active Logging -->
+              <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <button id="addOpButton" class="btn btn-primary shadow-sm flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12H3"/><path d="M16 6H3"/><path d="M16 18H3"/><path d="M18 9v6"/><path d="M21 12h-6"/></svg>
+                  Add Operation
+                </button>
+                <button id="addTaskButton" class="btn btn-primary shadow-sm flex items-center gap-1.5" disabled>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+                  Add Task
+                </button>
+                <div class="hidden sm:block w-px h-6 bg-zinc-200 dark:bg-zinc-700 mx-1"></div>
+                <button id="compareTrialsBtn" class="btn btn-outline-secondary flex items-center gap-1.5 shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                  Compare
+                </button>
+              </div>
+
+              <!-- Right Side: Data and View Settings -->
+              <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <button id="toggleFormatButton" class="btn btn-outline-secondary flex items-center gap-1.5 shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span>Format (HH:MM:SS.MS)</span>
+                </button>
+                <button id="csvExportButton" class="btn btn-outline-secondary flex items-center gap-1.5 shadow-sm" title="Export CSV">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  CSV
+                </button>
+              </div>
             </div>
           </div>
 

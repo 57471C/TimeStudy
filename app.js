@@ -46,7 +46,7 @@ let unitsPerCycle = 1;
 let playbackSpeed = 1;
 let volumeLevel = 1;
 
-const APP_VERSION = "0.4.4";
+const APP_VERSION = "0.4.5";
 
 let isDrawing = false;
 let startX;
@@ -742,9 +742,9 @@ const initializePlayer = () => {
     } else {
       durationMode = "hhmmssms";
     }
-    toggleFormatButton.textContent = `Format (${
+    toggleFormatButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span>Format (${
       durationMode === "hhmmssms" ? "HH:MM:SS.MS" : durationMode === "ms" ? "ms" : "min"
-    })`;
+    })</span>`;
     updateTaskList();
     drawTable();
   });
