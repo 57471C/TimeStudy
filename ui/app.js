@@ -23,6 +23,7 @@ let opCount = 0;
 let firstOp = true;
 let taskCount = 0;
 let videoFileName = "";
+let videoFilePath = "";
 let projectName = "";
 let projectComments = "";
 let trials = [];
@@ -151,6 +152,7 @@ const saveLocalState = () => {
 
   // Sync active global variables to the current trial object
   trials[activeTrialIndex].videoFileName = videoFileName;
+  trials[activeTrialIndex].videoFilePath = videoFilePath;
   trials[activeTrialIndex].processEndTime = processEndTime;
   trials[activeTrialIndex].taktTime = taktTime;
   trials[activeTrialIndex].costingConfig = { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle };
@@ -198,6 +200,7 @@ const switchTrial = async (index) => {
   const currentTrial = trials[activeTrialIndex];
 
   videoFileName = currentTrial.videoFileName || "";
+  videoFilePath = currentTrial.videoFilePath || "";
   processEndTime = currentTrial.processEndTime || 0;
   taktTime = currentTrial.taktTime || 60000;
   hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
@@ -216,8 +219,16 @@ const switchTrial = async (index) => {
   drawTable();
 
   player.pause();
-  if (videoFileName && videoBlobCache[videoFileName]) {
+  const isTauri = window.__TAURI__ !== undefined;
+
+  if (isTauri && videoFilePath) {
+    const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
+    player.src = tauriAssetUrl;
+    player.preload = "auto";
+    toggleVideoPlaceholder(false);
+  } else if (videoFileName && videoBlobCache[videoFileName]) {
     player.src = videoBlobCache[videoFileName];
+    player.preload = "metadata";
     toggleVideoPlaceholder(false);
   } else {
     player.removeAttribute("src");
@@ -245,7 +256,7 @@ const addTrial = async () => {
   
   let newTrial = duplicate 
     ? { ...JSON.parse(JSON.stringify(trials[activeTrialIndex])), trialId: newTrialId, trialName } 
-    : { trialId: newTrialId, trialName, videoFileName: "", processEndTime: 0, taktTime, costingConfig: { hourlyRate, shiftLength, targetEfficiency }, appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true } };
+    : { trialId: newTrialId, trialName, videoFileName: "", videoFilePath: "", processEndTime: 0, taktTime, costingConfig: { hourlyRate, shiftLength, targetEfficiency }, appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true } };
 
   trials.push(newTrial);
   await switchTrial(trials.length - 1);
@@ -390,6 +401,7 @@ const loadLocalState = () => {
           trialId: 1,
           trialName: "Current State",
           videoFileName: state.videoFileName || "",
+          videoFilePath: state.videoFilePath || "",
           processEndTime: state.processEndTime || 0,
           taktTime: state.taktTime || 60000,
           costingConfig: {
@@ -425,6 +437,7 @@ const loadLocalState = () => {
       // Hydrate memory with the active trial data
       const currentTrial = trials[activeTrialIndex] || trials[0];
       videoFileName = currentTrial.videoFileName || "";
+      videoFilePath = currentTrial.videoFilePath || "";
       processEndTime = currentTrial.processEndTime || 0;
       taktTime = currentTrial.taktTime || 60000;
       
@@ -456,6 +469,7 @@ const loadLocalState = () => {
       trialId: 1,
       trialName: "Current State",
       videoFileName: "",
+      videoFilePath: "",
       processEndTime: 0,
       taktTime: 60000,
       costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
@@ -690,6 +704,7 @@ const initializePlayer = () => {
 
     yama = [];
     videoFileName = "";
+    videoFilePath = "";
     opNames = [];
     opStartTimes = [];
     opCount = 0;
@@ -703,6 +718,7 @@ const initializePlayer = () => {
       trialId: 1,
       trialName: "Current State",
       videoFileName: "",
+      videoFilePath: "",
       processEndTime: 0,
       taktTime: taktTime,
       costingConfig: { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle },
@@ -882,9 +898,19 @@ const initializePlayer = () => {
     const isRelinking = !player.src && yama.length > 0;
 
     videoFileName = file.name;
-    const fileURL = URL.createObjectURL(file);
-    videoBlobCache[videoFileName] = fileURL;
-    player.src = fileURL;
+    videoFilePath = file.path || ""; // Tauri injects the absolute path here
+
+    const isTauri = window.__TAURI__ !== undefined;
+    if (isTauri && videoFilePath) {
+      const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
+      player.src = tauriAssetUrl;
+      player.preload = "auto";
+    } else {
+      const fileURL = URL.createObjectURL(file);
+      videoBlobCache[videoFileName] = fileURL;
+      player.src = fileURL;
+      player.preload = "metadata";
+    }
     player.load();
 
     if (!isRelinking) {
@@ -1888,6 +1914,7 @@ const importFromJSON = (jsonText) => {
         trialId: 1,
         trialName: "Current State",
         videoFileName: data.projectMeta?.videoFileName || "",
+        videoFilePath: data.projectMeta?.videoFilePath || "",
         processEndTime: data.projectMeta?.processEndTime || 0,
         taktTime: data.costingConfig?.taktTime || 60000,
         costingConfig: data.costingConfig || { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
@@ -1910,6 +1937,7 @@ const importFromJSON = (jsonText) => {
     // Load active trial into memory
     const currentTrial = trials[activeTrialIndex];
     videoFileName = currentTrial.videoFileName || "";
+    videoFilePath = currentTrial.videoFilePath || "";
     processEndTime = currentTrial.processEndTime || 0;
     taktTime = currentTrial.taktTime || 60000;
     
@@ -1935,8 +1963,15 @@ const importFromJSON = (jsonText) => {
 
     // Handle Video Relinking
     player.pause();
-    if (videoFileName && videoBlobCache[videoFileName]) {
+    const isTauri = window.__TAURI__ !== undefined;
+    if (isTauri && videoFilePath) {
+      const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
+      player.src = tauriAssetUrl;
+      player.preload = "auto";
+      toggleVideoPlaceholder(false);
+    } else if (videoFileName && videoBlobCache[videoFileName]) {
       player.src = videoBlobCache[videoFileName];
+      player.preload = "metadata";
       toggleVideoPlaceholder(false);
     } else {
       player.removeAttribute("src");
