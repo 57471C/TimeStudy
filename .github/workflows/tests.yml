@@ -1,0 +1,46 @@
+name: Test and Release Tauri Executable
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers only when you push tags starting with v (e.g., v0.4.6)
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Biome Linter Check
+        run: npx biome check .
+
+      - name: Run Frontend Tests
+        run: npm run test
+
+      - name: Build Tauri Desktop Executable
+        # This compiles your production application binary
+        run: npm run desktop-build
+
+      - name: Create GitHub Release and Upload Artifact
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          # Automatically attaches the compiled .exe from the Tauri build output directory
+          files: src-tauri/target/release/bundle/nsis/*.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

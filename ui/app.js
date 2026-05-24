@@ -5,6 +5,7 @@ let addOpButton;
 let toggleFormatButton;
 let csvExportButton;
 let projectExportButton;
+let projectSaveAsButton;
 let projectImportButton;
 let newProjectButton;
 let speedSlider;
@@ -26,6 +27,7 @@ let videoFileName = "";
 let videoFilePath = "";
 let projectName = "";
 let projectComments = "";
+let projectFilePath = "";
 let trials = [];
 let activeTrialIndex = 0;
 let videoBlobCache = {};
@@ -390,6 +392,7 @@ const openCompareDashboard = () => {
 };
 
 const loadLocalState = () => {
+  projectFilePath = localStorage.getItem("projectFilePath") || "";
   const data = localStorage.getItem("timeStudyData");
   if (data) {
     try {
@@ -650,6 +653,7 @@ const initializePlayer = () => {
   addOpButton = document.getElementById("addOpButton");
   csvExportButton = document.getElementById("csvExportButton");
   projectExportButton = document.getElementById("projectExportButton");
+  projectSaveAsButton = document.getElementById("projectSaveAsButton");
   projectImportButton = document.getElementById("projectImportButton");
   newProjectButton = document.getElementById("newProjectButton");
   loadVideoButton = document.getElementById("loadVideoButton");
@@ -687,9 +691,32 @@ const initializePlayer = () => {
   addTaskButton.addEventListener("click", addTask, false);
   addOpButton.addEventListener("click", addOp, false);
   csvExportButton.addEventListener("click", exportToCSV, false);
-  projectExportButton.addEventListener("click", exportToJSON, false);
-  projectImportButton.addEventListener("click", () => {
-    DOM.projectFileInput.click();
+  projectExportButton.addEventListener("click", () => exportToJSON(false), false);
+  if (projectSaveAsButton) {
+    projectSaveAsButton.addEventListener("click", () => exportToJSON(true), false);
+  }
+
+  projectImportButton.addEventListener("click", async () => {
+    const isTauri = window.__TAURI__ !== undefined;
+    if (isTauri && window.__TAURI__.dialog && window.__TAURI__.fs) {
+      try {
+        const selected = await window.__TAURI__.dialog.open({
+          multiple: false,
+          filters: [{ name: 'JSON', extensions: ['json'] }]
+        });
+        if (selected) {
+          projectFilePath = selected;
+          localStorage.setItem("projectFilePath", projectFilePath);
+          const contents = await window.__TAURI__.fs.readTextFile(selected);
+          importFromJSON(contents);
+        }
+      } catch (e) {
+        toConsole("Error loading project via Tauri", e, debuggin);
+        showToast("Error loading project file.", "error");
+      }
+    } else {
+      DOM.projectFileInput.click();
+    }
   });
 
   newProjectButton.addEventListener("click", async () => {
@@ -705,6 +732,8 @@ const initializePlayer = () => {
     yama = [];
     videoFileName = "";
     videoFilePath = "";
+    projectFilePath = "";
+    localStorage.removeItem("projectFilePath");
     opNames = [];
     opStartTimes = [];
     opCount = 0;
@@ -875,70 +904,8 @@ const initializePlayer = () => {
       toConsole("No video file selected", null, debuggin);
       return;
     }
-
-    if (player.src && yama.length > 0) {
-      const save = await asyncConfirm(
-        "You have unsaved data. Would you like to save your data as a CSV file before loading a new video?",
-        "Unsaved Data",
-      );
-      if (save) {
-        exportToCSV();
-        toConsole("Data exported to CSV before loading new video", null, debuggin);
-      }
-      const proceed = await asyncConfirm(
-        "Loading a new video will clear all existing data and charts. Are you sure you want to proceed?",
-        "Load New Video",
-      );
-      if (!proceed) {
-        toConsole("User cancelled loading new video", null, debuggin);
-        return;
-      }
-    }
-
-    const isRelinking = !player.src && yama.length > 0;
-
-    videoFileName = file.name;
-    videoFilePath = file.path || ""; // Tauri injects the absolute path here
-
-    const isTauri = window.__TAURI__ !== undefined;
-    if (isTauri && videoFilePath) {
-      const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
-      player.src = tauriAssetUrl;
-      player.preload = "auto";
-    } else {
-      const fileURL = URL.createObjectURL(file);
-      videoBlobCache[videoFileName] = fileURL;
-      player.src = fileURL;
-      player.preload = "metadata";
-    }
-    player.load();
-
-    if (!isRelinking) {
-      yama = [];
-      opNames = [];
-      opStartTimes = [];
-      opCount = 0;
-      taskCount = 0;
-      firstOp = true;
-      projectName = "";
-      if (DOM.projectNameInput) {
-        DOM.projectNameInput.value = "";
-      }
-      DOM.taskList.innerHTML = "";
-      DOM.pieChartContainer.innerHTML = "";
-      DOM.chartContainer.innerHTML = "";
-      DOM.ganttChartContainer.innerHTML = "";
-      updateTaskList();
-      addTaskButton.disabled = true;
-      toConsole("Cleared all previous data and charts", null, debuggin);
-    } else {
-      toConsole("Re-linked video to existing project", videoFileName, debuggin);
-    }
-    
-    DOM.videoPlaceholder.textContent = "Load a video to get started";
-    saveLocalState();
-
-    updateLoadButtonColor();
+    await processNewVideoFile(file, false);
+    event.target.value = ""; // Reset input so the same file can be loaded again if needed
   });
 
   DOM.projectFileInput.addEventListener("change", (event) => {
@@ -1882,26 +1849,51 @@ const updateProcessTimes = () => {
   }
 };
 
-const exportToJSON = () => {
+const exportToJSON = async (isSaveAs = false) => {
   saveLocalState(); // Force sync of globals to current trial before export
   const dataStr = localStorage.getItem("timeStudyData");
   if (!dataStr) return;
 
-  const blob = new Blob([dataStr], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
   let filename = "project.json";
   if (projectName) {
     filename = `${sanitizeFilename(projectName)}.json`;
   }
-  link.setAttribute("download", filename);
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-  showToast("Project saved successfully.", "success");
+
+  const isTauri = window.__TAURI__ !== undefined;
+  if (isTauri && window.__TAURI__.dialog && window.__TAURI__.fs) {
+    try {
+        const defaultName = projectFilePath ? projectFilePath.split(/[/\\]/).pop() : filename;
+        const filePath = await window.__TAURI__.dialog.save({
+          filters: [{ name: 'JSON', extensions: ['json'] }],
+          defaultPath: defaultName
+        });
+        if (filePath) {
+          projectFilePath = filePath;
+          localStorage.setItem("projectFilePath", projectFilePath);
+          await window.__TAURI__.fs.writeTextFile(filePath, dataStr);
+          showToast("Project saved successfully.", "success");
+        }
+      } else {
+        await window.__TAURI__.fs.writeTextFile(projectFilePath, dataStr);
+        showToast("Project saved successfully.", "success");
+      }
+    } catch (e) {
+      toConsole("Error saving project via Tauri", e, debuggin);
+      showToast("Error saving project file.", "error");
+    }
+  } else {
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast("Project saved successfully.", "success");
+  }
 };
 
 const importFromJSON = (jsonText) => {

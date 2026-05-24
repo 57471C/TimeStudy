@@ -21,9 +21,9 @@
   "author": "Terry Minett",
   "license": "MIT",
   "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0",
     "@biomejs/biome": "2.4.15",
     "@tailwindcss/cli": "^4.3.0",
+    "@tauri-apps/cli": "^2.0.0",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
     "tailwindcss": "^4.3.0"
@@ -32,5 +32,9 @@
     "**/*.{js,json,css,html,md}": [
       "biome check --write"
     ]
+  },
+  "dependencies": {
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-fs": "^2.5.1"
   }
 }
