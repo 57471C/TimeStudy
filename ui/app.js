@@ -49,7 +49,7 @@ let unitsPerCycle = 1;
 let playbackSpeed = 1;
 let volumeLevel = 1;
 
-const APP_VERSION = "0.4.5";
+const APP_VERSION = "0.4.6";
 
 let isDrawing = false;
 let startX;
@@ -483,6 +483,84 @@ const loadLocalState = () => {
   }
 };
 
+const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
+  if (player.src && yama.length > 0) {
+    const save = await asyncConfirm(
+      "You have unsaved data. Would you like to save your data as a CSV file before loading a new video?",
+      "Unsaved Data",
+    );
+    if (save) {
+      exportToCSV();
+      toConsole("Data exported to CSV before loading new video", null, debuggin);
+    }
+    const proceed = await asyncConfirm(
+      "Loading a new video will clear all existing data and charts. Are you sure you want to proceed?",
+      "Load New Video",
+    );
+    if (!proceed) {
+      toConsole("User cancelled loading new video", null, debuggin);
+      return;
+    }
+  }
+
+  const isRelinking = !player.src && yama.length > 0;
+
+  if (isTauriPath) {
+    const filePath = fileOrPath;
+    videoFileName = filePath.split(/[/\\]/).pop();
+    videoFilePath = filePath;
+
+    const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
+    player.src = tauriAssetUrl;
+    player.preload = "auto";
+  } else {
+    const file = fileOrPath;
+    videoFileName = file.name;
+    videoFilePath = file.path || ""; // Tauri injects the absolute path here
+
+    const isTauri = window.__TAURI__ !== undefined;
+    if (isTauri && videoFilePath) {
+      const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
+      player.src = tauriAssetUrl;
+      player.preload = "auto";
+    } else {
+      const fileURL = URL.createObjectURL(file);
+      videoBlobCache[videoFileName] = fileURL;
+      player.src = fileURL;
+      player.preload = "metadata";
+    }
+  }
+  
+  player.load();
+
+  if (!isRelinking) {
+    yama = [];
+    opNames = [];
+    opStartTimes = [];
+    opCount = 0;
+    taskCount = 0;
+    firstOp = true;
+    projectName = "";
+    if (DOM.projectNameInput) {
+      DOM.projectNameInput.value = "";
+    }
+    DOM.taskList.innerHTML = "";
+    DOM.pieChartContainer.innerHTML = "";
+    DOM.chartContainer.innerHTML = "";
+    DOM.ganttChartContainer.innerHTML = "";
+    updateTaskList();
+    addTaskButton.disabled = true;
+    toConsole("Cleared all previous data and charts", null, debuggin);
+  } else {
+    toConsole("Re-linked video to existing project", videoFileName, debuggin);
+  }
+  
+  DOM.videoPlaceholder.textContent = "Load a video to get started";
+  saveLocalState();
+
+  updateLoadButtonColor();
+};
+
 const initializePlayer = () => {
   player = DOM.video;
   playerReady = true;
@@ -770,13 +848,43 @@ const initializePlayer = () => {
 
     showToast("New project started.", "success");
   });
-  loadVideoButton.addEventListener("click", () => {
-    DOM.videoFileInput.click();
+  loadVideoButton.addEventListener("click", async () => {
+    const isTauri = window.__TAURI__ !== undefined;
+    if (isTauri && window.__TAURI__.dialog) {
+      try {
+        const selected = await window.__TAURI__.dialog.open({
+          multiple: false,
+          filters: [{ name: 'Video', extensions: ['mp4', 'webm', 'ogg', 'mov', 'avi'] }]
+        });
+        if (selected) {
+          await processNewVideoFile(selected, true);
+        }
+      } catch (e) {
+        toConsole("Error opening video via Tauri", e, debuggin);
+      }
+    } else {
+      DOM.videoFileInput.click();
+    }
   });
 
-  DOM.videoPlaceholder.addEventListener("click", () => {
-    DOM.videoFileInput.click();
-    toConsole("Video placeholder clicked", "Triggered Load Video", debuggin);
+  DOM.videoPlaceholder.addEventListener("click", async () => {
+    const isTauri = window.__TAURI__ !== undefined;
+    if (isTauri && window.__TAURI__.dialog) {
+      try {
+        const selected = await window.__TAURI__.dialog.open({
+          multiple: false,
+          filters: [{ name: 'Video', extensions: ['mp4', 'webm', 'ogg', 'mov', 'avi'] }]
+        });
+        if (selected) {
+          await processNewVideoFile(selected, true);
+        }
+      } catch (e) {
+        toConsole("Error opening video via Tauri", e, debuggin);
+      }
+    } else {
+      DOM.videoFileInput.click();
+      toConsole("Video placeholder clicked", "Triggered Load Video", debuggin);
+    }
   });
 
   toggleFormatButton.addEventListener("click", () => {
@@ -940,6 +1048,19 @@ const initializePlayer = () => {
   marqueeOverlay.addEventListener("mouseup", endMarquee);
 
   document.addEventListener("keydown", (e) => {
+    // Global shortcuts (can trigger anywhere)
+    if (e.ctrlKey && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      if (e.shiftKey) {
+        exportToJSON(true);
+        toConsole("Shortcut triggered", "Save As", debuggin);
+      } else {
+        exportToJSON(false);
+        toConsole("Shortcut triggered", "Save", debuggin);
+      }
+      return;
+    }
+
     if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
 
     switch (e.key) {
@@ -1038,6 +1159,14 @@ const initializePlayer = () => {
         saveLocalState();
         break;
       }
+    }
+  });
+
+  window.addEventListener("beforeunload", (e) => {
+    if (yama.length > 0 || player.src) {
+      e.preventDefault();
+      e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+      return e.returnValue;
     }
   });
 
@@ -1860,21 +1989,22 @@ const exportToJSON = async (isSaveAs = false) => {
   }
 
   const isTauri = window.__TAURI__ !== undefined;
-  if (isTauri && window.__TAURI__.dialog && window.__TAURI__.fs) {
+  if (isTauri) {
     try {
+      if (isSaveAs === true || !projectFilePath) {
         const defaultName = projectFilePath ? projectFilePath.split(/[/\\]/).pop() : filename;
-        const filePath = await window.__TAURI__.dialog.save({
+        const filePath = await window.__TAURI__.core.invoke('plugin:dialog|save', {
           filters: [{ name: 'JSON', extensions: ['json'] }],
           defaultPath: defaultName
         });
         if (filePath) {
           projectFilePath = filePath;
           localStorage.setItem("projectFilePath", projectFilePath);
-          await window.__TAURI__.fs.writeTextFile(filePath, dataStr);
+          await window.__TAURI__.core.invoke('plugin:fs|write_text_file', { path: filePath, data: dataStr });
           showToast("Project saved successfully.", "success");
         }
       } else {
-        await window.__TAURI__.fs.writeTextFile(projectFilePath, dataStr);
+        await window.__TAURI__.core.invoke('plugin:fs|write_text_file', { path: projectFilePath, data: dataStr });
         showToast("Project saved successfully.", "success");
       }
     } catch (e) {
@@ -1882,6 +2012,32 @@ const exportToJSON = async (isSaveAs = false) => {
       showToast("Error saving project file.", "error");
     }
   } else {
+    if (window.showSaveFilePicker) {
+      try {
+        if (isSaveAs === true || !projectFileHandle) {
+          projectFileHandle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{
+              description: 'JSON Files',
+              accept: { 'application/json': ['.json'] },
+            }],
+          });
+        }
+        const writable = await projectFileHandle.createWritable();
+        await writable.write(dataStr);
+        await writable.close();
+        showToast("Project saved successfully.", "success");
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          toConsole("Error with showSaveFilePicker", err, debuggin);
+        } else {
+          return; // User cancelled the prompt
+        }
+      }
+    }
+
+    // Fallback for older browsers
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -1984,7 +2140,7 @@ const importFromJSON = (jsonText) => {
   }
 };
 
-const exportToCSV = () => {
+const exportToCSV = async () => {
   if (yama.length === 0) {
     alert("No operations or tasks to export.");
     return;
@@ -2013,22 +2169,40 @@ const exportToCSV = () => {
       csvContent += `${escapedOpName},${escapedTaskName},${vaDuration},${nvaDuration},${wDuration}\n`;
     }
   }
-  const blob = new Blob([csvContent], {
-    type: "text/csv;charset=utf-8;",
-  });
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  link.setAttribute("href", url);
+
   let filename = "operation_task_durations.csv";
   if (projectName) {
     filename = `${sanitizeFilename(projectName)}.csv`;
   }
-  link.setAttribute("download", filename);
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  showToast("Data exported to CSV successfully.", "success");
+
+  const isTauri = window.__TAURI__ !== undefined;
+  if (isTauri && window.__TAURI__.dialog && window.__TAURI__.fs) {
+    try {
+      const filePath = await window.__TAURI__.dialog.save({
+        filters: [{ name: 'CSV', extensions: ['csv'] }],
+        defaultPath: filename
+      });
+      if (filePath) {
+        await window.__TAURI__.fs.writeTextFile(filePath, csvContent);
+        showToast("Data exported to CSV successfully.", "success");
+      }
+    } catch (e) {
+      toConsole("Error exporting CSV via Tauri", e, debuggin);
+      showToast("Error exporting CSV file.", "error");
+    }
+  } else {
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast("Data exported to CSV successfully.", "success");
+  }
 };
 
 const drawTable = () => {

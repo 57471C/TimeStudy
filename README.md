@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.4.5-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.4.6-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -14,6 +14,12 @@
 - **Dark/Light Mode**: Toggle between themes for improved usability.
 - **Zoom Controls**: Marquee-based video zoom with reset functionality.
 - **Takt Time**: Set and visualize takt time for process optimization.
+
+## Version 0.4.6 Updates
+- **Native App Enhancements**: Switched native Save/Load behaviors to Tauri Core Invoke commands for reliable app-specific behavior.
+- **File Overwrite Support**: Added `window.showSaveFilePicker` for seamless file overwriting in browsers, acting like a true desktop app.
+- **Clean State Initialization**: Apps now always open to an "Untitled Project" instead of auto-loading cache.
+- **Safe Prompts**: Added robust confirmation checks to prevent accidental data loss when closing windows, starting new projects, or loading new videos.
 
 ## Version 0.4.5 Updates
 - **UI Cleanup**: Reorganized the Operations Panel and moved file management tools (Save/Load/New) to the top header.
