@@ -36,6 +36,7 @@ const videoBlobCache = {};
 let yama = [];
 let opNames = [];
 let opStartTimes = [];
+let opPartTags = [];
 let taktTime = 60000;
 let durationMode = "hhmmssms";
 let playerReady = false;
@@ -58,6 +59,83 @@ let startX;
 let startY;
 let marqueeOverlay;
 let marqueeRect;
+
+const openTagModal = async (type, opIndex, taskIndex) => {
+  let title = "Assign Tag";
+  let message = "Select or type a new tag:";
+  let suggestions = [];
+
+  if (type.includes("part")) {
+    title = "Assign Part Number";
+    message = "Select a Part Number or enter a new one (Format: [number] - [desc]):";
+    suggestions = masterParts;
+  } else if (type.includes("labour")) {
+    title = "Assign Labour Code";
+    message = "Select a Labour Code or enter a new one (Format: [code] - [desc]):";
+    suggestions = masterLabour;
+  }
+
+  const result = await asyncPrompt(message, "", title, suggestions);
+
+  if (result && result.trim() !== "") {
+    const newTag = result.trim();
+    let addedNewMaster = false;
+
+    if (type.includes("part")) {
+      if (!masterParts.includes(newTag)) {
+        masterParts.push(newTag);
+        addedNewMaster = true;
+      }
+      if (type === "op-parts") {
+        if (!opPartTags[opIndex].includes(newTag)) opPartTags[opIndex].push(newTag);
+      } else if (type === "task-parts") {
+        if (!yama[opIndex][taskIndex].partTags.includes(newTag)) yama[opIndex][taskIndex].partTags.push(newTag);
+      }
+    } else if (type.includes("labour")) {
+      if (!masterLabour.includes(newTag)) {
+        masterLabour.push(newTag);
+        addedNewMaster = true;
+      }
+      if (type === "task-labour") {
+        if (!yama[opIndex][taskIndex].labourTags.includes(newTag)) yama[opIndex][taskIndex].labourTags.push(newTag);
+      }
+    }
+
+    if (addedNewMaster) {
+      showToast("New tag added to Master Data.", "success");
+    }
+
+    saveLocalState();
+    updateTaskList();
+  }
+};
+
+const removeTag = (target, opIndex, taskIndex, tagType, tagIdx) => {
+  if (target === "op") {
+    opPartTags[opIndex].splice(tagIdx, 1);
+  } else if (target === "task") {
+    if (tagType === "part") {
+      yama[opIndex][taskIndex].partTags.splice(tagIdx, 1);
+    } else if (tagType === "labour") {
+      yama[opIndex][taskIndex].labourTags.splice(tagIdx, 1);
+    }
+  }
+  saveLocalState();
+  updateTaskList();
+};
+
+const renderTags = (tags, type, target, opIndex, taskIndex = -1) => {
+  if (!tags || tags.length === 0) return "";
+  const typeClass = type === "part" ? "tag-pill-part" : "tag-pill-labour";
+  const icon =
+    type === "part"
+      ? `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>`
+      : `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`;
+
+  return `<div class="tag-container">
+    ${tags.map((tag, idx) => `<span class="tag-pill ${typeClass}">${icon} <span>${escapeHTML(tag)}</span><button type="button" onclick="removeTag('${target}', ${opIndex}, ${taskIndex}, '${type}', ${idx})" class="hover:text-red-500 dark:hover:text-red-400 font-bold ml-0.5 leading-none focus:outline-none transition-colors" title="Remove Tag">&times;</button></span>`).join("")}
+  </div>`;
+};
 
 const DOM = {
   taskList: document.getElementById("taskList"),
@@ -227,6 +305,7 @@ const switchTrial = async (index) => {
   yama = currentTrial.appState?.yama || [];
   opNames = currentTrial.appState?.opNames || [];
   opStartTimes = currentTrial.appState?.opStartTimes || [];
+  opPartTags = currentTrial.appState?.opPartTags || [];
   opCount = currentTrial.appState?.opCount !== undefined ? currentTrial.appState.opCount : 0;
   taskCount = currentTrial.appState?.taskCount !== undefined ? currentTrial.appState.taskCount : 0;
   firstOp = currentTrial.appState?.firstOp !== undefined ? currentTrial.appState.firstOp : true;
@@ -284,7 +363,7 @@ const addTrial = async () => {
         processEndTime: 0,
         taktTime,
         costingConfig: { hourlyRate, shiftLength, targetEfficiency },
-        appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true },
+        appState: { yama: [], opNames: [], opStartTimes: [], opPartTags: [], opCount: 0, taskCount: 0, firstOp: true },
       };
 
   trials.push(newTrial);
@@ -461,6 +540,7 @@ const loadLocalState = () => {
               yama: state.yama || [],
               opNames: state.opNames || [],
               opStartTimes: state.opStartTimes || [],
+              opPartTags: state.opPartTags || [],
               opCount: state.opCount !== undefined ? state.opCount : 0,
               taskCount: state.taskCount !== undefined ? state.taskCount : 0,
               firstOp: state.firstOp !== undefined ? state.firstOp : true,
@@ -502,6 +582,7 @@ const loadLocalState = () => {
       yama = currentTrial.appState?.yama || [];
       opNames = currentTrial.appState?.opNames || [];
       opStartTimes = currentTrial.appState?.opStartTimes || [];
+      opPartTags = currentTrial.appState?.opPartTags || [];
       opCount = currentTrial.appState?.opCount !== undefined ? currentTrial.appState.opCount : 0;
       taskCount = currentTrial.appState?.taskCount !== undefined ? currentTrial.appState.taskCount : 0;
       firstOp = currentTrial.appState?.firstOp !== undefined ? currentTrial.appState.firstOp : true;
@@ -526,7 +607,7 @@ const loadLocalState = () => {
         processEndTime: 0,
         taktTime: 60000,
         costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
-        appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true },
+        appState: { yama: [], opNames: [], opStartTimes: [], opPartTags: [], opCount: 0, taskCount: 0, firstOp: true },
       },
     ];
     activeTrialIndex = 0;
@@ -588,6 +669,7 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
     yama = [];
     opNames = [];
     opStartTimes = [];
+    opPartTags = [];
     opCount = 0;
     taskCount = 0;
     firstOp = true;
@@ -714,7 +796,7 @@ const initializePlayer = () => {
     const parseTwoColumnCSV = (csvText) => {
       const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !== "");
       const results = [];
-      lines.forEach((line) => {
+      for (const line of lines) {
         const firstComma = line.indexOf(",");
         if (firstComma > -1) {
           const col1 = line.substring(0, firstComma).replace(/^"|"$/g, "").trim();
@@ -726,7 +808,7 @@ const initializePlayer = () => {
         } else {
           results.push(line.replace(/^"|"$/g, "").trim());
         }
-      });
+      }
       return results;
     };
 
@@ -933,6 +1015,7 @@ const initializePlayer = () => {
     localStorage.removeItem("projectFilePath");
     opNames = [];
     opStartTimes = [];
+    opPartTags = [];
     opCount = 0;
     taskCount = 0;
     firstOp = true;
@@ -951,7 +1034,7 @@ const initializePlayer = () => {
         processEndTime: 0,
         taktTime: taktTime,
         costingConfig: { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle },
-        appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true },
+        appState: { yama: [], opNames: [], opStartTimes: [], opPartTags: [], opCount: 0, taskCount: 0, firstOp: true },
       },
     ];
     activeTrialIndex = 0;
@@ -1552,6 +1635,7 @@ const addOp = async () => {
   }
   opNames[opCount] = opName;
   opStartTimes[opCount] = startTime;
+  opPartTags[opCount] = [];
   taskCount = 0;
   yama[opCount] = [];
   toConsole("taskCount has been reset", taskCount, debuggin);
@@ -1618,6 +1702,8 @@ const addTask = async () => {
     taskEnd,
     taskHeight,
     taskStatus,
+    partTags: [],
+    labourTags: [],
   };
   console.table(yama[opCount][taskCount]);
   taskCount += 1;
@@ -1674,6 +1760,8 @@ const insertTask = async (opIndex, taskIndex) => {
     taskEnd: currentTask.taskEnd + newDuration,
     taskHeight: newDuration,
     taskStatus,
+    partTags: [],
+    labourTags: [],
   };
 
   yama[opIndex].splice(taskIndex + 1, 0, newTask);
@@ -1905,28 +1993,33 @@ const updateTaskList = () => {
       const opTimeInputId = `opTimeInput-${i}`;
       const formattedTime = formatTimeToHHMMSSMS(opStartTimes[i]);
       const safeOpName = escapeHTML(opNames[i]);
+      const opTags = opPartTags[i] || [];
 
       rows.push(`
         <tr>
           <td colspan="4">
             <div class="flex items-center justify-between w-full">
-              <div>
-                <a href="javascript:void(0)" onclick="jumpToOperationTime('${opTimeInputId}')" class="font-bold text-lg">
-                  ${safeOpName}
-                </a>
-                <span class="op-time-container">
-                  <label for="${opTimeInputId}" class="form-label font-mono text-base mb-0" style="width: auto;">Start:</label>
-                  <input type="text" id="${opTimeInputId}" class="form-control op-time-input font-mono tabular-nums text-base" value="${formattedTime}">
-                </span>
+              <div class="flex-1 mr-4">
+                <div class="flex items-center gap-2">
+                  <a href="javascript:void(0)" onclick="jumpToOperationTime('${opTimeInputId}')" class="font-bold text-lg">
+                    ${safeOpName}
+                  </a>
+                  <button onclick="openTagModal('op-parts', ${i})" class="btn btn-outline-secondary p-1" title="Assign Part Numbers">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+                  </button>
+                  <span class="op-time-container">
+                    <label for="${opTimeInputId}" class="form-label font-mono text-base mb-0" style="width: auto;">Start:</label>
+                    <input type="text" id="${opTimeInputId}" class="form-control op-time-input font-mono tabular-nums text-base" value="${formattedTime}">
+                  </span>
+                </div>
+                ${renderTags(opTags, "part", "op", i)}
               </div>
-              <div class="flex gap-2">
-                <button onclick="renameOperation(${i})" class="btn btn-primary font-bold flex items-center gap-2" title="Rename Operation">
+              <div class="flex gap-1.5">
+                <button onclick="renameOperation(${i})" class="btn btn-primary p-1 shadow-sm" title="Rename Operation">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-                  Rename
                 </button>
-                <button onclick="deleteOperation(${i})" class="btn btn-danger font-bold flex items-center gap-2" title="Delete Operation">
+                <button onclick="deleteOperation(${i})" class="btn btn-danger p-1 shadow-sm" title="Delete Operation">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                  Delete Operation
                 </button>
               </div>
             </div>
@@ -1942,6 +2035,9 @@ const updateTaskList = () => {
               ? `${task.taskHeight.toFixed(3)} ms`
               : `${formatDecimalMinutes(task.taskHeight)} min`;
 
+        const taskPartTags = task.partTags || [];
+        const taskLabourTags = task.labourTags || [];
+
         const safeTaskName = escapeHTML(task.taskName);
 
         let badgeClass = "";
@@ -1954,13 +2050,25 @@ const updateTaskList = () => {
 
         rows.push(`
           <tr>
-            <td><div class="ml-5">${safeTaskName}</div></td>
-            <td class="text-center whitespace-nowrap">${duration}</td>
-            <td class="text-center whitespace-nowrap">
+            <td>
+              <div class="ml-5">
+                <span>${safeTaskName}</span>
+                ${renderTags(taskPartTags, "part", "task", i, j)}
+                ${renderTags(taskLabourTags, "labour", "task", i, j)}
+              </div>
+            </td>
+            <td class="text-center whitespace-nowrap align-top pt-2">${duration}</td>
+            <td class="text-center whitespace-nowrap align-top pt-2">
               <span class="inline-block px-2 py-0.5 rounded border bg-transparent text-xs font-bold ${badgeClass}">${task.taskStatus}</span>
             </td>
-            <td class="flex gap-1.5">
-              <button onclick="editTask(${i}, ${j})" class="btn btn-outline-primary p-1" title="Edit Task">
+            <td class="flex gap-1.5 justify-center">
+              <button onclick="openTagModal('task-parts', ${i}, ${j})" class="btn btn-outline-secondary p-1" title="Assign Part Numbers">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+              </button>
+              <button onclick="openTagModal('task-labour', ${i}, ${j})" class="btn btn-outline-secondary p-1" title="Assign Labour Codes">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              </button>
+              <button onclick="editTask(${i}, ${j})" class="btn btn-outline-primary p-1 ml-2" title="Edit Task">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
               </button>
               <button onclick="editTaskDuration(${i}, ${j})" class="btn btn-outline-primary p-1" title="Edit Duration">
@@ -2233,6 +2341,7 @@ const importFromJSON = (jsonText) => {
     yama = currentTrial.appState?.yama || [];
     opNames = currentTrial.appState?.opNames || [];
     opStartTimes = currentTrial.appState?.opStartTimes || [];
+    opPartTags = currentTrial.appState?.opPartTags || [];
     opCount = currentTrial.appState?.opCount !== undefined ? currentTrial.appState.opCount : 0;
     taskCount = currentTrial.appState?.taskCount !== undefined ? currentTrial.appState.taskCount : 0;
     firstOp = currentTrial.appState?.firstOp !== undefined ? currentTrial.appState.firstOp : true;
@@ -2293,7 +2402,7 @@ const exportToCSV = async () => {
     csvContent += `,${formatTimeToHHMMSSMS(opStartTimes[i] || 0)}`;
   }
   csvContent += "\n";
-  csvContent += "Operation,Task,VA,NVA,W\n";
+  csvContent += "Operation,Operation Parts,Task,Task Parts,Task Labour,VA,NVA,W\n";
 
   for (let i = 0; i < yama.length; i += 1) {
     for (let j = 0; j < yama[i].length; j += 1) {
@@ -2302,9 +2411,26 @@ const exportToCSV = async () => {
       const vaDuration = status === "VA" ? task.taskHeight : 0;
       const nvaDuration = status === "NVA" ? task.taskHeight : 0;
       const wDuration = status === "W" ? task.taskHeight : 0;
+
       const escapedOpName = opNames[i].includes(",") ? `"${opNames[i]}"` : opNames[i];
+      const opPartsStr = (opPartTags[i] || []).join("; ");
+      const escapedOpParts =
+        opPartsStr.includes(",") || opPartsStr.includes('"') ? `"${opPartsStr.replace(/"/g, '""')}"` : opPartsStr;
+
       const escapedTaskName = task.taskName.includes(",") ? `"${task.taskName}"` : task.taskName;
-      csvContent += `${escapedOpName},${escapedTaskName},${vaDuration},${nvaDuration},${wDuration}\n`;
+      const taskPartsStr = (task.partTags || []).join("; ");
+      const escapedTaskParts =
+        taskPartsStr.includes(",") || taskPartsStr.includes('"')
+          ? `"${taskPartsStr.replace(/"/g, '""')}"`
+          : taskPartsStr;
+
+      const taskLabourStr = (task.labourTags || []).join("; ");
+      const escapedTaskLabour =
+        taskLabourStr.includes(",") || taskLabourStr.includes('"')
+          ? `"${taskLabourStr.replace(/"/g, '""')}"`
+          : taskLabourStr;
+
+      csvContent += `${escapedOpName},${escapedOpParts},${escapedTaskName},${escapedTaskParts},${escapedTaskLabour},${vaDuration},${nvaDuration},${wDuration}\n`;
     }
   }
 
