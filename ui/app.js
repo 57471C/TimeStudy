@@ -60,6 +60,27 @@ let startY;
 let marqueeOverlay;
 let marqueeRect;
 
+let currentStatusEdit = null;
+
+const openStatusModal = (e, opIndex, taskIndex) => {
+  currentStatusEdit = { opIndex, taskIndex };
+  const dialog = DOM.statusModal;
+
+  dialog.style.inset = "auto";
+  dialog.style.margin = "0";
+  dialog.showModal();
+
+  const rect = dialog.getBoundingClientRect();
+  let top = e.clientY + 5;
+  let left = e.clientX + 5;
+
+  if (left + rect.width > window.innerWidth) left = window.innerWidth - rect.width - 5;
+  if (top + rect.height > window.innerHeight) top = window.innerHeight - rect.height - 5;
+
+  dialog.style.left = `${left}px`;
+  dialog.style.top = `${top}px`;
+};
+
 const openTagModal = async (type, opIndex, taskIndex) => {
   let title = "Assign Tag";
   let message = "Select or type a new tag:";
@@ -231,6 +252,7 @@ const DOM = {
   clearMasterDataBtn: document.getElementById("clearMasterDataBtn"),
   closeMasterDataBtn: document.getElementById("closeMasterDataBtn"),
   closeMasterDataBtnX: document.getElementById("closeMasterDataBtnX"),
+  statusModal: document.getElementById("statusModal"),
 };
 
 const toggleChartMode = () => {
@@ -882,6 +904,28 @@ const initializePlayer = () => {
     const closeMasterModal = () => DOM.masterDataModal.close();
     DOM.closeMasterDataBtnX.addEventListener("click", closeMasterModal);
     DOM.closeMasterDataBtn.addEventListener("click", closeMasterModal);
+  }
+
+  if (DOM.statusModal) {
+    DOM.statusModal.querySelectorAll(".status-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        if (currentStatusEdit) {
+          handleInlineStatusEdit(
+            currentStatusEdit.opIndex,
+            currentStatusEdit.taskIndex,
+            e.target.getAttribute("data-status"),
+          );
+        }
+        DOM.statusModal.close();
+        currentStatusEdit = null;
+      });
+    });
+    DOM.statusModal.addEventListener("click", (e) => {
+      if (e.target === DOM.statusModal) {
+        DOM.statusModal.close();
+        currentStatusEdit = null;
+      }
+    });
   }
 
   player.addEventListener("timeupdate", seektimeupdate);
@@ -2054,7 +2098,7 @@ const updateTaskList = () => {
           <tr>
             <td>
               <div class="ml-5 flex flex-col items-start">
-                <input type="text" class="form-control font-semibold bg-transparent border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 focus:border-blue-500 focus:bg-white dark:focus:bg-zinc-800 shadow-none px-1 py-0.5 h-auto leading-tight transition-colors w-full" value="${safeTaskName}" onchange="handleInlineNameEdit(${i}, ${j}, this.value)" onfocus="this.select()" title="Edit Task Name">
+                <input type="text" class="font-semibold bg-transparent border-0 outline-none shadow-none focus:ring-0 focus:bg-zinc-100 dark:focus:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded px-1 py-0.5 h-auto leading-tight transition-colors m-0 cursor-text max-w-full" style="width: ${Math.max(safeTaskName.length + 1, 5)}ch;" value="${safeTaskName}" oninput="this.style.width = (this.value.length + 1) + 'ch';" onchange="handleInlineNameEdit(${i}, ${j}, this.value)" onfocus="this.select()" title="Edit Task Name">
                 <div class="px-1">
                   ${renderTags(taskPartTags, "part", "task", i, j)}
                   ${renderTags(taskLabourTags, "labour", "task", i, j)}
@@ -2062,14 +2106,12 @@ const updateTaskList = () => {
               </div>
             </td>
             <td class="text-center whitespace-nowrap align-top pt-1.5">
-              <input type="text" class="form-control font-mono tabular-nums text-sm w-24 text-center mx-auto py-1 px-1.5 h-auto leading-none border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 bg-transparent focus:bg-white dark:focus:bg-zinc-800 transition-colors shadow-none" value="${durationValue}" onchange="handleInlineDurationEdit(${i}, ${j}, this.value)" onfocus="this.select()" title="Edit Duration">
+              <input type="text" class="font-mono tabular-nums text-sm text-center mx-auto py-1 px-1 h-auto leading-none bg-transparent border-0 outline-none shadow-none focus:ring-0 focus:bg-zinc-100 dark:focus:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors m-0 cursor-text" style="width: ${Math.max(durationValue.length + 1, 3)}ch;" value="${durationValue}" oninput="this.style.width = (this.value.length + 1) + 'ch';" onchange="handleInlineDurationEdit(${i}, ${j}, this.value)" onfocus="this.select()" title="Edit Duration">
             </td>
             <td class="text-center whitespace-nowrap align-top pt-1.5">
-              <select class="appearance-none outline-none inline-block px-2 py-0.5 rounded border bg-transparent text-xs font-bold cursor-pointer text-center hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${badgeClass}" onchange="handleInlineStatusEdit(${i}, ${j}, this.value)" title="Change Status">
-                <option value="VA" class="text-emerald-700 dark:text-emerald-400 bg-white dark:bg-zinc-800" ${task.taskStatus === "VA" ? "selected" : ""}>VA</option>
-                <option value="NVA" class="text-amber-700 dark:text-amber-400 bg-white dark:bg-zinc-800" ${task.taskStatus === "NVA" ? "selected" : ""}>NVA</option>
-                <option value="W" class="text-rose-700 dark:text-rose-400 bg-white dark:bg-zinc-800" ${task.taskStatus === "W" ? "selected" : ""}>W</option>
-              </select>
+              <button type="button" onclick="openStatusModal(event, ${i}, ${j})" class="outline-none inline-block px-2 py-0.5 rounded border bg-transparent text-xs font-bold cursor-pointer text-center hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${badgeClass}" title="Change Status">
+                ${task.taskStatus}
+              </button>
             </td>
             <td class="flex gap-1.5 justify-center">
               <button onclick="openTagModal('task-parts', ${i}, ${j})" class="btn btn-outline-secondary p-1" title="Assign Part Numbers">
