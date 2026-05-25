@@ -88,6 +88,7 @@
                 <div id="marqueeRect" class="marquee-rect"></div>
               </div>
               <video id="my_video">
+                <track kind="captions" />
                 Your browser does not support the video tag.
               </video>
               <div class="zoom-controls">
@@ -279,6 +280,24 @@
           <label for="unitsPerCycleInput" class="form-label">Units per Cycle</label>
           <input type="number" id="unitsPerCycleInput" class="form-control w-full no-spinners" placeholder="1" min="1" step="1">
           <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Number of units produced in a single process cycle.</p>
+        </div>
+        <hr class="border-zinc-200 dark:border-zinc-700 my-2">
+        <div>
+          <label class="form-label font-semibold">Master Data Imports</label>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Upload 2-column CSV files to populate dropdowns for tagging.</p>
+          <div class="flex flex-col gap-2">
+            <button type="button" id="partsUploadBtn" class="btn btn-sm btn-outline-secondary flex justify-center items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Part Numbers CSV
+            </button>
+            <input type="file" id="partsFileInput" accept=".csv" style="display: none" />
+            
+            <button type="button" id="labourUploadBtn" class="btn btn-sm btn-outline-secondary flex justify-center items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Labour Codes CSV
+            </button>
+            <input type="file" id="labourFileInput" accept=".csv" style="display: none" />
+          </div>
         </div>
       </div>
       <div class="p-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">

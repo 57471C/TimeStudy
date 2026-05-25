@@ -1,5 +1,8 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "files": {
+    "ignore": ["tailwind.css", "ui/tailwind.css", "ui/libs", "ui/libs/**", "src-tauri/target/**"]
+  },
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -23,11 +26,6 @@
         "useButtonType": "off",
         "noSvgWithoutTitle": "off"
       }
-    }
-  },
-  "css": {
-    "parser": {
-      "tailwindDirectives": true
     }
   }
 }

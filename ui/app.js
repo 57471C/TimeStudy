@@ -27,6 +27,8 @@ let videoFileName = "";
 let videoFilePath = "";
 let projectName = "";
 let projectComments = "";
+let masterParts = [];
+let masterLabour = [];
 let projectFilePath = "";
 let trials = [];
 let activeTrialIndex = 0;
@@ -101,6 +103,10 @@ const DOM = {
   shiftLengthInput: document.getElementById("shiftLengthInput"),
   targetEfficiencyInput: document.getElementById("targetEfficiencyInput"),
   unitsPerCycleInput: document.getElementById("unitsPerCycleInput"),
+  partsFileInput: document.getElementById("partsFileInput"),
+  labourFileInput: document.getElementById("labourFileInput"),
+  partsUploadBtn: document.getElementById("partsUploadBtn"),
+  labourUploadBtn: document.getElementById("labourUploadBtn"),
 };
 
 const toggleChartMode = () => {
@@ -164,6 +170,8 @@ const saveLocalState = () => {
     projectMeta: {
       projectName,
       projectComments,
+      masterParts,
+      masterLabour,
       lastSaved: new Date().toISOString(),
       appVersion: APP_VERSION,
     },
@@ -297,23 +305,23 @@ const openCompareDashboard = () => {
   const unitsData = [];
   const costData = [];
 
-  trials.forEach((trial) => {
+  for (const trial of trials) {
     categories.push(trial.trialName);
 
-    let va = 0,
-      nva = 0,
-      w = 0;
+    let va = 0;
+    let nva = 0;
+    let w = 0;
     const yamaData = trial.appState.yama || [];
-    yamaData.forEach((op) => {
+    for (const op of yamaData) {
       if (Array.isArray(op)) {
-        op.forEach((task) => {
+        for (const task of op) {
           const height = task.taskHeight || 0;
           if (task.taskStatus === "VA") va += height;
           else if (task.taskStatus === "NVA") nva += height;
           else if (task.taskStatus === "W") w += height;
-        });
+        }
       }
-    });
+    }
 
     vaData.push(va);
     nvaData.push(nva);
@@ -335,7 +343,7 @@ const openCompareDashboard = () => {
     const cycleCost = (totalMs / 3600000) * rate;
     const costPerUnit = cycleCost / cycleUnits;
     costData.push(costPerUnit);
-  });
+  }
 
   DOM.compareModal.showModal();
 
@@ -455,6 +463,8 @@ const loadLocalState = () => {
         activeTrialIndex = 0;
         projectName = state.projectName || "";
         projectComments = "";
+        masterParts = state.masterParts || [];
+        masterLabour = state.masterLabour || [];
         playbackSpeed = state.playbackSpeed !== undefined ? state.playbackSpeed : 1;
         volumeLevel = state.volumeLevel !== undefined ? state.volumeLevel : 1;
       } else {
@@ -463,6 +473,8 @@ const loadLocalState = () => {
         activeTrialIndex = state.activeTrialIndex || 0;
         projectName = state.projectMeta?.projectName || "";
         projectComments = state.projectMeta?.projectComments || "";
+        masterParts = state.projectMeta?.masterParts || [];
+        masterLabour = state.projectMeta?.masterLabour || [];
         playbackSpeed = state.appConfig?.playbackSpeed !== undefined ? state.appConfig.playbackSpeed : 1;
         volumeLevel = state.appConfig?.volumeLevel !== undefined ? state.appConfig.volumeLevel : 1;
       }
@@ -690,6 +702,52 @@ const initializePlayer = () => {
       toggleSettings(false);
       showToast("Project variables saved successfully.", "success");
     });
+
+    // Basic CSV parser for 2 columns: [ID], [Description]
+    const parseTwoColumnCSV = (csvText) => {
+      const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !== "");
+      const results = [];
+      lines.forEach((line) => {
+        const firstComma = line.indexOf(",");
+        if (firstComma > -1) {
+          const col1 = line.substring(0, firstComma).replace(/^"|"$/g, "").trim();
+          const col2 = line
+            .substring(firstComma + 1)
+            .replace(/^"|"$/g, "")
+            .trim();
+          results.push(`${col1} - ${col2}`);
+        } else {
+          results.push(line.replace(/^"|"$/g, "").trim());
+        }
+      });
+      return results;
+    };
+
+    DOM.partsUploadBtn.addEventListener("click", () => DOM.partsFileInput.click());
+    DOM.partsFileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        masterParts = parseTwoColumnCSV(evt.target.result);
+        showToast(`Loaded ${masterParts.length} Part Numbers`, "success");
+        saveLocalState();
+      };
+      reader.readAsText(file);
+    });
+
+    DOM.labourUploadBtn.addEventListener("click", () => DOM.labourFileInput.click());
+    DOM.labourFileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        masterLabour = parseTwoColumnCSV(evt.target.result);
+        showToast(`Loaded ${masterLabour.length} Labour Codes`, "success");
+        saveLocalState();
+      };
+      reader.readAsText(file);
+    });
   }
 
   player.addEventListener("timeupdate", seektimeupdate);
@@ -854,6 +912,8 @@ const initializePlayer = () => {
     firstOp = true;
     projectName = "";
     projectComments = "";
+    masterParts = [];
+    masterLabour = [];
     processEndTime = 0;
 
     trials = [
@@ -1438,13 +1498,13 @@ const toggleSettings = (show) => {
 
 const getAllTaskNames = () => {
   const names = [];
-  yama.forEach((op) => {
+  for (const op of yama) {
     if (Array.isArray(op)) {
-      op.forEach((task) => {
-        if (task && task.taskName) names.push(task.taskName);
-      });
+      for (const task of op) {
+        if (task?.taskName) names.push(task.taskName);
+      }
     }
-  });
+  }
   return names;
 };
 
@@ -1803,7 +1863,7 @@ const updateTaskList = () => {
                      chartMode === "column"
                        ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 8h6"/><path d="M11 12h5"/><path d="M14 16h6"/></svg>`
                        : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`
-}
+                   }
                  </button>
                  <span>Operation</span>
                </div>
@@ -2117,12 +2177,16 @@ const importFromJSON = (jsonText) => {
       activeTrialIndex = 0;
       projectName = data.projectMeta?.projectName || "";
       projectComments = "";
+      masterParts = data.projectMeta?.masterParts || [];
+      masterLabour = data.projectMeta?.masterLabour || [];
     } else if (data.trials) {
       // New Multi-Trial format
       trials = data.trials;
       activeTrialIndex = data.activeTrialIndex || 0;
       projectName = data.projectMeta?.projectName || "";
       projectComments = data.projectMeta?.projectComments || "";
+      masterParts = data.projectMeta?.masterParts || [];
+      masterLabour = data.projectMeta?.masterLabour || [];
     } else {
       alert("Invalid project file format.");
       return;

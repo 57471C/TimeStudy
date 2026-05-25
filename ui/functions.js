@@ -127,11 +127,11 @@ const asyncPrompt = (message, defaultValue = "", title = "Input Needed", suggest
       datalist.innerHTML = "";
       if (suggestions && suggestions.length > 0) {
         const uniqueSuggestions = [...new Set(suggestions)].filter(Boolean);
-        uniqueSuggestions.forEach((suggestion) => {
+        for (const suggestion of uniqueSuggestions) {
           const option = document.createElement("option");
           option.value = suggestion;
           datalist.appendChild(option);
-        });
+        }
         input.setAttribute("list", "promptDatalist");
       } else {
         input.removeAttribute("list");
