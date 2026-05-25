@@ -34,7 +34,7 @@ const showToast = (message, type = "error") => {
 
   const toast = document.createElement("div");
   const baseClasses =
-    "flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border text-sm font-medium transition-all duration-300 transform translate-x-full opacity-0 max-w-md w-full pointer-events-auto cursor-pointer";
+    "flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border text-sm font-medium transition-all duration-300 transform -translate-y-full opacity-0 max-w-md w-full pointer-events-auto cursor-pointer";
 
   const typeClasses =
     type === "error"
@@ -57,16 +57,16 @@ const showToast = (message, type = "error") => {
 
   // Click to dismiss early
   toast.addEventListener("click", () => {
-    toast.classList.add("translate-x-full", "opacity-0");
+    toast.classList.add("-translate-y-full", "opacity-0");
     setTimeout(() => {
       if (container.contains(toast)) container.removeChild(toast);
     }, 300);
   });
 
-  requestAnimationFrame(() => toast.classList.remove("translate-x-full", "opacity-0"));
+  requestAnimationFrame(() => toast.classList.remove("-translate-y-full", "opacity-0"));
 
   setTimeout(() => {
-    toast.classList.add("translate-x-full", "opacity-0");
+    toast.classList.add("-translate-y-full", "opacity-0");
     setTimeout(() => {
       if (container.contains(toast)) container.removeChild(toast);
     }, 300);

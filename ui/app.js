@@ -107,6 +107,13 @@ const DOM = {
   labourFileInput: document.getElementById("labourFileInput"),
   partsUploadBtn: document.getElementById("partsUploadBtn"),
   labourUploadBtn: document.getElementById("labourUploadBtn"),
+  partsViewBtn: document.getElementById("partsViewBtn"),
+  labourViewBtn: document.getElementById("labourViewBtn"),
+  masterDataModal: document.getElementById("masterDataModal"),
+  masterDataModalTitle: document.getElementById("masterDataModalTitle"),
+  masterDataList: document.getElementById("masterDataList"),
+  closeMasterDataBtn: document.getElementById("closeMasterDataBtn"),
+  closeMasterDataBtnX: document.getElementById("closeMasterDataBtnX"),
 };
 
 const toggleChartMode = () => {
@@ -748,6 +755,25 @@ const initializePlayer = () => {
       };
       reader.readAsText(file);
     });
+
+    const showMasterDataModal = (title, dataArray) => {
+      DOM.masterDataModalTitle.textContent = `${title} (${dataArray.length})`;
+      DOM.masterDataList.innerHTML = dataArray.length
+        ? dataArray
+            .map(
+              (item) =>
+                `<li class="px-4 py-2.5 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors">${escapeHTML(item)}</li>`,
+            )
+            .join("")
+        : `<li class="px-4 py-4 text-sm text-zinc-500 italic text-center">No data loaded.</li>`;
+      DOM.masterDataModal.showModal();
+    };
+
+    DOM.partsViewBtn.addEventListener("click", () => showMasterDataModal("Part Numbers", masterParts));
+    DOM.labourViewBtn.addEventListener("click", () => showMasterDataModal("Labour Codes", masterLabour));
+    const closeMasterModal = () => DOM.masterDataModal.close();
+    DOM.closeMasterDataBtnX.addEventListener("click", closeMasterModal);
+    DOM.closeMasterDataBtn.addEventListener("click", closeMasterModal);
   }
 
   player.addEventListener("timeupdate", seektimeupdate);

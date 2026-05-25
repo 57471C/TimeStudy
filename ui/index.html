@@ -237,7 +237,7 @@
     </div>
 
     <!-- Toast Notification Container -->
-    <div id="toastContainer" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+    <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none items-center w-full max-w-md px-4"></div>
 
     <!-- Settings Slide-out Panel -->
     <div id="settingsBackdrop" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[40] hidden transition-opacity duration-300 opacity-0"></div>
@@ -285,18 +285,27 @@
         <div>
           <label class="form-label font-semibold">Master Data Imports</label>
           <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Upload 2-column CSV files to populate dropdowns for tagging.</p>
-          <div class="flex flex-col gap-2">
-            <button type="button" id="partsUploadBtn" class="btn btn-sm btn-outline-secondary flex justify-center items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Upload Part Numbers CSV
-            </button>
-            <input type="file" id="partsFileInput" accept=".csv" style="display: none" />
-            
-            <button type="button" id="labourUploadBtn" class="btn btn-sm btn-outline-secondary flex justify-center items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Upload Labour Codes CSV
-            </button>
-            <input type="file" id="labourFileInput" accept=".csv" style="display: none" />
+          <div class="flex flex-col gap-3">
+            <div class="flex gap-2">
+              <button type="button" id="partsUploadBtn" class="btn btn-sm btn-outline-secondary flex-1 flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Upload Parts CSV
+              </button>
+              <button type="button" id="partsViewBtn" class="btn btn-sm btn-outline-secondary px-3" title="View Parts Data">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+              <input type="file" id="partsFileInput" accept=".csv" style="display: none" />
+            </div>
+            <div class="flex gap-2">
+              <button type="button" id="labourUploadBtn" class="btn btn-sm btn-outline-secondary flex-1 flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Upload Labour CSV
+              </button>
+              <button type="button" id="labourViewBtn" class="btn btn-sm btn-outline-secondary px-3" title="View Labour Data">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+              <input type="file" id="labourFileInput" accept=".csv" style="display: none" />
+            </div>
           </div>
         </div>
       </div>
@@ -389,6 +398,20 @@
       </div>
       <div class="p-4 border-t border-zinc-200 dark:border-zinc-700 flex justify-end">
         <button type="button" id="closeHelpBtn" class="btn btn-secondary">Close</button>
+      </div>
+    </dialog>
+
+    <!-- Master Data Viewer Modal -->
+    <dialog id="masterDataModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-lg fixed inset-0 m-auto">
+      <div class="flex justify-between items-center p-4 border-b border-zinc-200 dark:border-zinc-700">
+        <h5 class="text-lg font-semibold" id="masterDataModalTitle">Master Data</h5>
+        <button type="button" id="closeMasterDataBtnX" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl font-bold px-2 leading-none">&times;</button>
+      </div>
+      <div class="p-0 overflow-y-auto max-h-[60vh]">
+        <ul id="masterDataList" class="divide-y divide-zinc-200 dark:divide-zinc-700"></ul>
+      </div>
+      <div class="p-4 border-t border-zinc-200 dark:border-zinc-700 flex justify-end">
+        <button type="button" id="closeMasterDataBtn" class="btn btn-secondary">Close</button>
       </div>
     </dialog>
 
