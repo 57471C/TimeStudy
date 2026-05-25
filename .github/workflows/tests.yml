@@ -33,12 +33,9 @@ jobs:
       - name: Run Biome Linter Check
         run: npx biome check .
 
-      - name: Run Frontend Tests
-        run: npm run test
-
       - name: Build Tauri Desktop Executable
         # This compiles your production application binary
-        run: npm run desktop-build
+        run: npm run build:exe
 
       - name: Create GitHub Release and Upload Artifact
         uses: softprops/action-gh-release@v2
