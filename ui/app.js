@@ -124,6 +124,44 @@ const removeTag = (target, opIndex, taskIndex, tagType, tagIdx) => {
   updateTaskList();
 };
 
+const deleteMasterDataTag = async (type, index) => {
+  const arr = type === "part" ? masterParts : masterLabour;
+  const title = type === "part" ? "Part Numbers" : "Labour Codes";
+  const tag = arr[index];
+
+  if (await asyncConfirm(`Are you sure you want to delete "${tag}" from the master list?`, "Delete Master Tag")) {
+    arr.splice(index, 1);
+    saveLocalState();
+    showMasterDataModal(title, arr, type);
+  }
+};
+
+const clearMasterData = async (type) => {
+  const title = type === "part" ? "Part Numbers" : "Labour Codes";
+  if (await asyncConfirm(`Are you sure you want to clear ALL ${title}? This action cannot be undone.`, "Clear All")) {
+    if (type === "part") masterParts = [];
+    else masterLabour = [];
+    saveLocalState();
+    showMasterDataModal(title, type === "part" ? masterParts : masterLabour, type);
+  }
+};
+
+const showMasterDataModal = (title, dataArray, type) => {
+  DOM.masterDataModalTitle.textContent = `${title} (${dataArray.length})`;
+  DOM.masterDataList.innerHTML = dataArray.length
+    ? dataArray
+        .map(
+          (item, idx) =>
+            `<li class="px-4 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex justify-between items-center group"><span>${escapeHTML(item)}</span><button type="button" onclick="deleteMasterDataTag('${type}', ${idx})" class="text-zinc-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none transition-colors opacity-0 group-hover:opacity-100" title="Delete Tag"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></li>`,
+        )
+        .join("")
+    : `<li class="px-4 py-4 text-sm text-zinc-500 italic text-center">No data loaded.</li>`;
+
+  DOM.clearMasterDataBtn.onclick = () => clearMasterData(type);
+  DOM.clearMasterDataBtn.style.display = dataArray.length ? "inline-block" : "none";
+  if (!DOM.masterDataModal.open) DOM.masterDataModal.showModal();
+};
+
 const renderTags = (tags, type, target, opIndex, taskIndex = -1) => {
   if (!tags || tags.length === 0) return "";
   const typeClass = type === "part" ? "tag-pill-part" : "tag-pill-labour";
@@ -190,6 +228,7 @@ const DOM = {
   masterDataModal: document.getElementById("masterDataModal"),
   masterDataModalTitle: document.getElementById("masterDataModalTitle"),
   masterDataList: document.getElementById("masterDataList"),
+  clearMasterDataBtn: document.getElementById("clearMasterDataBtn"),
   closeMasterDataBtn: document.getElementById("closeMasterDataBtn"),
   closeMasterDataBtnX: document.getElementById("closeMasterDataBtnX"),
 };
@@ -838,21 +877,8 @@ const initializePlayer = () => {
       reader.readAsText(file);
     });
 
-    const showMasterDataModal = (title, dataArray) => {
-      DOM.masterDataModalTitle.textContent = `${title} (${dataArray.length})`;
-      DOM.masterDataList.innerHTML = dataArray.length
-        ? dataArray
-            .map(
-              (item) =>
-                `<li class="px-4 py-2.5 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors">${escapeHTML(item)}</li>`,
-            )
-            .join("")
-        : `<li class="px-4 py-4 text-sm text-zinc-500 italic text-center">No data loaded.</li>`;
-      DOM.masterDataModal.showModal();
-    };
-
-    DOM.partsViewBtn.addEventListener("click", () => showMasterDataModal("Part Numbers", masterParts));
-    DOM.labourViewBtn.addEventListener("click", () => showMasterDataModal("Labour Codes", masterLabour));
+    DOM.partsViewBtn.addEventListener("click", () => showMasterDataModal("Part Numbers", masterParts, "part"));
+    DOM.labourViewBtn.addEventListener("click", () => showMasterDataModal("Labour Codes", masterLabour, "labour"));
     const closeMasterModal = () => DOM.masterDataModal.close();
     DOM.closeMasterDataBtnX.addEventListener("click", closeMasterModal);
     DOM.closeMasterDataBtn.addEventListener("click", closeMasterModal);
@@ -1777,59 +1803,32 @@ const insertTask = async (opIndex, taskIndex) => {
   drawTable();
 };
 
-const editTask = async (opIndex, taskIndex) => {
-  const task = yama[opIndex][taskIndex];
-  const newTaskName = await asyncPrompt("Edit Task Name", task.taskName, "Edit Task", getAllTaskNames());
-  if (!newTaskName) {
+const handleInlineNameEdit = (opIndex, taskIndex, newValue) => {
+  const trimmed = newValue.trim();
+  if (!trimmed) {
     alert("Task name cannot be empty.");
+    updateTaskList();
     return;
   }
-  let newTaskStatus = await asyncPrompt("Edit Task Status (VA, NVA, W)", task.taskStatus, "Edit Status");
-  if (!newTaskStatus) {
-    alert("Task status cannot be empty.");
-    return;
-  }
+  yama[opIndex][taskIndex].taskName = trimmed;
+  saveLocalState();
+  drawTable();
+};
 
-  newTaskStatus = newTaskStatus.toUpperCase();
-  if (newTaskStatus === "1") newTaskStatus = "VA";
-  if (newTaskStatus === "2") newTaskStatus = "NVA";
-  if (newTaskStatus === "3") newTaskStatus = "W";
-
-  if (!["VA", "NVA", "W"].includes(newTaskStatus)) {
-    alert("Invalid task status. Please enter VA, NVA, W, 1 (VA), 2 (NVA), or 3 (W).");
-    return;
-  }
-
-  yama[opIndex][taskIndex].taskName = newTaskName;
-  yama[opIndex][taskIndex].taskStatus = newTaskStatus;
+const handleInlineStatusEdit = (opIndex, taskIndex, newValue) => {
+  yama[opIndex][taskIndex].taskStatus = newValue;
   saveLocalState();
   updateTaskList();
   drawTable();
 };
 
-const editTaskDuration = async (opIndex, taskIndex) => {
-  const task = yama[opIndex][taskIndex];
-  const currentDuration =
-    durationMode === "hhmmssms"
-      ? formatDuration(task.taskHeight)
-      : durationMode === "ms"
-        ? `${task.taskHeight.toFixed(3)} ms`
-        : `${formatDecimalMinutes(task.taskHeight)} min`;
-  const promptMessage =
-    durationMode === "hhmmssms"
-      ? "Enter new duration (HH:MM:SS.MS, e.g., 00:01:30.50 for 1m 30.5s)"
-      : durationMode === "ms"
-        ? "Enter new duration (milliseconds, e.g., 90500 for 90.5s)"
-        : "Enter new duration (decimal minutes, e.g., 1.51 for 1.51 min)";
-  const newDurationInput = await asyncPrompt(promptMessage, currentDuration, "Edit Duration");
-  if (newDurationInput === null) {
-    return;
-  }
+const handleInlineDurationEdit = (opIndex, taskIndex, newValue) => {
   let newDurationMs;
   if (durationMode === "hhmmssms") {
-    const parts = newDurationInput.replace(".", ":").split(":");
+    const parts = String(newValue).replace(".", ":").split(":");
     if (parts.length < 3 || parts.length > 4) {
       alert("Invalid format. Please use HH:MM:SS.MS (e.g., 00:01:30.50).");
+      updateTaskList();
       return;
     }
     let hours = 0;
@@ -1855,19 +1854,22 @@ const editTaskDuration = async (opIndex, taskIndex) => {
       milliseconds >= 1000
     ) {
       alert("Invalid duration. Ensure minutes, seconds (<60), and milliseconds (<100) are valid.");
+      updateTaskList();
       return;
     }
     newDurationMs = hours * 3600000 + minutes * 60000 + seconds * 1000 + milliseconds;
   } else if (durationMode === "ms") {
-    newDurationMs = Number.parseFloat(newDurationInput);
+    newDurationMs = Number.parseFloat(newValue);
     if (Number.isNaN(newDurationMs) || newDurationMs < 0) {
       alert("Invalid duration. Please enter a non-negative number.");
+      updateTaskList();
       return;
     }
   } else {
-    const decimalMinutes = Number.parseFloat(newDurationInput);
+    const decimalMinutes = Number.parseFloat(newValue);
     if (Number.isNaN(decimalMinutes) || decimalMinutes < 0) {
       alert("Invalid duration. Please enter a non-negative number.");
+      updateTaskList();
       return;
     }
     newDurationMs = decimalMinutes * 60 * 1000;
@@ -2028,12 +2030,12 @@ const updateTaskList = () => {
       `);
       for (let j = 0; j < yama[i].length; j += 1) {
         const task = yama[i][j];
-        const duration =
+        const durationValue =
           durationMode === "hhmmssms"
             ? formatDuration(task.taskHeight)
             : durationMode === "ms"
-              ? `${task.taskHeight.toFixed(3)} ms`
-              : `${formatDecimalMinutes(task.taskHeight)} min`;
+              ? task.taskHeight.toFixed(3)
+              : formatDecimalMinutes(task.taskHeight);
 
         const taskPartTags = task.partTags || [];
         const taskLabourTags = task.labourTags || [];
@@ -2051,15 +2053,23 @@ const updateTaskList = () => {
         rows.push(`
           <tr>
             <td>
-              <div class="ml-5">
-                <span>${safeTaskName}</span>
-                ${renderTags(taskPartTags, "part", "task", i, j)}
-                ${renderTags(taskLabourTags, "labour", "task", i, j)}
+              <div class="ml-5 flex flex-col items-start">
+                <input type="text" class="form-control font-semibold bg-transparent border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 focus:border-blue-500 focus:bg-white dark:focus:bg-zinc-800 shadow-none px-1 py-0.5 h-auto leading-tight transition-colors w-full" value="${safeTaskName}" onchange="handleInlineNameEdit(${i}, ${j}, this.value)" onfocus="this.select()" title="Edit Task Name">
+                <div class="px-1">
+                  ${renderTags(taskPartTags, "part", "task", i, j)}
+                  ${renderTags(taskLabourTags, "labour", "task", i, j)}
+                </div>
               </div>
             </td>
-            <td class="text-center whitespace-nowrap align-top pt-2">${duration}</td>
-            <td class="text-center whitespace-nowrap align-top pt-2">
-              <span class="inline-block px-2 py-0.5 rounded border bg-transparent text-xs font-bold ${badgeClass}">${task.taskStatus}</span>
+            <td class="text-center whitespace-nowrap align-top pt-1.5">
+              <input type="text" class="form-control font-mono tabular-nums text-sm w-24 text-center mx-auto py-1 px-1.5 h-auto leading-none border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 bg-transparent focus:bg-white dark:focus:bg-zinc-800 transition-colors shadow-none" value="${durationValue}" onchange="handleInlineDurationEdit(${i}, ${j}, this.value)" onfocus="this.select()" title="Edit Duration">
+            </td>
+            <td class="text-center whitespace-nowrap align-top pt-1.5">
+              <select class="appearance-none outline-none inline-block px-2 py-0.5 rounded border bg-transparent text-xs font-bold cursor-pointer text-center hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${badgeClass}" onchange="handleInlineStatusEdit(${i}, ${j}, this.value)" title="Change Status">
+                <option value="VA" class="text-emerald-700 dark:text-emerald-400 bg-white dark:bg-zinc-800" ${task.taskStatus === "VA" ? "selected" : ""}>VA</option>
+                <option value="NVA" class="text-amber-700 dark:text-amber-400 bg-white dark:bg-zinc-800" ${task.taskStatus === "NVA" ? "selected" : ""}>NVA</option>
+                <option value="W" class="text-rose-700 dark:text-rose-400 bg-white dark:bg-zinc-800" ${task.taskStatus === "W" ? "selected" : ""}>W</option>
+              </select>
             </td>
             <td class="flex gap-1.5 justify-center">
               <button onclick="openTagModal('task-parts', ${i}, ${j})" class="btn btn-outline-secondary p-1" title="Assign Part Numbers">
@@ -2068,16 +2078,10 @@ const updateTaskList = () => {
               <button onclick="openTagModal('task-labour', ${i}, ${j})" class="btn btn-outline-secondary p-1" title="Assign Labour Codes">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
               </button>
-              <button onclick="editTask(${i}, ${j})" class="btn btn-outline-primary p-1 ml-2" title="Edit Task">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-              </button>
-              <button onclick="editTaskDuration(${i}, ${j})" class="btn btn-outline-primary p-1" title="Edit Duration">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </button>
-              <button onclick="insertTask(${i}, ${j})" class="btn btn-outline-secondary p-1" title="Split Task">
+              <button onclick="insertTask(${i}, ${j})" class="btn btn-outline-secondary p-1 ml-2" title="Split Task">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
               </button>
-              <button onclick="deleteTask(${i}, ${j})" class="btn btn-outline-danger p-1 ml-2" title="Delete Task">
+              <button onclick="deleteTask(${i}, ${j})" class="btn btn-outline-danger p-1" title="Delete Task">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
               </button>
             </td>
