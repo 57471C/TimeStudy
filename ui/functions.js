@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 const debounce = (func, wait) => {
   let timeout;
   return (...args) => {
@@ -8,18 +7,19 @@ const debounce = (func, wait) => {
 };
 
 const escapeHTML = (str) => {
-  if (typeof str !== 'string') return str;
+  if (typeof str !== "string") return str;
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 };
 
 const sanitizeFilename = (name) => {
-  if (typeof name !== 'string') return '';
-  return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
+  if (typeof name !== "string") return "";
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: Needed for robust filename sanitization
+  return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
 };
 
 const toConsole = (message, value, debuggin = 1) => {
@@ -127,7 +127,7 @@ const asyncPrompt = (message, defaultValue = "", title = "Input Needed", suggest
       datalist.innerHTML = "";
       if (suggestions && suggestions.length > 0) {
         const uniqueSuggestions = [...new Set(suggestions)].filter(Boolean);
-        uniqueSuggestions.forEach(suggestion => {
+        uniqueSuggestions.forEach((suggestion) => {
           const option = document.createElement("option");
           option.value = suggestion;
           datalist.appendChild(option);

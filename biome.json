@@ -5,6 +5,14 @@
     "clientKind": "git",
     "useIgnoreFile": true
   },
+  "files": {
+    "ignore": [
+      "src-tauri/target/**",
+      "src-tauri/gen/**",
+      "ui/libs/**",
+      "ui/tailwind.css"
+    ]
+  },
   "formatter": {
     "enabled": true,
     "formatWithErrors": false,
@@ -15,7 +23,13 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "correctness": {
+        "noUnusedVariables": "off"
+      },
+      "a11y": {
+        "useButtonType": "off"
+      }
     }
   }
 }
