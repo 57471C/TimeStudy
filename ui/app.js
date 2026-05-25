@@ -183,16 +183,148 @@ const showMasterDataModal = (title, dataArray, type) => {
   if (!DOM.masterDataModal.open) DOM.masterDataModal.showModal();
 };
 
-const renderTags = (tags, type, target, opIndex, taskIndex = -1) => {
+const openOpPartDropdown = (e, opIndex) => {
+  e.stopPropagation();
+  let dropdown = document.getElementById("op-part-dropdown");
+  if (!dropdown) {
+    dropdown = document.createElement("div");
+    dropdown.id = "op-part-dropdown";
+    dropdown.className =
+      "absolute bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg z-50 flex flex-col w-96 max-h-64";
+    document.body.appendChild(dropdown);
+
+    document.addEventListener("click", (ev) => {
+      if (dropdown && !dropdown.classList.contains("hidden") && !dropdown.contains(ev.target)) {
+        dropdown.classList.add("hidden");
+      }
+    });
+  }
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  dropdown.style.left = `${rect.left + window.scrollX}px`;
+  dropdown.style.top = `${rect.bottom + 4 + window.scrollY}px`;
+  dropdown.classList.remove("hidden");
+
+  const renderList = (filter = "") => {
+    const currentParts = (opPartTags[opIndex] || []).map((t) => {
+      const idx = t.indexOf(" x ");
+      return idx !== -1 ? t.substring(idx + 3) : t;
+    });
+    const filtered = masterParts.filter(
+      (p) => p.toLowerCase().includes(filter.toLowerCase()) && !currentParts.includes(p),
+    );
+    if (filtered.length === 0 && filter.trim() === "") {
+      return `<li class="px-2 py-1 text-sm text-zinc-500 italic">No part numbers available. Type to add one.</li>`;
+    }
+    return filtered
+      .map(
+        (p) =>
+          `<li class="px-2 py-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer rounded truncate" data-part="${escapeHTML(p)}" title="${escapeHTML(p)}">${escapeHTML(p)}</li>`,
+      )
+      .join("");
+  };
+
+  dropdown.innerHTML = `
+    <div class="p-2 border-b border-zinc-200 dark:border-zinc-700 flex gap-1.5">
+      <input type="text" id="op-part-qty" class="form-control text-sm w-10 text-center" value="01" maxlength="4" title="Part Quantity" onfocus="this.select()">
+      <input type="text" id="op-part-search" class="form-control text-sm flex-1" placeholder="Search or add new... (Enter)">
+    </div>
+    <ul id="op-part-list" class="overflow-y-auto flex-1 p-1 m-0 list-none space-y-0.5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full">
+      ${renderList()}
+    </ul>
+  `;
+
+  const input = document.getElementById("op-part-search");
+  const qtyInput = document.getElementById("op-part-qty");
+  const list = document.getElementById("op-part-list");
+
+  input.focus();
+
+  const attachListEvents = () => {
+    for (const li of list.querySelectorAll("li[data-part]")) {
+      li.addEventListener("click", () => {
+        addTag(li.getAttribute("data-part"));
+      });
+    }
+  };
+
+  const addTag = (newTag) => {
+    if (!newTag) return;
+
+    const qtyValue = qtyInput ? qtyInput.value.trim() : "01";
+    const finalQty = qtyValue === "" ? "01" : qtyValue;
+
+    let addedNewMaster = false;
+    if (!masterParts.includes(newTag)) {
+      masterParts.push(newTag);
+      addedNewMaster = true;
+    }
+    if (!opPartTags[opIndex]) {
+      opPartTags[opIndex] = [];
+    }
+
+    const displayTag = `${finalQty} x ${newTag}`;
+
+    if (!opPartTags[opIndex].includes(displayTag)) {
+      opPartTags[opIndex].push(displayTag);
+    }
+    if (addedNewMaster) {
+      showToast("New part number added to Master Data.", "success");
+    }
+    saveLocalState();
+    updateTaskList();
+
+    input.value = "";
+    if (qtyInput) qtyInput.value = "01";
+    list.innerHTML = renderList("");
+    attachListEvents();
+    input.focus();
+  };
+
+  input.addEventListener("input", (ev) => {
+    list.innerHTML = renderList(ev.target.value);
+    attachListEvents();
+  });
+
+  input.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      addTag(input.value.trim());
+    } else if (ev.key === "Escape") {
+      dropdown.classList.add("hidden");
+    }
+  });
+
+  qtyInput.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      addTag(input.value.trim());
+    } else if (ev.key === "Escape") {
+      dropdown.classList.add("hidden");
+    }
+  });
+
+  attachListEvents();
+};
+
+const renderTags = (tags, type, target, opIndex, taskIndex = -1, size = "normal") => {
   if (!tags || tags.length === 0) return "";
   const typeClass = type === "part" ? "tag-pill-part" : "tag-pill-labour";
-  const icon =
-    type === "part"
-      ? `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>`
-      : `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`;
 
-  return `<div class="tag-container">
-    ${tags.map((tag, idx) => `<span class="tag-pill ${typeClass}">${icon} <span>${escapeHTML(tag)}</span><button type="button" onclick="removeTag('${target}', ${opIndex}, ${taskIndex}, '${type}', ${idx})" class="hover:text-red-500 dark:hover:text-red-400 font-bold ml-0.5 leading-none focus:outline-none transition-colors" title="Remove Tag">&times;</button></span>`).join("")}
+  let sizeClasses = "";
+  if (size === "xs") {
+    sizeClasses = "text-[10px] py-0.5 px-1.5 leading-none";
+  }
+
+  const icon =
+    size === "xs"
+      ? ""
+      : type === "part"
+        ? `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>`
+        : `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`;
+
+  return `<div class="tag-container ${size === "xs" ? "gap-1 mt-0" : ""}">
+    ${tags.map((tag, idx) => `<span class="tag-pill ${typeClass} ${sizeClasses}">${icon ? `${icon} ` : ""}<span class="${size === "xs" ? "translate-y-[1px]" : ""}">${escapeHTML(tag)}</span><button type="button" onclick="removeTag('${target}', ${opIndex}, ${taskIndex}, '${type}', ${idx})" class="hover:text-red-500 dark:hover:text-red-400 font-bold ml-0.5 leading-none focus:outline-none transition-colors" title="Remove Tag">&times;</button></span>`).join("")}
   </div>`;
 };
 
@@ -907,7 +1039,7 @@ const initializePlayer = () => {
   }
 
   if (DOM.statusModal) {
-    DOM.statusModal.querySelectorAll(".status-btn").forEach((btn) => {
+    for (const btn of DOM.statusModal.querySelectorAll(".status-btn")) {
       btn.addEventListener("click", (e) => {
         if (currentStatusEdit) {
           handleInlineStatusEdit(
@@ -919,7 +1051,7 @@ const initializePlayer = () => {
         DOM.statusModal.close();
         currentStatusEdit = null;
       });
-    });
+    }
     DOM.statusModal.addEventListener("click", (e) => {
       if (e.target === DOM.statusModal) {
         DOM.statusModal.close();
@@ -2046,19 +2178,22 @@ const updateTaskList = () => {
           <td colspan="4">
             <div class="flex items-center justify-between w-full">
               <div class="flex-1 mr-4">
-                <div class="flex items-center gap-2">
-                  <a href="javascript:void(0)" onclick="jumpToOperationTime('${opTimeInputId}')" class="font-bold text-lg">
-                    ${safeOpName}
-                  </a>
-                  <button onclick="openTagModal('op-parts', ${i})" class="btn btn-outline-secondary p-1" title="Assign Part Numbers">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button onclick="jumpToOperationTime('${opTimeInputId}')" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Jump to Operation Time">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 12 12 4 20 4 4"></polygon><line x1="16" y1="4" x2="16" y2="20"></line><line x1="20" y1="4" x2="20" y2="20"></line></svg>
                   </button>
-                  <span class="op-time-container">
+                  <span class="font-bold text-lg shrink-0">
+                    ${safeOpName}
+                  </span>
+                  <span class="op-time-container shrink-0">
                     <label for="${opTimeInputId}" class="form-label font-mono text-base mb-0" style="width: auto;">Start:</label>
                     <input type="text" id="${opTimeInputId}" class="form-control op-time-input font-mono tabular-nums text-base" value="${formattedTime}">
                   </span>
+                  <button onclick="openOpPartDropdown(event, ${i})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Assign Part Numbers">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+                  </button>
+                  ${renderTags(opTags, "part", "op", i, -1, "xs")}
                 </div>
-                ${renderTags(opTags, "part", "op", i)}
               </div>
               <div class="flex gap-1.5">
                 <button onclick="renameOperation(${i})" class="btn btn-primary p-1 shadow-sm" title="Rename Operation">
