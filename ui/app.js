@@ -30,7 +30,7 @@ let projectComments = "";
 let projectFilePath = "";
 let trials = [];
 let activeTrialIndex = 0;
-let videoBlobCache = {};
+const videoBlobCache = {};
 let yama = [];
 let opNames = [];
 let opStartTimes = [];
@@ -148,7 +148,7 @@ const saveLocalState = () => {
       trialId: activeTrialIndex + 1,
       trialName: `Trial ${activeTrialIndex + 1}`,
       costingConfig: {},
-      appState: {}
+      appState: {},
     };
   }
 
@@ -165,14 +165,14 @@ const saveLocalState = () => {
       projectName,
       projectComments,
       lastSaved: new Date().toISOString(),
-      appVersion: APP_VERSION
+      appVersion: APP_VERSION,
     },
     appConfig: {
       playbackSpeed,
-      volumeLevel
+      volumeLevel,
     },
     trials,
-    activeTrialIndex
+    activeTrialIndex,
   };
 
   localStorage.setItem("timeStudyData", JSON.stringify(state));
@@ -234,8 +234,8 @@ const switchTrial = async (index) => {
     toggleVideoPlaceholder(false);
   } else {
     player.removeAttribute("src");
-    DOM.videoPlaceholder.textContent = videoFileName 
-      ? `Trial switched. Click here to locate video: ${videoFileName}` 
+    DOM.videoPlaceholder.textContent = videoFileName
+      ? `Trial switched. Click here to locate video: ${videoFileName}`
       : "Load a video to get started";
     toggleVideoPlaceholder(true);
   }
@@ -251,14 +251,26 @@ const switchTrial = async (index) => {
 const addTrial = async () => {
   const trialName = await asyncPrompt("Enter a name for the new trial:", `Trial ${trials.length + 1}`, "New Trial");
   if (!trialName) return;
-  const duplicate = await asyncConfirm("Would you like to duplicate the current trial's tasks and video? (Click 'Cancel' to create a blank trial)", "Duplicate Data?");
+  const duplicate = await asyncConfirm(
+    "Would you like to duplicate the current trial's tasks and video? (Click 'Cancel' to create a blank trial)",
+    "Duplicate Data?",
+  );
 
   saveLocalState();
-  const newTrialId = trials.length > 0 ? Math.max(...trials.map(t => t.trialId)) + 1 : 1;
-  
-  let newTrial = duplicate 
-    ? { ...JSON.parse(JSON.stringify(trials[activeTrialIndex])), trialId: newTrialId, trialName } 
-    : { trialId: newTrialId, trialName, videoFileName: "", videoFilePath: "", processEndTime: 0, taktTime, costingConfig: { hourlyRate, shiftLength, targetEfficiency }, appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true } };
+  const newTrialId = trials.length > 0 ? Math.max(...trials.map((t) => t.trialId)) + 1 : 1;
+
+  const newTrial = duplicate
+    ? { ...JSON.parse(JSON.stringify(trials[activeTrialIndex])), trialId: newTrialId, trialName }
+    : {
+        trialId: newTrialId,
+        trialName,
+        videoFileName: "",
+        videoFilePath: "",
+        processEndTime: 0,
+        taktTime,
+        costingConfig: { hourlyRate, shiftLength, targetEfficiency },
+        appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true },
+      };
 
   trials.push(newTrial);
   await switchTrial(trials.length - 1);
@@ -288,7 +300,9 @@ const openCompareDashboard = () => {
   trials.forEach((trial) => {
     categories.push(trial.trialName);
 
-    let va = 0, nva = 0, w = 0;
+    let va = 0,
+      nva = 0,
+      w = 0;
     const yamaData = trial.appState.yama || [];
     yamaData.forEach((op) => {
       if (Array.isArray(op)) {
@@ -306,12 +320,12 @@ const openCompareDashboard = () => {
     wData.push(w);
 
     const totalMs = va + nva + w;
-    
+
     // Calculate Units per Shift (Shift Length * Efficiency / Total Task Time)
     const shiftMs = (trial.costingConfig?.shiftLength || 480) * 60 * 1000;
     const efficiency = (trial.costingConfig?.targetEfficiency || 100) / 100;
     const effectiveMs = shiftMs * efficiency;
-    
+
     const cycleUnits = trial.costingConfig?.unitsPerCycle || 1;
     const units = totalMs > 0 ? Math.floor((effectiveMs / totalMs) * cycleUnits) : 0;
     unitsData.push(units);
@@ -342,11 +356,17 @@ const openCompareDashboard = () => {
       xAxis: { categories },
       yAxis: {
         title: { text: "Time" },
-        labels: { formatter: function () { return formatVal(this.value); } },
+        labels: {
+          formatter: function () {
+            return formatVal(this.value);
+          },
+        },
         stackLabels: {
           enabled: true,
-          formatter: function () { return formatVal(this.total); },
-          style: { color: isDark ? "#e4e4e7" : "#27272a", textOutline: "none", fontWeight: "bold" }
+          formatter: function () {
+            return formatVal(this.total);
+          },
+          style: { color: isDark ? "#e4e4e7" : "#27272a", textOutline: "none", fontWeight: "bold" },
         },
         plotLines: [
           {
@@ -354,11 +374,15 @@ const openCompareDashboard = () => {
             color: "#0000FF",
             width: 2,
             zIndex: 5,
-            label: { text: `Takt: ${formatVal(taktTime)}`, align: "right", style: { color: "#0000FF" } }
-          }
-        ]
+            label: { text: `Takt: ${formatVal(taktTime)}`, align: "right", style: { color: "#0000FF" } },
+          },
+        ],
       },
-      tooltip: { formatter: function () { return `<b>${this.series.name}</b>: ${formatVal(this.y)}<br/><b>Total Time</b>: ${formatVal(this.point.stackTotal)}`; } },
+      tooltip: {
+        formatter: function () {
+          return `<b>${this.series.name}</b>: ${formatVal(this.y)}<br/><b>Total Time</b>: ${formatVal(this.point.stackTotal)}`;
+        },
+      },
       plotOptions: { column: { stacking: "normal" } },
       series: [
         { name: "Value-Add (VA)", data: vaData, color: "#10b981" },
@@ -372,9 +396,13 @@ const openCompareDashboard = () => {
       title: { text: "Estimated Units per Shift" },
       xAxis: { categories },
       yAxis: {
-        title: { text: "Units" }
+        title: { text: "Units" },
       },
-      tooltip: { formatter: function () { return `<b>Est. Capacity</b>: ${this.y} units`; } },
+      tooltip: {
+        formatter: function () {
+          return `<b>Est. Capacity</b>: ${this.y} units`;
+        },
+      },
       plotOptions: { column: { dataLabels: { enabled: true } } },
       series: [{ name: "Units", data: unitsData, color: "#3b82f6", showInLegend: false }],
     });
@@ -400,28 +428,30 @@ const loadLocalState = () => {
 
       // Backward Compatibility & Migration for old flat save states
       if (!state.trials) {
-        trials = [{
-          trialId: 1,
-          trialName: "Current State",
-          videoFileName: state.videoFileName || "",
-          videoFilePath: state.videoFilePath || "",
-          processEndTime: state.processEndTime || 0,
-          taktTime: state.taktTime || 60000,
-          costingConfig: {
-            hourlyRate: state.hourlyRate || 0,
-            shiftLength: state.shiftLength || 480,
-            targetEfficiency: state.targetEfficiency || 100,
-            unitsPerCycle: state.unitsPerCycle || 1
+        trials = [
+          {
+            trialId: 1,
+            trialName: "Current State",
+            videoFileName: state.videoFileName || "",
+            videoFilePath: state.videoFilePath || "",
+            processEndTime: state.processEndTime || 0,
+            taktTime: state.taktTime || 60000,
+            costingConfig: {
+              hourlyRate: state.hourlyRate || 0,
+              shiftLength: state.shiftLength || 480,
+              targetEfficiency: state.targetEfficiency || 100,
+              unitsPerCycle: state.unitsPerCycle || 1,
+            },
+            appState: {
+              yama: state.yama || [],
+              opNames: state.opNames || [],
+              opStartTimes: state.opStartTimes || [],
+              opCount: state.opCount !== undefined ? state.opCount : 0,
+              taskCount: state.taskCount !== undefined ? state.taskCount : 0,
+              firstOp: state.firstOp !== undefined ? state.firstOp : true,
+            },
           },
-          appState: {
-            yama: state.yama || [],
-            opNames: state.opNames || [],
-            opStartTimes: state.opStartTimes || [],
-            opCount: state.opCount !== undefined ? state.opCount : 0,
-            taskCount: state.taskCount !== undefined ? state.taskCount : 0,
-            firstOp: state.firstOp !== undefined ? state.firstOp : true
-          }
-        }];
+        ];
         activeTrialIndex = 0;
         projectName = state.projectName || "";
         projectComments = "";
@@ -443,7 +473,7 @@ const loadLocalState = () => {
       videoFilePath = currentTrial.videoFilePath || "";
       processEndTime = currentTrial.processEndTime || 0;
       taktTime = currentTrial.taktTime || 60000;
-      
+
       hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
       shiftLength = currentTrial.costingConfig?.shiftLength || 480;
       if (shiftLength <= 24) shiftLength *= 60; // Auto-migrate old hours format
@@ -468,16 +498,18 @@ const loadLocalState = () => {
     }
   } else {
     // Initialize a blank trial if no prior state exists
-    trials = [{
-      trialId: 1,
-      trialName: "Current State",
-      videoFileName: "",
-      videoFilePath: "",
-      processEndTime: 0,
-      taktTime: 60000,
-      costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
-      appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true }
-    }];
+    trials = [
+      {
+        trialId: 1,
+        trialName: "Current State",
+        videoFileName: "",
+        videoFilePath: "",
+        processEndTime: 0,
+        taktTime: 60000,
+        costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
+        appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true },
+      },
+    ];
     activeTrialIndex = 0;
     projectComments = "";
   }
@@ -530,7 +562,7 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
       player.preload = "metadata";
     }
   }
-  
+
   player.load();
 
   if (!isRelinking) {
@@ -554,7 +586,7 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
   } else {
     toConsole("Re-linked video to existing project", videoFileName, debuggin);
   }
-  
+
   DOM.videoPlaceholder.textContent = "Load a video to get started";
   saveLocalState();
 
@@ -642,12 +674,12 @@ const initializePlayer = () => {
     };
 
     DOM.openSettingsBtn.addEventListener("click", () => toggleSettings(true));
-    
+
     DOM.closeSettingsBtn.addEventListener("click", () => {
       saveSettingsData();
       toggleSettings(false);
     });
-    
+
     DOM.settingsBackdrop.addEventListener("click", () => {
       saveSettingsData();
       toggleSettings(false);
@@ -696,12 +728,12 @@ const initializePlayer = () => {
     updateLoadButtonColor();
     toggleVideoPlaceholder(false);
     updateProcessTimes();
-    
+
     player.playbackRate = playbackSpeed;
     speedSlider.value = playbackSpeed;
     DOM.speedValue.textContent = `${playbackSpeed.toFixed(1)}x`;
     toConsole("Playback speed restored", playbackSpeed, debuggin);
-    
+
     player.volume = volumeLevel;
     player.muted = true;
     DOM.volumeOnIcon.classList.add("hidden");
@@ -760,7 +792,7 @@ const initializePlayer = () => {
   const videoUrl = urlParams.get("v");
   if (videoUrl) {
     toConsole("Found video URL in GET parameter", videoUrl, debuggin);
-    videoFileName = videoUrl.split('/').pop().split('?')[0] || videoUrl;
+    videoFileName = videoUrl.split("/").pop().split("?")[0] || videoUrl;
     player.src = videoUrl;
     player.load();
     saveLocalState();
@@ -780,7 +812,7 @@ const initializePlayer = () => {
       try {
         const selected = await window.__TAURI__.dialog.open({
           multiple: false,
-          filters: [{ name: 'JSON', extensions: ['json'] }]
+          filters: [{ name: "JSON", extensions: ["json"] }],
         });
         if (selected) {
           projectFilePath = selected;
@@ -799,7 +831,10 @@ const initializePlayer = () => {
 
   newProjectButton.addEventListener("click", async () => {
     if (yama.length > 0 || player.src) {
-      const proceed = await asyncConfirm("Are you sure you want to start a new project? All unsaved data will be lost.", "New Project");
+      const proceed = await asyncConfirm(
+        "Are you sure you want to start a new project? All unsaved data will be lost.",
+        "New Project",
+      );
       if (!proceed) return;
     }
 
@@ -820,17 +855,19 @@ const initializePlayer = () => {
     projectName = "";
     projectComments = "";
     processEndTime = 0;
-    
-    trials = [{
-      trialId: 1,
-      trialName: "Current State",
-      videoFileName: "",
-      videoFilePath: "",
-      processEndTime: 0,
-      taktTime: taktTime,
-      costingConfig: { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle },
-      appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true }
-    }];
+
+    trials = [
+      {
+        trialId: 1,
+        trialName: "Current State",
+        videoFileName: "",
+        videoFilePath: "",
+        processEndTime: 0,
+        taktTime: taktTime,
+        costingConfig: { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle },
+        appState: { yama: [], opNames: [], opStartTimes: [], opCount: 0, taskCount: 0, firstOp: true },
+      },
+    ];
     activeTrialIndex = 0;
     renderTrialSelect();
 
@@ -854,7 +891,7 @@ const initializePlayer = () => {
       try {
         const selected = await window.__TAURI__.dialog.open({
           multiple: false,
-          filters: [{ name: 'Video', extensions: ['mp4', 'webm', 'ogg', 'mov', 'avi'] }]
+          filters: [{ name: "Video", extensions: ["mp4", "webm", "ogg", "mov", "avi"] }],
         });
         if (selected) {
           await processNewVideoFile(selected, true);
@@ -873,7 +910,7 @@ const initializePlayer = () => {
       try {
         const selected = await window.__TAURI__.dialog.open({
           multiple: false,
-          filters: [{ name: 'Video', extensions: ['mp4', 'webm', 'ogg', 'mov', 'avi'] }]
+          filters: [{ name: "Video", extensions: ["mp4", "webm", "ogg", "mov", "avi"] }],
         });
         if (selected) {
           await processNewVideoFile(selected, true);
@@ -962,13 +999,13 @@ const initializePlayer = () => {
       const volume = Number.parseFloat(event.target.value);
       if (!Number.isNaN(volume)) {
         player.volume = volume;
-            volumeLevel = volume;
+        volumeLevel = volume;
         player.muted = volume === 0;
         DOM.volumeOnIcon.classList.toggle("hidden", player.muted);
         DOM.volumeOffIcon.classList.toggle("hidden", !player.muted);
         DOM.volumeValue.textContent = Math.round(volume * 100);
         toConsole("Volume adjusted", volume, debuggin);
-            saveLocalState();
+        saveLocalState();
       }
     }, 100),
   );
@@ -980,16 +1017,16 @@ const initializePlayer = () => {
         const speed = Number.parseFloat(event.target.value);
         if (!Number.isNaN(speed)) {
           player.playbackRate = speed;
-              playbackSpeed = speed;
+          playbackSpeed = speed;
           DOM.speedValue.textContent = `${speed.toFixed(1)}x`;
           toConsole("Speed slider input event fired", speed, debuggin);
-              saveLocalState();
+          saveLocalState();
         }
       }, 100),
     );
 
-        speedSlider.value = playbackSpeed;
-        DOM.speedValue.textContent = `${playbackSpeed.toFixed(1)}x`;
+    speedSlider.value = playbackSpeed;
+    DOM.speedValue.textContent = `${playbackSpeed.toFixed(1)}x`;
   }
 
   if (seekBar) {
@@ -1333,8 +1370,8 @@ const updateLoadButtonColor = () => {
   if (loadVideoButton && player && playPauseButton) {
     const src = player.src;
     if (!src) {
-        loadVideoButton.classList.add("btn-icon-highlight");
-        loadVideoButton.classList.remove("btn-icon");
+      loadVideoButton.classList.add("btn-icon-highlight");
+      loadVideoButton.classList.remove("btn-icon");
       playPauseButton.disabled = true;
       jumpToStartButton.disabled = true;
       rewind5sButton.disabled = true;
@@ -1344,8 +1381,8 @@ const updateLoadButtonColor = () => {
       muteButton.disabled = true;
       volumeSlider.disabled = true;
     } else {
-        loadVideoButton.classList.remove("btn-icon-highlight");
-        loadVideoButton.classList.add("btn-icon");
+      loadVideoButton.classList.remove("btn-icon-highlight");
+      loadVideoButton.classList.add("btn-icon");
       playPauseButton.disabled = false;
       jumpToStartButton.disabled = false;
       rewind5sButton.disabled = false;
@@ -1390,7 +1427,7 @@ const toggleSettings = (show) => {
     DOM.hourlyRateInput.value = hourlyRate || "";
     DOM.shiftLengthInput.value = shiftLength || 480;
     DOM.targetEfficiencyInput.value = targetEfficiency || 100;
-  DOM.unitsPerCycleInput.value = unitsPerCycle || 1;
+    DOM.unitsPerCycleInput.value = unitsPerCycle || 1;
     if (DOM.projectCommentsInput) DOM.projectCommentsInput.value = projectComments || "";
   } else {
     DOM.settingsPanel.classList.add("translate-x-full");
@@ -1766,7 +1803,7 @@ const updateTaskList = () => {
                      chartMode === "column"
                        ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 8h6"/><path d="M11 12h5"/><path d="M14 16h6"/></svg>`
                        : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`
-                   }
+}
                  </button>
                  <span>Operation</span>
                </div>
@@ -1782,7 +1819,7 @@ const updateTaskList = () => {
       const opTimeInputId = `opTimeInput-${i}`;
       const formattedTime = formatTimeToHHMMSSMS(opStartTimes[i]);
       const safeOpName = escapeHTML(opNames[i]);
-      
+
       rows.push(`
         <tr>
           <td colspan="4">
@@ -1818,7 +1855,7 @@ const updateTaskList = () => {
             : durationMode === "ms"
               ? `${task.taskHeight.toFixed(3)} ms`
               : `${formatDecimalMinutes(task.taskHeight)} min`;
-              
+
         const safeTaskName = escapeHTML(task.taskName);
 
         let badgeClass = "";
@@ -1993,18 +2030,18 @@ const exportToJSON = async (isSaveAs = false) => {
     try {
       if (isSaveAs === true || !projectFilePath) {
         const defaultName = projectFilePath ? projectFilePath.split(/[/\\]/).pop() : filename;
-        const filePath = await window.__TAURI__.core.invoke('plugin:dialog|save', {
-          filters: [{ name: 'JSON', extensions: ['json'] }],
-          defaultPath: defaultName
+        const filePath = await window.__TAURI__.core.invoke("plugin:dialog|save", {
+          filters: [{ name: "JSON", extensions: ["json"] }],
+          defaultPath: defaultName,
         });
         if (filePath) {
           projectFilePath = filePath;
           localStorage.setItem("projectFilePath", projectFilePath);
-          await window.__TAURI__.core.invoke('plugin:fs|write_text_file', { path: filePath, data: dataStr });
+          await window.__TAURI__.core.invoke("plugin:fs|write_text_file", { path: filePath, data: dataStr });
           showToast("Project saved successfully.", "success");
         }
       } else {
-        await window.__TAURI__.core.invoke('plugin:fs|write_text_file', { path: projectFilePath, data: dataStr });
+        await window.__TAURI__.core.invoke("plugin:fs|write_text_file", { path: projectFilePath, data: dataStr });
         showToast("Project saved successfully.", "success");
       }
     } catch (e) {
@@ -2017,10 +2054,12 @@ const exportToJSON = async (isSaveAs = false) => {
         if (isSaveAs === true || !projectFileHandle) {
           projectFileHandle = await window.showSaveFilePicker({
             suggestedName: filename,
-            types: [{
-              description: 'JSON Files',
-              accept: { 'application/json': ['.json'] },
-            }],
+            types: [
+              {
+                description: "JSON Files",
+                accept: { "application/json": [".json"] },
+              },
+            ],
           });
         }
         const writable = await projectFileHandle.createWritable();
@@ -2029,7 +2068,7 @@ const exportToJSON = async (isSaveAs = false) => {
         showToast("Project saved successfully.", "success");
         return;
       } catch (err) {
-        if (err.name !== 'AbortError') {
+        if (err.name !== "AbortError") {
           toConsole("Error with showSaveFilePicker", err, debuggin);
         } else {
           return; // User cancelled the prompt
@@ -2058,16 +2097,23 @@ const importFromJSON = (jsonText) => {
 
     if (data.appState) {
       // Legacy v0.4.3 support: Wrap the old format into a Trial
-      trials = [{
-        trialId: 1,
-        trialName: "Current State",
-        videoFileName: data.projectMeta?.videoFileName || "",
-        videoFilePath: data.projectMeta?.videoFilePath || "",
-        processEndTime: data.projectMeta?.processEndTime || 0,
-        taktTime: data.costingConfig?.taktTime || 60000,
-        costingConfig: data.costingConfig || { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
-        appState: data.appState
-      }];
+      trials = [
+        {
+          trialId: 1,
+          trialName: "Current State",
+          videoFileName: data.projectMeta?.videoFileName || "",
+          videoFilePath: data.projectMeta?.videoFilePath || "",
+          processEndTime: data.projectMeta?.processEndTime || 0,
+          taktTime: data.costingConfig?.taktTime || 60000,
+          costingConfig: data.costingConfig || {
+            hourlyRate: 0,
+            shiftLength: 480,
+            targetEfficiency: 100,
+            unitsPerCycle: 1,
+          },
+          appState: data.appState,
+        },
+      ];
       activeTrialIndex = 0;
       projectName = data.projectMeta?.projectName || "";
       projectComments = "";
@@ -2088,7 +2134,7 @@ const importFromJSON = (jsonText) => {
     videoFilePath = currentTrial.videoFilePath || "";
     processEndTime = currentTrial.processEndTime || 0;
     taktTime = currentTrial.taktTime || 60000;
-    
+
     hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
     shiftLength = currentTrial.costingConfig?.shiftLength || 480;
     targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
@@ -2123,7 +2169,9 @@ const importFromJSON = (jsonText) => {
       toggleVideoPlaceholder(false);
     } else {
       player.removeAttribute("src");
-      DOM.videoPlaceholder.textContent = videoFileName ? `Project loaded. Click here to locate video: ${videoFileName}` : "Load a video to get started";
+      DOM.videoPlaceholder.textContent = videoFileName
+        ? `Project loaded. Click here to locate video: ${videoFileName}`
+        : "Load a video to get started";
       toggleVideoPlaceholder(true);
     }
 
@@ -2131,7 +2179,7 @@ const importFromJSON = (jsonText) => {
     saveLocalState();
     drawTable();
     updateLoadButtonColor();
-    
+
     toConsole("Project imported successfully", `Loaded Trial: ${currentTrial.trialName}`, debuggin);
     showToast("Project loaded successfully.", "success");
   } catch (e) {
@@ -2179,8 +2227,8 @@ const exportToCSV = async () => {
   if (isTauri && window.__TAURI__.dialog && window.__TAURI__.fs) {
     try {
       const filePath = await window.__TAURI__.dialog.save({
-        filters: [{ name: 'CSV', extensions: ['csv'] }],
-        defaultPath: filename
+        filters: [{ name: "CSV", extensions: ["csv"] }],
+        defaultPath: filename,
       });
       if (filePath) {
         await window.__TAURI__.fs.writeTextFile(filePath, csvContent);
