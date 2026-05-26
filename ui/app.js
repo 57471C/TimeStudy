@@ -20,9 +20,6 @@ let muteButton;
 let volumeSlider;
 
 const debuggin = 1;
-let opCount = 0;
-let firstOp = true;
-let taskCount = 0;
 let videoFileName = "";
 let videoFilePath = "";
 let projectName = "";
@@ -33,10 +30,7 @@ let projectFilePath = "";
 let trials = [];
 let activeTrialIndex = 0;
 const videoBlobCache = {};
-let yama = [];
-let opNames = [];
-let opStartTimes = [];
-let opPartTags = [];
+let operations = [];
 let taktTime = 60000;
 let durationMode = "hhmmssms";
 let playerReady = false;
@@ -62,6 +56,17 @@ let marqueeRect;
 
 let currentStatusEdit = null;
 
+let columnChart = null;
+let ganttChart = null;
+let pieCharts = [];
+let compareCharts = [];
+
+const formatDurationValue = (val) => {
+  if (durationMode === "hhmmssms") return formatDuration(val);
+  if (durationMode === "ms") return `${val.toFixed(0)} ms`;
+  return `${formatDecimalMinutes(val)} min`;
+};
+
 const openStatusModal = (e, opIndex, taskIndex) => {
   currentStatusEdit = { opIndex, taskIndex };
   const dialog = DOM.statusModal;
@@ -83,12 +88,13 @@ const openStatusModal = (e, opIndex, taskIndex) => {
 
 const removeTag = (target, opIndex, taskIndex, tagType, tagIdx) => {
   if (target === "op") {
-    opPartTags[opIndex].splice(tagIdx, 1);
+    operations[opIndex].partTags.splice(tagIdx, 1);
   } else if (target === "task") {
+    const task = operations[opIndex].tasks[taskIndex];
     if (tagType === "part") {
-      yama[opIndex][taskIndex].partTags.splice(tagIdx, 1);
+      task.partTags.splice(tagIdx, 1);
     } else if (tagType === "labour") {
-      yama[opIndex][taskIndex].labourTags.splice(tagIdx, 1);
+      task.labourTags.splice(tagIdx, 1);
     }
   }
   saveLocalState();
@@ -156,7 +162,7 @@ const openOpPartDropdown = (e, opIndex) => {
   dropdown.classList.remove("hidden");
 
   const renderList = (filter = "") => {
-    const currentParts = (opPartTags[opIndex] || []).map((t) => {
+    const currentParts = (operations[opIndex].partTags || []).map((t) => {
       const idx = t.indexOf(" x ");
       return idx !== -1 ? t.substring(idx + 3) : t;
     });
@@ -209,14 +215,10 @@ const openOpPartDropdown = (e, opIndex) => {
       masterParts.push(newTag);
       addedNewMaster = true;
     }
-    if (!opPartTags[opIndex]) {
-      opPartTags[opIndex] = [];
-    }
 
     const displayTag = `${finalQty} x ${newTag}`;
-
-    if (!opPartTags[opIndex].includes(displayTag)) {
-      opPartTags[opIndex].push(displayTag);
+    if (!operations[opIndex].partTags.includes(displayTag)) {
+      operations[opIndex].partTags.push(displayTag);
     }
     if (addedNewMaster) {
       showToast("New part number added to Master Data.", "success");
@@ -280,7 +282,7 @@ const openTaskLabourDropdown = (e, opIndex, taskIndex) => {
   dropdown.classList.remove("hidden");
 
   const renderList = (filter = "") => {
-    const currentTags = yama[opIndex][taskIndex].labourTags || [];
+    const currentTags = operations[opIndex].tasks[taskIndex].labourTags || [];
     const filtered = masterLabour.filter(
       (p) => p.toLowerCase().includes(filter.toLowerCase()) && !currentTags.includes(p),
     );
@@ -326,18 +328,133 @@ const openTaskLabourDropdown = (e, opIndex, taskIndex) => {
       addedNewMaster = true;
     }
 
-    if (!yama[opIndex][taskIndex].labourTags) {
-      yama[opIndex][taskIndex].labourTags = [];
-    }
-
-    if (!yama[opIndex][taskIndex].labourTags.includes(newTag)) {
-      yama[opIndex][taskIndex].labourTags.push(newTag);
+    if (!operations[opIndex].tasks[taskIndex].labourTags.includes(newTag)) {
+      operations[opIndex].tasks[taskIndex].labourTags.push(newTag);
     }
     if (addedNewMaster) {
       showToast("New labour code added to Master Data.", "success");
     }
     saveLocalState();
     updateTaskList();
+
+    input.value = "";
+    list.innerHTML = renderList("");
+    attachListEvents();
+    input.focus();
+  };
+
+  input.addEventListener("input", (ev) => {
+    list.innerHTML = renderList(ev.target.value);
+    attachListEvents();
+  });
+
+  input.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      addTag(input.value.trim());
+    } else if (ev.key === "Escape") {
+      dropdown.classList.add("hidden");
+    }
+  });
+
+  attachListEvents();
+};
+
+const openOpBulkLabourDropdown = (e, opIndex) => {
+  e.stopPropagation();
+  let dropdown = document.getElementById("op-bulk-labour-dropdown");
+  if (!dropdown) {
+    dropdown = document.createElement("div");
+    dropdown.id = "op-bulk-labour-dropdown";
+    dropdown.className =
+      "absolute bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg z-50 flex flex-col w-96 max-h-64";
+    document.body.appendChild(dropdown);
+
+    document.addEventListener("click", (ev) => {
+      if (dropdown && !dropdown.classList.contains("hidden") && !dropdown.contains(ev.target)) {
+        dropdown.classList.add("hidden");
+      }
+    });
+  }
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  dropdown.style.left = `${rect.left + window.scrollX}px`;
+  dropdown.style.top = `${rect.bottom + 4 + window.scrollY}px`;
+  dropdown.classList.remove("hidden");
+
+  const renderList = (filter = "") => {
+    const tasks = operations[opIndex]?.tasks || [];
+    const commonTags = masterLabour.filter(
+      (tag) => tasks.length > 0 && tasks.every((task) => (task.labourTags || []).includes(tag)),
+    );
+
+    const filtered = masterLabour.filter(
+      (p) => p.toLowerCase().includes(filter.toLowerCase()) && !commonTags.includes(p),
+    );
+    if (filtered.length === 0 && filter.trim() === "") {
+      return `<li class="px-2 py-1 text-sm text-zinc-500 italic">No labour codes available. Type to add one.</li>`;
+    }
+    return filtered
+      .map(
+        (p) =>
+          `<li class="px-2 py-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer rounded truncate" data-labour="${escapeHTML(p)}" title="${escapeHTML(p)}">${escapeHTML(p)}</li>`,
+      )
+      .join("");
+  };
+
+  dropdown.innerHTML = `
+    <div class="p-2 border-b border-zinc-200 dark:border-zinc-700 flex gap-1.5">
+      <input type="text" id="op-bulk-labour-search" class="form-control text-sm flex-1" placeholder="Search or add to all tasks... (Enter)">
+    </div>
+    <ul id="op-bulk-labour-list" class="overflow-y-auto flex-1 p-1 m-0 list-none space-y-0.5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full">
+      ${renderList()}
+    </ul>
+  `;
+
+  const input = document.getElementById("op-bulk-labour-search");
+  const list = document.getElementById("op-bulk-labour-list");
+
+  input.focus();
+
+  const attachListEvents = () => {
+    for (const li of list.querySelectorAll("li[data-labour]")) {
+      li.addEventListener("click", () => {
+        addTag(li.getAttribute("data-labour"));
+      });
+    }
+  };
+
+  const addTag = (newTag) => {
+    if (!newTag) return;
+
+    let addedNewMaster = false;
+    if (!masterLabour.includes(newTag)) {
+      masterLabour.push(newTag);
+      addedNewMaster = true;
+    }
+
+    const tasks = operations[opIndex]?.tasks || [];
+    let tasksUpdated = false;
+
+    for (const task of tasks) {
+      if (!task.labourTags) {
+        task.labourTags = [];
+      }
+      if (!task.labourTags.includes(newTag)) {
+        task.labourTags.push(newTag);
+        tasksUpdated = true;
+      }
+    }
+
+    if (addedNewMaster) {
+      showToast("New labour code added to Master Data.", "success");
+    }
+    if (tasksUpdated) {
+      saveLocalState();
+      updateTaskList();
+    } else if (tasks.length === 0) {
+      showToast("No tasks available to assign labour.", "error");
+    }
 
     input.value = "";
     list.innerHTML = renderList("");
@@ -448,37 +565,12 @@ const toggleChartMode = () => {
   drawTable();
 };
 
-const setHighchartsTheme = (isDark) => {
-  Highcharts.setOptions({
-    chart: {
-      backgroundColor: "transparent",
-      style: { fontFamily: "'Inter', system-ui, sans-serif" },
-    },
-    title: { style: { color: isDark ? "#e4e4e7" : "#27272a" } },
-    xAxis: {
-      labels: { style: { color: isDark ? "#a1a1aa" : "#52525b" } },
-      lineColor: isDark ? "#3f3f46" : "#e4e4e7",
-      tickColor: isDark ? "#3f3f46" : "#e4e4e7",
-    },
-    yAxis: {
-      labels: { style: { color: isDark ? "#a1a1aa" : "#52525b" } },
-      title: { style: { color: isDark ? "#e4e4e7" : "#27272a" } },
-      gridLineColor: isDark ? "#3f3f46" : "#e4e4e7",
-    },
-    tooltip: {
-      backgroundColor: isDark ? "#27272a" : "#ffffff",
-      borderColor: isDark ? "#3f3f46" : "#e4e4e7",
-      style: { color: isDark ? "#e4e4e7" : "#27272a" },
-    },
-    plotOptions: {
-      series: { dataLabels: { style: { color: isDark ? "#e4e4e7" : "#27272a" } } },
-    },
-    legend: {
-      itemStyle: { color: isDark ? "#e4e4e7" : "#27272a" },
-      itemHoverStyle: { color: isDark ? "#60a5fa" : "#0d6efd" },
-    },
-  });
-  toConsole("Highcharts theme set", isDark ? "Dark" : "Light", debuggin);
+const updateChartThemes = (isDark) => {
+  const mode = isDark ? "dark" : "light";
+  if (columnChart) columnChart.updateOptions({ theme: { mode } });
+  if (ganttChart) ganttChart.updateOptions({ theme: { mode } });
+  pieCharts.forEach((c) => c.updateOptions({ theme: { mode } }));
+  compareCharts.forEach((c) => c.updateOptions({ theme: { mode } }));
 };
 
 const saveLocalState = () => {
@@ -497,7 +589,7 @@ const saveLocalState = () => {
   trials[activeTrialIndex].processEndTime = processEndTime;
   trials[activeTrialIndex].taktTime = taktTime;
   trials[activeTrialIndex].costingConfig = { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle };
-  trials[activeTrialIndex].appState = { yama, opNames, opStartTimes, opCount, taskCount, firstOp };
+  trials[activeTrialIndex].appState = { operations };
 
   const state = {
     projectMeta: {
@@ -550,13 +642,8 @@ const switchTrial = async (index) => {
   shiftLength = currentTrial.costingConfig?.shiftLength || 480;
   targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
   unitsPerCycle = currentTrial.costingConfig?.unitsPerCycle || 1;
-  yama = currentTrial.appState?.yama || [];
-  opNames = currentTrial.appState?.opNames || [];
-  opStartTimes = currentTrial.appState?.opStartTimes || [];
-  opPartTags = currentTrial.appState?.opPartTags || [];
-  opCount = currentTrial.appState?.opCount !== undefined ? currentTrial.appState.opCount : 0;
-  taskCount = currentTrial.appState?.taskCount !== undefined ? currentTrial.appState.taskCount : 0;
-  firstOp = currentTrial.appState?.firstOp !== undefined ? currentTrial.appState.firstOp : true;
+
+  operations = currentTrial.appState?.operations || [];
 
   renderTrialSelect();
   updateTaskList();
@@ -611,7 +698,7 @@ const addTrial = async () => {
         processEndTime: 0,
         taktTime,
         costingConfig: { hourlyRate, shiftLength, targetEfficiency },
-        appState: { yama: [], opNames: [], opStartTimes: [], opPartTags: [], opCount: 0, taskCount: 0, firstOp: true },
+        appState: { operations: [] },
       };
 
   trials.push(newTrial);
@@ -645,15 +732,13 @@ const openCompareDashboard = () => {
     let va = 0;
     let nva = 0;
     let w = 0;
-    const yamaData = trial.appState.yama || [];
-    for (const op of yamaData) {
-      if (Array.isArray(op)) {
-        for (const task of op) {
-          const height = task.taskHeight || 0;
-          if (task.taskStatus === "VA") va += height;
-          else if (task.taskStatus === "NVA") nva += height;
-          else if (task.taskStatus === "W") w += height;
-        }
+
+    const ops = trial.appState?.operations || [];
+    for (const op of ops) {
+      for (const task of op.tasks || []) {
+        if (task.status === "VA") va += task.duration;
+        else if (task.status === "NVA") nva += task.duration;
+        else if (task.status === "W") w += task.duration;
       }
     }
 
@@ -682,199 +767,147 @@ const openCompareDashboard = () => {
   DOM.compareModal.showModal();
 
   const isDark = document.documentElement.classList.contains("dark");
-  setHighchartsTheme(isDark);
 
-  const formatVal = (val) => {
-    if (durationMode === "hhmmssms") return formatDuration(val);
-    if (durationMode === "ms") return `${val.toFixed(0)} ms`;
-    return `${formatDecimalMinutes(val)} min`;
-  };
+  compareCharts.forEach((c) => c.destroy());
+  compareCharts = [];
 
-  // Render charts *after* modal is shown so Highcharts can calculate width properly
   setTimeout(() => {
-    Highcharts.chart("compareVaNvaChart", {
-      chart: { type: "column" },
-      title: { text: "Value Analysis Breakdown" },
-      xAxis: { categories },
-      yAxis: {
-        title: { text: "Time" },
-        labels: {
-          formatter: function () {
-            return formatVal(this.value);
-          },
-        },
-        stackLabels: {
-          enabled: true,
-          formatter: function () {
-            return formatVal(this.total);
-          },
-          style: { color: isDark ? "#e4e4e7" : "#27272a", textOutline: "none", fontWeight: "bold" },
-        },
-        plotLines: [
-          {
-            value: taktTime,
-            color: "#0000FF",
-            width: 2,
-            zIndex: 5,
-            label: { text: `Takt: ${formatVal(taktTime)}`, align: "right", style: { color: "#0000FF" } },
-          },
-        ],
-      },
-      tooltip: {
-        formatter: function () {
-          return `<b>${this.series.name}</b>: ${formatVal(this.y)}<br/><b>Total Time</b>: ${formatVal(this.point.stackTotal)}`;
-        },
-      },
-      plotOptions: { column: { stacking: "normal" } },
+    const vaNvaChart = new ApexCharts(document.getElementById("compareVaNvaChart"), {
       series: [
         { name: "Value-Add (VA)", data: vaData, color: "#10b981" },
         { name: "Non-Value-Add (NVA)", data: nvaData, color: "#f59e0b" },
         { name: "Waste (W)", data: wData, color: "#f43f5e" },
       ],
-    });
-
-    Highcharts.chart("compareUnitsChart", {
-      chart: { type: "column" },
-      title: { text: "Estimated Units per Shift" },
-      xAxis: { categories },
+      chart: { type: "bar", height: 400, stacked: true, background: "transparent", toolbar: { show: false } },
+      theme: { mode: isDark ? "dark" : "light" },
+      xaxis: { categories: categories },
       yAxis: {
-        title: { text: "Units" },
+        title: { text: "Time" },
+        labels: { formatter: (val) => formatDurationValue(val) },
       },
-      tooltip: {
-        formatter: function () {
-          return `<b>Est. Capacity</b>: ${this.y} units`;
-        },
+      title: { text: "Value Analysis Breakdown" },
+      dataLabels: { enabled: false },
+      tooltip: { y: { formatter: (val) => formatDurationValue(val) } },
+      annotations: {
+        yaxis: [
+          {
+            y: taktTime,
+            borderColor: "#0000FF",
+            label: { text: `Takt: ${formatDurationValue(taktTime)}`, style: { color: "#fff", background: "#0000FF" } },
+          },
+        ],
       },
-      plotOptions: { column: { dataLabels: { enabled: true } } },
-      series: [{ name: "Units", data: unitsData, color: "#3b82f6", showInLegend: false }],
     });
+    vaNvaChart.render();
+    compareCharts.push(vaNvaChart);
 
-    Highcharts.chart("compareCostChart", {
-      chart: { type: "column" },
-      title: { text: "Estimated Labor Cost per Unit" },
-      xAxis: { categories },
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: Highcharts formatting string
-      yAxis: { title: { text: "Cost ($)" }, labels: { format: "${value:.4f}" } },
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: Highcharts formatting string
-      tooltip: { pointFormat: "<b>${point.y:.4f}</b>" },
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: Highcharts formatting string
-      plotOptions: { column: { dataLabels: { enabled: true, format: "${y:.4f}" } } },
-      series: [{ name: "Cost", data: costData, color: "#8b5cf6", showInLegend: false }],
+    const unitsChart = new ApexCharts(document.getElementById("compareUnitsChart"), {
+      series: [{ name: "Units", data: unitsData, color: "#3b82f6" }],
+      chart: { type: "bar", height: 400, background: "transparent", toolbar: { show: false } },
+      theme: { mode: isDark ? "dark" : "light" },
+      xaxis: { categories: categories },
+      yaxis: { title: { text: "Units" } },
+      title: { text: "Estimated Units per Shift" },
+      dataLabels: { enabled: true },
     });
+    unitsChart.render();
+    compareCharts.push(unitsChart);
+
+    const costChart = new ApexCharts(document.getElementById("compareCostChart"), {
+      series: [{ name: "Cost", data: costData, color: "#8b5cf6" }],
+      chart: { type: "bar", height: 400, background: "transparent", toolbar: { show: false } },
+      theme: { mode: isDark ? "dark" : "light" },
+      xaxis: { categories: categories },
+      yaxis: {
+        title: { text: "Cost ($)" },
+        labels: { formatter: (val) => `$${val.toFixed(2)}` },
+      },
+      title: { text: "Estimated Labor Cost per Unit" },
+      dataLabels: {
+        enabled: true,
+        formatter: (val) => `$${val.toFixed(4)}`,
+      },
+      tooltip: { y: { formatter: (val) => `$${val.toFixed(4)}` } },
+    });
+    costChart.render();
+    compareCharts.push(costChart);
   }, 10);
 };
 
 const loadLocalState = () => {
-  projectFilePath = localStorage.getItem("projectFilePath") || "";
   const data = localStorage.getItem("timeStudyData");
   if (data) {
     try {
       const state = JSON.parse(data);
 
-      // Backward Compatibility & Migration for old flat save states
-      if (!state.trials) {
-        trials = [
-          {
-            trialId: 1,
-            trialName: "Current State",
-            videoFileName: state.videoFileName || "",
-            videoFilePath: state.videoFilePath || "",
-            processEndTime: state.processEndTime || 0,
-            taktTime: state.taktTime || 60000,
-            costingConfig: {
-              hourlyRate: state.hourlyRate || 0,
-              shiftLength: state.shiftLength || 480,
-              targetEfficiency: state.targetEfficiency || 100,
-              unitsPerCycle: state.unitsPerCycle || 1,
-            },
-            appState: {
-              yama: state.yama || [],
-              opNames: state.opNames || [],
-              opStartTimes: state.opStartTimes || [],
-              opPartTags: state.opPartTags || [],
-              opCount: state.opCount !== undefined ? state.opCount : 0,
-              taskCount: state.taskCount !== undefined ? state.taskCount : 0,
-              firstOp: state.firstOp !== undefined ? state.firstOp : true,
-            },
-          },
-        ];
-        activeTrialIndex = 0;
-        projectName = state.projectName || "";
-        projectComments = "";
+      if (state.projectMeta) {
+        masterParts = state.projectMeta.masterParts || [];
+        masterLabour = state.projectMeta.masterLabour || [];
+      } else {
         masterParts = state.masterParts || [];
         masterLabour = state.masterLabour || [];
-        playbackSpeed = state.playbackSpeed !== undefined ? state.playbackSpeed : 1;
-        volumeLevel = state.volumeLevel !== undefined ? state.volumeLevel : 1;
-      } else {
-        // Load new Multi-Trial format
-        trials = state.trials || [];
-        activeTrialIndex = state.activeTrialIndex || 0;
-        projectName = state.projectMeta?.projectName || "";
-        projectComments = state.projectMeta?.projectComments || "";
-        masterParts = state.projectMeta?.masterParts || [];
-        masterLabour = state.projectMeta?.masterLabour || [];
-        playbackSpeed = state.appConfig?.playbackSpeed !== undefined ? state.appConfig.playbackSpeed : 1;
-        volumeLevel = state.appConfig?.volumeLevel !== undefined ? state.appConfig.volumeLevel : 1;
       }
 
-      // Hydrate memory with the active trial data
-      const currentTrial = trials[activeTrialIndex] || trials[0];
-      videoFileName = currentTrial.videoFileName || "";
-      videoFilePath = currentTrial.videoFilePath || "";
-      processEndTime = currentTrial.processEndTime || 0;
-      taktTime = currentTrial.taktTime || 60000;
+      if (state.appConfig) {
+        playbackSpeed = state.appConfig.playbackSpeed !== undefined ? state.appConfig.playbackSpeed : 1;
+        volumeLevel = state.appConfig.volumeLevel !== undefined ? state.appConfig.volumeLevel : 1;
+      } else {
+        playbackSpeed = state.playbackSpeed !== undefined ? state.playbackSpeed : 1;
+        volumeLevel = state.volumeLevel !== undefined ? state.volumeLevel : 1;
+      }
 
-      hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
-      shiftLength = currentTrial.costingConfig?.shiftLength || 480;
-      if (shiftLength <= 24) shiftLength *= 60; // Auto-migrate old hours format
-      targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
-      unitsPerCycle = currentTrial.costingConfig?.unitsPerCycle || 1;
-
-      yama = currentTrial.appState?.yama || [];
-      opNames = currentTrial.appState?.opNames || [];
-      opStartTimes = currentTrial.appState?.opStartTimes || [];
-      opPartTags = currentTrial.appState?.opPartTags || [];
-      opCount = currentTrial.appState?.opCount !== undefined ? currentTrial.appState.opCount : 0;
-      taskCount = currentTrial.appState?.taskCount !== undefined ? currentTrial.appState.taskCount : 0;
-      firstOp = currentTrial.appState?.firstOp !== undefined ? currentTrial.appState.firstOp : true;
-
-      // Sync UI
-      if (DOM.projectNameInput) DOM.projectNameInput.value = projectName;
-      renderTrialSelect();
-
-      toConsole("Local state loaded", "Success", debuggin);
-      showToast("Local session state restored.", "success");
+      toConsole("Global settings and master data restored", "Success", debuggin);
     } catch (e) {
       toConsole("Error parsing local state", e, debuggin);
     }
-  } else {
-    // Initialize a blank trial if no prior state exists
-    trials = [
-      {
-        trialId: 1,
-        trialName: "Current State",
-        videoFileName: "",
-        videoFilePath: "",
-        processEndTime: 0,
-        taktTime: 60000,
-        costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
-        appState: { yama: [], opNames: [], opStartTimes: [], opPartTags: [], opCount: 0, taskCount: 0, firstOp: true },
-      },
-    ];
-    activeTrialIndex = 0;
-    projectComments = "";
   }
+
+  // Always initialize a blank trial for a fresh project
+  projectFilePath = "";
+  projectName = "";
+  projectComments = "";
+  trials = [
+    {
+      trialId: 1,
+      trialName: "Current State",
+      videoFileName: "",
+      videoFilePath: "",
+      processEndTime: 0,
+      taktTime: 60000,
+      costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
+      appState: { operations: [] },
+    },
+  ];
+  activeTrialIndex = 0;
+
+  // Hydrate memory with the active trial data (the blank one)
+  const currentTrial = trials[activeTrialIndex];
+  videoFileName = currentTrial.videoFileName || "";
+  videoFilePath = currentTrial.videoFilePath || "";
+  processEndTime = currentTrial.processEndTime || 0;
+  taktTime = currentTrial.taktTime || 60000;
+
+  hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
+  shiftLength = currentTrial.costingConfig?.shiftLength || 480;
+  targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
+  unitsPerCycle = currentTrial.costingConfig?.unitsPerCycle || 1;
+
+  operations = currentTrial.appState?.operations || [];
+
+  // Sync UI
+  if (DOM.projectNameInput) DOM.projectNameInput.value = projectName;
+  renderTrialSelect();
 };
 
 const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
-  if (player.src && yama.length > 0) {
+  if (player.src && operations.length > 0) {
     const save = await asyncConfirm(
-      "You have unsaved data. Would you like to save your data as a CSV file before loading a new video?",
+      "You have unsaved data. Would you like to save your project before loading a new video?",
       "Unsaved Data",
     );
     if (save) {
-      exportToCSV();
-      toConsole("Data exported to CSV before loading new video", null, debuggin);
+      await exportToJSON(false);
+      toConsole("Project saved before loading new video", null, debuggin);
     }
     const proceed = await asyncConfirm(
       "Loading a new video will clear all existing data and charts. Are you sure you want to proceed?",
@@ -886,7 +919,7 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
     }
   }
 
-  const isRelinking = !player.src && yama.length > 0;
+  const isRelinking = !player.src && operations.length > 0;
 
   if (isTauriPath) {
     const filePath = fileOrPath;
@@ -917,21 +950,11 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
   player.load();
 
   if (!isRelinking) {
-    yama = [];
-    opNames = [];
-    opStartTimes = [];
-    opPartTags = [];
-    opCount = 0;
-    taskCount = 0;
-    firstOp = true;
+    operations = [];
     projectName = "";
     if (DOM.projectNameInput) {
       DOM.projectNameInput.value = "";
     }
-    DOM.taskList.innerHTML = "";
-    DOM.pieChartContainer.innerHTML = "";
-    DOM.chartContainer.innerHTML = "";
-    DOM.ganttChartContainer.innerHTML = "";
     updateTaskList();
     addTaskButton.disabled = true;
     toConsole("Cleared all previous data and charts", null, debuggin);
@@ -955,8 +978,8 @@ const initializePlayer = () => {
   marqueeRect = DOM.marqueeRect;
 
   const isDarkMode = localStorage.getItem("darkMode") === "true";
-  if (typeof Highcharts !== "undefined") {
-    setHighchartsTheme(isDarkMode);
+  if (typeof ApexCharts !== "undefined") {
+    updateChartThemes(isDarkMode);
   }
   if (isDarkMode) {
     document.documentElement.classList.add("dark");
@@ -975,11 +998,11 @@ const initializePlayer = () => {
     DOM.moonIcon.classList.toggle("hidden", !isDark);
     localStorage.setItem("darkMode", isDark);
     toConsole("Dark mode toggled", isDark ? "On" : "Off", debuggin);
-    if (typeof Highcharts !== "undefined") {
-      setHighchartsTheme(isDark);
+    if (typeof ApexCharts !== "undefined") {
+      updateChartThemes(isDark);
     }
     updateTaskList();
-    if (yama.length > 0) {
+    if (operations.length > 0) {
       drawTable();
     }
   });
@@ -1144,7 +1167,7 @@ const initializePlayer = () => {
       seekBar.style.setProperty("--tick-interval", `${tickInterval}%`);
     }
     processEndTime = duration;
-    if (duration > 0 && duration < 60 && yama.length === 0) {
+    if (duration > 0 && duration < 60 && operations.length === 0) {
       taktTime = Math.max(1000, Math.round(duration * 0.9) * 1000);
       saveLocalState();
       toConsole("Takt time auto-adjusted for short video", taktTime, debuggin);
@@ -1209,7 +1232,7 @@ const initializePlayer = () => {
   if (!taktTime) {
     taktTime = 60000;
   }
-  if (yama.length > 0) {
+  if (operations.length > 0) {
     updateTaskList();
     drawTable();
   }
@@ -1238,7 +1261,7 @@ const initializePlayer = () => {
       try {
         const selected = await window.__TAURI__.dialog.open({
           multiple: false,
-          filters: [{ name: "JSON", extensions: ["json"] }],
+          filters: [{ name: "TimeStudy Project", extensions: ["tsp"] }],
         });
         if (selected) {
           projectFilePath = selected;
@@ -1256,7 +1279,7 @@ const initializePlayer = () => {
   });
 
   newProjectButton.addEventListener("click", async () => {
-    if (yama.length > 0 || player.src) {
+    if (operations.length > 0 || player.src) {
       const proceed = await asyncConfirm(
         "Are you sure you want to start a new project? All unsaved data will be lost.",
         "New Project",
@@ -1268,17 +1291,17 @@ const initializePlayer = () => {
     player.removeAttribute("src");
     player.load();
 
-    yama = [];
+    operations = [];
     videoFileName = "";
+
+    // Free memory by revoking old video blob URLs
+    for (const key in videoBlobCache) {
+      URL.revokeObjectURL(videoBlobCache[key]);
+      delete videoBlobCache[key];
+    }
     videoFilePath = "";
     projectFilePath = "";
     localStorage.removeItem("projectFilePath");
-    opNames = [];
-    opStartTimes = [];
-    opPartTags = [];
-    opCount = 0;
-    taskCount = 0;
-    firstOp = true;
     projectName = "";
     projectComments = "";
     masterParts = [];
@@ -1294,17 +1317,13 @@ const initializePlayer = () => {
         processEndTime: 0,
         taktTime: taktTime,
         costingConfig: { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle },
-        appState: { yama: [], opNames: [], opStartTimes: [], opPartTags: [], opCount: 0, taskCount: 0, firstOp: true },
+        appState: { operations: [] },
       },
     ];
     activeTrialIndex = 0;
     renderTrialSelect();
 
     if (DOM.projectNameInput) DOM.projectNameInput.value = "";
-    DOM.taskList.innerHTML = "";
-    DOM.pieChartContainer.innerHTML = "";
-    DOM.chartContainer.innerHTML = "";
-    DOM.ganttChartContainer.innerHTML = "";
 
     DOM.videoPlaceholder.textContent = "Load a video to get started";
     toggleVideoPlaceholder(true);
@@ -1629,7 +1648,7 @@ const initializePlayer = () => {
   });
 
   window.addEventListener("beforeunload", (e) => {
-    if (yama.length > 0 || player.src) {
+    if (operations.length > 0 || player.src) {
       e.preventDefault();
       e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
       return e.returnValue;
@@ -1838,7 +1857,6 @@ const toggleVideoPlaceholder = (show) => {
       DOM.videoPlaceholder.style.display = "none";
       DOM.videoWrapper.style.display = "block";
     }
-    saveLocalState();
   } catch (error) {
     toConsole("toggleVideoPlaceholder error", error.message, debuggin);
     alert("Failed to toggle video placeholder. Please check the console for details.");
@@ -1867,11 +1885,9 @@ const toggleSettings = (show) => {
 
 const getAllTaskNames = () => {
   const names = [];
-  for (const op of yama) {
-    if (Array.isArray(op)) {
-      for (const task of op) {
-        if (task?.taskName) names.push(task.taskName);
-      }
+  for (const op of operations) {
+    for (const task of op.tasks || []) {
+      if (task?.name) names.push(task.name);
     }
   }
   return names;
@@ -1879,26 +1895,26 @@ const getAllTaskNames = () => {
 
 const addOp = async () => {
   player.pause();
-  const opName = await asyncPrompt("Please name the Operation", "", "New Operation", opNames);
+  const opName = await asyncPrompt(
+    "Please name the Operation",
+    "",
+    "New Operation",
+    operations.map((o) => o.name),
+  );
   if (!opName) {
     alert("Operation name cannot be empty.");
     return;
   }
   const startTime = player.currentTime;
   toConsole("Operation start time", startTime, debuggin);
-  if (!firstOp) {
-    opCount += 1;
-    toConsole("Creating Operation opCount has increased by 1", opCount, debuggin);
-  } else {
-    firstOp = false;
-    toConsole("Creating first operation yama[0]", opCount, debuggin);
-  }
-  opNames[opCount] = opName;
-  opStartTimes[opCount] = startTime;
-  opPartTags[opCount] = [];
-  taskCount = 0;
-  yama[opCount] = [];
-  toConsole("taskCount has been reset", taskCount, debuggin);
+
+  operations.push({
+    name: opName,
+    startTime: startTime,
+    partTags: [],
+    tasks: [],
+  });
+
   saveLocalState();
   updateTaskList();
   drawTable();
@@ -1907,11 +1923,11 @@ const addOp = async () => {
 const addTask = async () => {
   player.pause();
   toConsole("playPause", "play paused to add task", debuggin);
-  if (yama.length === 0) {
+  if (operations.length === 0) {
     alert("There's no Operation yet! Please add an Operation first.");
     toConsole("Tried to add a Task, but No Operation exists", null, debuggin);
     await addOp();
-    if (yama.length === 0) {
+    if (operations.length === 0) {
       return;
     }
   }
@@ -1921,9 +1937,8 @@ const addTask = async () => {
     return;
   }
   toConsole("taskName", taskName, debuggin);
-  const taskEnd = player.currentTime * 1000;
-  toConsole("taskEnd", taskEnd, debuggin);
-  const opIndex = opCount;
+  const taskEndMs = player.currentTime * 1000;
+  const opIndex = operations.length - 1;
   const opStartTimeInputId = `opTimeInput-${opIndex}`;
   const opTimeInput = document.getElementById(opStartTimeInputId);
   if (!opTimeInput) {
@@ -1933,12 +1948,14 @@ const addTask = async () => {
   const opStartTime = parseTimeFromHHMMSSMS(opTimeInput.value) || 0;
   toConsole("opStartTime from input", opStartTime, debuggin);
 
-  taskCount = yama[opCount] ? yama[opCount].length : 0;
+  const op = operations[opIndex];
+  let currentOpDuration = 0;
+  for (const t of op.tasks) {
+    currentOpDuration += t.duration;
+  }
+  const taskStartMs = opStartTime * 1000 + currentOpDuration;
+  const duration = Math.max(0, taskEndMs - taskStartMs);
 
-  const taskStart = taskCount === 0 ? opStartTime * 1000 : yama[opCount][taskCount - 1].taskEnd;
-  toConsole("taskStart", taskStart, debuggin);
-  const taskHeight = taskCount === 0 ? taskEnd - opStartTime * 1000 : taskEnd - taskStart;
-  toConsole("taskHeight", taskHeight, debuggin);
   let taskStatus = await asyncPrompt("VA, NVA, W? (or 1=VA, 2=NVA, 3=W)", "", "Task Status");
   if (!taskStatus) {
     alert("Task status cannot be empty.");
@@ -1956,17 +1973,14 @@ const addTask = async () => {
     return;
   }
   toConsole("taskStatus processed", taskStatus, debuggin);
-  yama[opCount][taskCount] = {
-    taskName,
-    taskStart,
-    taskEnd,
-    taskHeight,
-    taskStatus,
+  op.tasks.push({
+    name: taskName,
+    duration: duration,
+    status: taskStatus,
     partTags: [],
     labourTags: [],
-  };
-  console.table(yama[opCount][taskCount]);
-  taskCount += 1;
+  });
+
   saveLocalState();
   updateTaskList();
   drawTable();
@@ -2000,8 +2014,8 @@ const insertTask = async (opIndex, taskIndex) => {
   }
   toConsole("taskStatus processed", taskStatus, debuggin);
 
-  const currentTask = yama[opIndex][taskIndex];
-  const originalDuration = currentTask.taskHeight;
+  const currentTask = operations[opIndex].tasks[taskIndex];
+  const originalDuration = currentTask.duration;
 
   if (originalDuration <= 0) {
     alert("Cannot split a task with zero or negative duration.");
@@ -2011,27 +2025,17 @@ const insertTask = async (opIndex, taskIndex) => {
   const newDuration = Math.floor(originalDuration / 2);
   const remainingDuration = originalDuration - newDuration;
 
-  currentTask.taskHeight = remainingDuration;
-  currentTask.taskEnd = currentTask.taskStart + remainingDuration;
+  currentTask.duration = remainingDuration;
 
   const newTask = {
-    taskName,
-    taskStart: currentTask.taskEnd,
-    taskEnd: currentTask.taskEnd + newDuration,
-    taskHeight: newDuration,
-    taskStatus,
+    name: taskName,
+    duration: newDuration,
+    status: taskStatus,
     partTags: [],
     labourTags: [],
   };
 
-  yama[opIndex].splice(taskIndex + 1, 0, newTask);
-
-  for (let i = taskIndex + 2; i < yama[opIndex].length; i += 1) {
-    yama[opIndex][i].taskStart = yama[opIndex][i - 1].taskEnd;
-    yama[opIndex][i].taskEnd = yama[opIndex][i].taskStart + yama[opIndex][i].taskHeight;
-  }
-
-  taskCount = yama[opIndex].length;
+  operations[opIndex].tasks.splice(taskIndex + 1, 0, newTask);
   saveLocalState();
   updateTaskList();
   drawTable();
@@ -2044,13 +2048,13 @@ const handleInlineNameEdit = (opIndex, taskIndex, newValue) => {
     updateTaskList();
     return;
   }
-  yama[opIndex][taskIndex].taskName = trimmed;
+  operations[opIndex].tasks[taskIndex].name = trimmed;
   saveLocalState();
   drawTable();
 };
 
 const handleInlineStatusEdit = (opIndex, taskIndex, newValue) => {
-  yama[opIndex][taskIndex].taskStatus = newValue;
+  operations[opIndex].tasks[taskIndex].status = newValue;
   saveLocalState();
   updateTaskList();
   drawTable();
@@ -2108,12 +2112,7 @@ const handleInlineDurationEdit = (opIndex, taskIndex, newValue) => {
     }
     newDurationMs = decimalMinutes * 60 * 1000;
   }
-  yama[opIndex][taskIndex].taskHeight = newDurationMs;
-  yama[opIndex][taskIndex].taskEnd = yama[opIndex][taskIndex].taskStart + newDurationMs;
-  for (let i = taskIndex + 1; i < yama[opIndex].length; i += 1) {
-    yama[opIndex][i].taskStart = yama[opIndex][i - 1].taskEnd;
-    yama[opIndex][i].taskEnd = yama[opIndex][i].taskStart + yama[opIndex][i].taskHeight;
-  }
+  operations[opIndex].tasks[taskIndex].duration = newDurationMs;
   saveLocalState();
   updateTaskList();
   drawTable();
@@ -2121,23 +2120,13 @@ const handleInlineDurationEdit = (opIndex, taskIndex, newValue) => {
 
 const deleteTask = async (opIndex, taskIndex) => {
   if (await asyncConfirm("Are you sure you want to delete this task?", "Delete Task")) {
-    yama[opIndex].splice(taskIndex, 1);
-    for (let i = taskIndex; i < yama[opIndex].length; i += 1) {
-      yama[opIndex][i].taskStart = i === 0 ? 0 : yama[opIndex][i - 1].taskEnd;
-      yama[opIndex][i].taskEnd = yama[opIndex][i].taskStart + yama[opIndex][i].taskHeight;
-    }
-    if (yama[opIndex].length === 0 && opIndex === opCount) {
-      yama.splice(opIndex, 1);
-      opNames.splice(opIndex, 1);
-      opStartTimes.splice(opIndex, 1);
-      opCount -= 1;
-      if (opCount < 0) {
-        opCount = 0;
-        firstOp = true;
+    operations[opIndex].tasks.splice(taskIndex, 1);
+    if (operations[opIndex].tasks.length === 0 && opIndex === operations.length - 1) {
+      operations.splice(opIndex, 1);
+      if (operations.length === 0) {
         addTaskButton.disabled = true;
       }
     }
-    taskCount = yama[opIndex]?.length ?? 0;
     saveLocalState();
     updateTaskList();
     drawTable();
@@ -2145,13 +2134,18 @@ const deleteTask = async (opIndex, taskIndex) => {
 };
 
 const renameOperation = async (opIndex) => {
-  const newName = await asyncPrompt("Rename Operation", opNames[opIndex], "Rename Operation", opNames);
+  const newName = await asyncPrompt(
+    "Rename Operation",
+    operations[opIndex].name,
+    "Rename Operation",
+    operations.map((o) => o.name),
+  );
   if (newName === null) return; // User clicked Cancel
   if (newName.trim() === "") {
     alert("Operation name cannot be empty.");
     return;
   }
-  opNames[opIndex] = newName.trim();
+  operations[opIndex].name = newName.trim();
   toConsole(`Renamed operation at index ${opIndex}`, newName, debuggin);
   saveLocalState();
   updateTaskList();
@@ -2161,21 +2155,15 @@ const renameOperation = async (opIndex) => {
 const deleteOperation = async (opIndex) => {
   if (
     await asyncConfirm(
-      `Are you sure you want to delete the operation "${opNames[opIndex]}" and all its tasks? This action cannot be undone.`,
+      `Are you sure you want to delete the operation "${operations[opIndex].name}" and all its tasks? This action cannot be undone.`,
       "Delete Operation",
     )
   ) {
-    yama.splice(opIndex, 1);
-    opNames.splice(opIndex, 1);
-    opStartTimes.splice(opIndex, 1);
-    opCount -= 1;
-    if (opCount < 0) {
-      opCount = 0;
-      firstOp = true;
+    operations.splice(opIndex, 1);
+    if (operations.length === 0) {
       addTaskButton.disabled = true;
     }
-    taskCount = yama[opCount]?.length ?? 0;
-    toConsole(`Deleted operation at index ${opIndex}`, `opCount: ${opCount}, taskCount: ${taskCount}`, debuggin);
+    toConsole(`Deleted operation at index ${opIndex}`, `Total ops left: ${operations.length}`, debuggin);
     saveLocalState();
     updateTaskList();
     drawTable();
@@ -2225,11 +2213,12 @@ const updateTaskList = () => {
          </thead>
          <tbody>`,
     ];
-    for (let i = 0; i < yama.length; i += 1) {
+    for (let i = 0; i < operations.length; i += 1) {
+      const op = operations[i];
       const opTimeInputId = `opTimeInput-${i}`;
-      const formattedTime = formatTimeToHHMMSSMS(opStartTimes[i]);
-      const safeOpName = escapeHTML(opNames[i]);
-      const opTags = opPartTags[i] || [];
+      const formattedTime = formatTimeToHHMMSSMS(op.startTime);
+      const safeOpName = escapeHTML(op.name);
+      const opTags = op.partTags || [];
 
       rows.push(`
         <tr>
@@ -2251,6 +2240,9 @@ const updateTaskList = () => {
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
                   </button>
                   ${renderTags(opTags, "part", "op", i, -1, "xs")}
+                  <button onclick="openOpBulkLabourDropdown(event, ${i})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0 ml-1" title="Assign Labour to All Tasks">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  </button>
                 </div>
               </div>
               <div class="flex gap-1.5">
@@ -2265,24 +2257,24 @@ const updateTaskList = () => {
           </td>
         </tr>
       `);
-      for (let j = 0; j < yama[i].length; j += 1) {
-        const task = yama[i][j];
+      for (let j = 0; j < op.tasks.length; j += 1) {
+        const task = op.tasks[j];
         const durationValue =
           durationMode === "hhmmssms"
-            ? formatDuration(task.taskHeight)
+            ? formatDuration(task.duration)
             : durationMode === "ms"
-              ? task.taskHeight.toFixed(3)
-              : formatDecimalMinutes(task.taskHeight);
+              ? task.duration.toFixed(3)
+              : formatDecimalMinutes(task.duration);
         const taskLabourTags = task.labourTags || [];
 
-        const safeTaskName = escapeHTML(task.taskName);
+        const safeTaskName = escapeHTML(task.name);
 
         let badgeClass = "";
-        if (task.taskStatus === "VA")
+        if (task.status === "VA")
           badgeClass = "border-emerald-500/50 text-emerald-600 dark:border-emerald-400/50 dark:text-emerald-400";
-        else if (task.taskStatus === "NVA")
+        else if (task.status === "NVA")
           badgeClass = "border-amber-500/50 text-amber-600 dark:border-amber-400/50 dark:text-amber-400";
-        else if (task.taskStatus === "W")
+        else if (task.status === "W")
           badgeClass = "border-rose-500/50 text-rose-600 dark:border-rose-400/50 dark:text-rose-400";
 
         rows.push(`
@@ -2301,7 +2293,7 @@ const updateTaskList = () => {
             </td>
             <td class="text-center whitespace-nowrap align-top pt-1.5">
               <button type="button" onclick="openStatusModal(event, ${i}, ${j})" class="outline-none inline-block px-2 py-0.5 rounded border bg-transparent text-xs font-bold cursor-pointer text-center hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${badgeClass}" title="Change Status">
-                ${task.taskStatus}
+                ${task.status}
               </button>
             </td>
             <td class="flex gap-1.5 justify-center">
@@ -2327,7 +2319,7 @@ const updateTaskList = () => {
 
     const table = document.querySelector(".task-table");
     if (!table) throw new Error("Task table element not found");
-    if (yama.length > 0) {
+    if (operations.length > 0) {
       table.style.display = "table";
       updateProcessTimes();
       addTaskButton.disabled = false;
@@ -2336,7 +2328,7 @@ const updateTaskList = () => {
       addTaskButton.disabled = true;
     }
 
-    for (let i = 0; i < yama.length; i += 1) {
+    for (let i = 0; i < operations.length; i += 1) {
       const opTimeInput = document.getElementById(`opTimeInput-${i}`);
       if (!opTimeInput) throw new Error(`Operation time input opTimeInput-${i} not found`);
       opTimeInput.addEventListener(
@@ -2344,13 +2336,13 @@ const updateTaskList = () => {
         debounce((event) => {
           const newTime = parseTimeFromHHMMSSMS(event.target.value);
           if (newTime !== null) {
-            opStartTimes[i] = newTime;
-            toConsole(`Operation ${i} start time updated`, opStartTimes[i], debuggin);
+            operations[i].startTime = newTime;
+            toConsole(`Operation ${i} start time updated`, operations[i].startTime, debuggin);
             saveLocalState();
             updateProcessTimes();
           } else {
             alert("Invalid time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
-            opTimeInput.value = formatTimeToHHMMSSMS(opStartTimes[i]);
+            opTimeInput.value = formatTimeToHHMMSSMS(operations[i].startTime);
           }
         }, 100),
       );
@@ -2363,7 +2355,7 @@ const updateTaskList = () => {
 
 const updateProcessTimes = () => {
   try {
-    if (yama.length === 0) return;
+    if (operations.length === 0) return;
 
     if (!DOM.taskTableFoot) {
       toConsole("updateProcessTimes skipped", "taskTableFoot is null", debuggin);
@@ -2372,8 +2364,8 @@ const updateProcessTimes = () => {
 
     const formattedEndTime = formatTimeToHHMMSSMS(processEndTime);
     let totalProcessTime = "00:00:00:00";
-    if (opStartTimes.length > 0) {
-      const durationSeconds = Math.max(0, processEndTime - opStartTimes[0]);
+    if (operations.length > 0) {
+      const durationSeconds = Math.max(0, processEndTime - operations[0].startTime);
       totalProcessTime = formatTimeToHHMMSSMS(durationSeconds);
     }
 
@@ -2408,12 +2400,21 @@ const updateProcessTimes = () => {
             taktTime = newTaktTime;
             saveLocalState();
             toConsole("Takt Time updated", taktTime, debuggin);
+            drawTable();
           } else {
             alert("Invalid Takt Time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
             taktTimeInput.value = formatTaktTime(taktTime);
           }
         }, 100),
       );
+
+      taktTimeInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.target.blur();
+          drawTable();
+        }
+      });
     }
 
     const processEndTimeInput = document.getElementById("processEndTimeInput");
@@ -2425,7 +2426,7 @@ const updateProcessTimes = () => {
         if (newEndTime !== null) {
           processEndTime = newEndTime;
           toConsole("Process end time updated", processEndTime, debuggin);
-          const durationSeconds = opStartTimes.length > 0 ? Math.max(0, processEndTime - opStartTimes[0]) : 0;
+          const durationSeconds = operations.length > 0 ? Math.max(0, processEndTime - operations[0].startTime) : 0;
           document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
           saveLocalState();
         } else {
@@ -2445,9 +2446,16 @@ const exportToJSON = async (isSaveAs = false) => {
   const dataStr = localStorage.getItem("timeStudyData");
   if (!dataStr) return;
 
-  let filename = "project.json";
+  let formattedDataStr = dataStr;
+  try {
+    formattedDataStr = JSON.stringify(JSON.parse(dataStr), null, 2);
+  } catch (e) {
+    toConsole("Error formatting JSON data for export", e, debuggin);
+  }
+
+  let filename = "project.tsp";
   if (projectName) {
-    filename = `${sanitizeFilename(projectName)}.json`;
+    filename = `${sanitizeFilename(projectName)}.tsp`;
   }
 
   const isTauri = window.__TAURI__ !== undefined;
@@ -2456,17 +2464,20 @@ const exportToJSON = async (isSaveAs = false) => {
       if (isSaveAs === true || !projectFilePath) {
         const defaultName = projectFilePath ? projectFilePath.split(/[/\\]/).pop() : filename;
         const filePath = await window.__TAURI__.core.invoke("plugin:dialog|save", {
-          filters: [{ name: "JSON", extensions: ["json"] }],
+          filters: [{ name: "TimeStudy Project", extensions: ["tsp"] }],
           defaultPath: defaultName,
         });
         if (filePath) {
           projectFilePath = filePath;
           localStorage.setItem("projectFilePath", projectFilePath);
-          await window.__TAURI__.core.invoke("plugin:fs|write_text_file", { path: filePath, data: dataStr });
+          await window.__TAURI__.core.invoke("plugin:fs|write_text_file", { path: filePath, data: formattedDataStr });
           showToast("Project saved successfully.", "success");
         }
       } else {
-        await window.__TAURI__.core.invoke("plugin:fs|write_text_file", { path: projectFilePath, data: dataStr });
+        await window.__TAURI__.core.invoke("plugin:fs|write_text_file", {
+          path: projectFilePath,
+          data: formattedDataStr,
+        });
         showToast("Project saved successfully.", "success");
       }
     } catch (e) {
@@ -2481,14 +2492,14 @@ const exportToJSON = async (isSaveAs = false) => {
             suggestedName: filename,
             types: [
               {
-                description: "JSON Files",
-                accept: { "application/json": [".json"] },
+                description: "TimeStudy Project",
+                accept: { "application/json": [".tsp"] },
               },
             ],
           });
         }
         const writable = await projectFileHandle.createWritable();
-        await writable.write(dataStr);
+        await writable.write(formattedDataStr);
         await writable.close();
         showToast("Project saved successfully.", "success");
         return;
@@ -2502,7 +2513,7 @@ const exportToJSON = async (isSaveAs = false) => {
     }
 
     // Fallback for older browsers
-    const blob = new Blob([dataStr], { type: "application/json" });
+    const blob = new Blob([formattedDataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
@@ -2520,31 +2531,7 @@ const importFromJSON = (jsonText) => {
   try {
     const data = JSON.parse(jsonText);
 
-    if (data.appState) {
-      // Legacy v0.4.3 support: Wrap the old format into a Trial
-      trials = [
-        {
-          trialId: 1,
-          trialName: "Current State",
-          videoFileName: data.projectMeta?.videoFileName || "",
-          videoFilePath: data.projectMeta?.videoFilePath || "",
-          processEndTime: data.projectMeta?.processEndTime || 0,
-          taktTime: data.costingConfig?.taktTime || 60000,
-          costingConfig: data.costingConfig || {
-            hourlyRate: 0,
-            shiftLength: 480,
-            targetEfficiency: 100,
-            unitsPerCycle: 1,
-          },
-          appState: data.appState,
-        },
-      ];
-      activeTrialIndex = 0;
-      projectName = data.projectMeta?.projectName || "";
-      projectComments = "";
-      masterParts = data.projectMeta?.masterParts || [];
-      masterLabour = data.projectMeta?.masterLabour || [];
-    } else if (data.trials) {
+    if (data.trials) {
       // New Multi-Trial format
       trials = data.trials;
       activeTrialIndex = data.activeTrialIndex || 0;
@@ -2569,13 +2556,7 @@ const importFromJSON = (jsonText) => {
     targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
     unitsPerCycle = currentTrial.costingConfig?.unitsPerCycle || 1;
 
-    yama = currentTrial.appState?.yama || [];
-    opNames = currentTrial.appState?.opNames || [];
-    opStartTimes = currentTrial.appState?.opStartTimes || [];
-    opPartTags = currentTrial.appState?.opPartTags || [];
-    opCount = currentTrial.appState?.opCount !== undefined ? currentTrial.appState.opCount : 0;
-    taskCount = currentTrial.appState?.taskCount !== undefined ? currentTrial.appState.taskCount : 0;
-    firstOp = currentTrial.appState?.firstOp !== undefined ? currentTrial.appState.firstOp : true;
+    operations = currentTrial.appState?.operations || [];
 
     if (DOM.projectNameInput) DOM.projectNameInput.value = projectName;
     renderTrialSelect();
@@ -2619,36 +2600,37 @@ const importFromJSON = (jsonText) => {
 };
 
 const exportToCSV = async () => {
-  if (yama.length === 0) {
+  if (operations.length === 0) {
     alert("No operations or tasks to export.");
     return;
   }
   let csvContent = "ProcessEndTime";
-  for (let i = 0; i <= opCount; i++) {
+  for (let i = 0; i < operations.length; i++) {
     csvContent += `,OpStartTime-${i}`;
   }
   csvContent += "\n";
   csvContent += `${formatTimeToHHMMSSMS(processEndTime)}`;
-  for (let i = 0; i <= opCount; i++) {
-    csvContent += `,${formatTimeToHHMMSSMS(opStartTimes[i] || 0)}`;
+  for (let i = 0; i < operations.length; i++) {
+    csvContent += `,${formatTimeToHHMMSSMS(operations[i].startTime || 0)}`;
   }
   csvContent += "\n";
   csvContent += "Operation,Operation Parts,Task,Task Parts,Task Labour,VA,NVA,W\n";
 
-  for (let i = 0; i < yama.length; i += 1) {
-    for (let j = 0; j < yama[i].length; j += 1) {
-      const task = yama[i][j];
-      const status = task.taskStatus.toUpperCase();
-      const vaDuration = status === "VA" ? task.taskHeight : 0;
-      const nvaDuration = status === "NVA" ? task.taskHeight : 0;
-      const wDuration = status === "W" ? task.taskHeight : 0;
+  for (let i = 0; i < operations.length; i += 1) {
+    const op = operations[i];
+    const escapedOpName = op.name.includes(",") ? `"${op.name}"` : op.name;
+    const opPartsStr = (op.partTags || []).join("; ");
+    const escapedOpParts =
+      opPartsStr.includes(",") || opPartsStr.includes('"') ? `"${opPartsStr.replace(/"/g, '""')}"` : opPartsStr;
 
-      const escapedOpName = opNames[i].includes(",") ? `"${opNames[i]}"` : opNames[i];
-      const opPartsStr = (opPartTags[i] || []).join("; ");
-      const escapedOpParts =
-        opPartsStr.includes(",") || opPartsStr.includes('"') ? `"${opPartsStr.replace(/"/g, '""')}"` : opPartsStr;
+    for (let j = 0; j < op.tasks.length; j += 1) {
+      const task = op.tasks[j];
+      const status = task.status.toUpperCase();
+      const vaDuration = status === "VA" ? task.duration : 0;
+      const nvaDuration = status === "NVA" ? task.duration : 0;
+      const wDuration = status === "W" ? task.duration : 0;
 
-      const escapedTaskName = task.taskName.includes(",") ? `"${task.taskName}"` : task.taskName;
+      const escapedTaskName = task.name.includes(",") ? `"${task.name}"` : task.name;
       const taskPartsStr = (task.partTags || []).join("; ");
       const escapedTaskParts =
         taskPartsStr.includes(",") || taskPartsStr.includes('"')
@@ -2705,7 +2687,7 @@ const drawTable = () => {
     if (!DOM.chartContainer || !DOM.pieChartContainer) {
       throw new Error("Chart container elements not found");
     }
-    if (yama.length === 0) {
+    if (operations.length === 0) {
       DOM.chartContainer.innerHTML = "";
       DOM.ganttChartContainer.innerHTML = "";
       DOM.pieChartContainer.innerHTML = "";
@@ -2714,244 +2696,180 @@ const drawTable = () => {
     if (taktTime === null || taktTime <= 0) {
       return;
     }
-    if (typeof Highcharts === "undefined") {
+    if (typeof ApexCharts === "undefined") {
       return;
     }
     const isDarkMode = document.documentElement.classList.contains("dark");
-    setHighchartsTheme(isDarkMode);
+
+    const opNames = operations.map((o) => o.name);
+
+    if (columnChart) {
+      columnChart.destroy();
+      columnChart = null;
+    }
+    if (ganttChart) {
+      ganttChart.destroy();
+      ganttChart = null;
+    }
+    pieCharts.forEach((c) => c.destroy());
+    pieCharts = [];
 
     if (chartMode === "column") {
       DOM.chartContainer.style.display = "block";
       DOM.ganttChartContainer.style.display = "none";
-      DOM.ganttChartContainer.innerHTML = "";
 
-      const series = [];
-      for (let j = 0; j < yama.length; j += 1) {
-        if (yama[j] && Array.isArray(yama[j])) {
-          for (let i = 0; i < yama[j].length; i += 1) {
-            const task = yama[j][i];
-            const status = task.taskStatus.toUpperCase();
-            const color = status === "VA" ? "#10b981" : status === "NVA" ? "#f59e0b" : "#f43f5e";
-            const dataPoint = new Array(opNames.length).fill(0);
-            dataPoint[j] = task.taskHeight;
-            series.push({
-              name: `${opNames[j]}: ${task.name || task.taskName} (${status})`,
-              data: dataPoint,
-              stack: opNames[j],
-              color,
-            });
-          }
-        } else {
-          toConsole("Invalid task array for operation", j, debuggin);
+      const vaData = [];
+      const nvaData = [];
+      const wData = [];
+
+      for (let j = 0; j < operations.length; j += 1) {
+        const op = operations[j];
+        let va = 0,
+          nva = 0,
+          w = 0;
+        for (let i = 0; i < op.tasks.length; i += 1) {
+          const task = op.tasks[i];
+          if (task.status === "VA") va += task.duration;
+          else if (task.status === "NVA") nva += task.duration;
+          else if (task.status === "W") w += task.duration;
         }
+        vaData.push(va);
+        nvaData.push(nva);
+        wData.push(w);
       }
-      toConsole("Generated series", JSON.stringify(series), debuggin);
-      toConsole("xAxis categories", JSON.stringify(opNames), debuggin);
-      Highcharts.chart(DOM.chartContainer, {
-        chart: { type: "column" },
-        accessibility: { enabled: false },
+
+      columnChart = new ApexCharts(DOM.chartContainer, {
+        series: [
+          { name: "VA", data: vaData, color: "#10b981" },
+          { name: "NVA", data: nvaData, color: "#f59e0b" },
+          { name: "W", data: wData, color: "#f43f5e" },
+        ],
+        chart: { type: "bar", height: 400, stacked: true, background: "transparent", toolbar: { show: false } },
+        theme: { mode: isDarkMode ? "dark" : "light" },
+        plotOptions: { bar: { columnWidth: "50%" } },
+        xaxis: { categories: opNames },
+        yaxis: {
+          title: { text: "Duration" },
+          labels: { formatter: (val) => formatDurationValue(val) },
+        },
         title: { text: "Operation Task Durations by Status" },
-        xAxis: { categories: opNames },
-        yAxis: {
-          title: {
-            text: `Duration (${
-              durationMode === "hhmmssms" ? "HH:MM:SS.MS" : durationMode === "ms" ? "Milliseconds" : "Minutes"
-            })`,
-          },
-          labels: {
-            formatter() {
-              return durationMode === "hhmmssms"
-                ? formatDuration(this.value)
-                : durationMode === "ms"
-                  ? this.value.toFixed(3)
-                  : formatDecimalMinutes(this.value);
-            },
-          },
-          plotLines: [
+        dataLabels: {
+          enabled: true,
+          formatter: (val) => (val > 0 ? formatDurationValue(val) : ""),
+        },
+        tooltip: { y: { formatter: (val) => formatDurationValue(val) } },
+        annotations: {
+          yaxis: [
             {
-              value: taktTime,
-              color: "#0000FF",
-              width: 2,
+              y: taktTime,
+              borderColor: "#0000FF",
               label: {
-                text: `Takt: ${
-                  durationMode === "hhmmssms"
-                    ? formatDuration(taktTime)
-                    : durationMode === "ms"
-                      ? `${taktTime.toFixed(3)} ms`
-                      : `${formatDecimalMinutes(taktTime)} min`
-                }`,
-                align: "right",
-                style: { color: "#0000FF" },
+                text: `Takt: ${formatDurationValue(taktTime)}`,
+                style: { color: "#fff", background: "#0000FF" },
               },
             },
           ],
         },
-        tooltip: {
-          formatter() {
-            const duration =
-              durationMode === "hhmmssms"
-                ? formatDuration(this.y)
-                : durationMode === "ms"
-                  ? `${this.y.toFixed(3)} ms`
-                  : `${formatDecimalMinutes(this.y)} min`;
-            const cleanTaskName = this.series.name.replace(`${this.x}: `, "");
-            return `<b>Operation: ${this.x}</b><br>Task: ${cleanTaskName}<br>Duration: ${duration}`;
-          },
-        },
-        plotOptions: {
-          column: {
-            stacking: "normal",
-            grouping: false,
-            pointWidth: 50,
-            dataLabels: {
-              enabled: true,
-              formatter() {
-                return this.y > 0
-                  ? durationMode === "hhmmssms"
-                    ? formatDuration(this.y)
-                    : durationMode === "ms"
-                      ? this.y.toFixed(3)
-                      : formatDecimalMinutes(this.y)
-                  : "";
-              },
-            },
-          },
-        },
-        series,
       });
+      columnChart.render();
     } else {
       DOM.chartContainer.style.display = "none";
       DOM.ganttChartContainer.style.display = "block";
-      DOM.chartContainer.innerHTML = "";
 
       const ganttData = [];
-      for (let i = 0; i < yama.length; i += 1) {
-        if (yama[i] && Array.isArray(yama[i])) {
-          for (let j = 0; j < yama[i].length; j += 1) {
-            const task = yama[i][j];
-            const status = task.taskStatus.toUpperCase();
-            const color = status === "VA" ? "#10b981" : status === "NVA" ? "#f59e0b" : "#f43f5e";
-            ganttData.push({
-              name: task.taskName,
-              start: task.taskStart,
-              end: task.taskEnd,
-              y: i,
-              color,
-              status,
-            });
-          }
+      for (let i = 0; i < operations.length; i += 1) {
+        const op = operations[i];
+        let currentStart = op.startTime * 1000;
+        for (let j = 0; j < op.tasks.length; j += 1) {
+          const task = op.tasks[j];
+          const color = task.status === "VA" ? "#10b981" : task.status === "NVA" ? "#f59e0b" : "#f43f5e";
+          ganttData.push({
+            x: op.name,
+            y: [currentStart, currentStart + task.duration],
+            fillColor: color,
+            taskName: task.name,
+            status: task.status,
+          });
+          currentStart += task.duration;
         }
       }
 
-      Highcharts.ganttChart(DOM.ganttChartContainer, {
-        accessibility: { enabled: false },
-        title: { text: "Task Timeline (Gantt)" },
-        xAxis: {
+      ganttChart = new ApexCharts(DOM.ganttChartContainer, {
+        series: [{ data: ganttData }],
+        chart: {
+          type: "rangeBar",
+          height: Math.max(300, operations.length * 80),
+          background: "transparent",
+          toolbar: { show: false },
+        },
+        theme: { mode: isDarkMode ? "dark" : "light" },
+        plotOptions: {
+          bar: { horizontal: true, rangeBarGroupRows: true },
+        },
+        xaxis: {
+          type: "datetime",
           labels: {
-            formatter() {
-              return durationMode === "hhmmssms"
-                ? formatDuration(this.value)
-                : durationMode === "ms"
-                  ? this.value.toFixed(3)
-                  : formatDecimalMinutes(this.value);
-            },
+            formatter: (val) => formatDurationValue(val),
           },
         },
-        yAxis: {
-          categories: opNames,
-          title: { text: "Operations" },
-        },
+        title: { text: "Task Timeline (Gantt)" },
         tooltip: {
-          formatter() {
-            const duration =
-              durationMode === "hhmmssms"
-                ? formatDuration(this.point.end - this.point.start)
-                : durationMode === "ms"
-                  ? `${(this.point.end - this.point.start).toFixed(3)} ms`
-                  : `${formatDecimalMinutes(this.point.end - this.point.start)} min`;
-            return `<b>Operation:</b> ${this.series.yAxis.categories[this.point.y]}<br/><b>Task:</b> ${this.point.name}<br/><b>Status:</b> ${this.point.status}<br/><b>Duration:</b> ${duration}`;
+          custom: function ({ seriesIndex, dataPointIndex, w }) {
+            const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
+            const duration = data.y[1] - data.y[0];
+            return `<div class="p-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm rounded">
+              <b>Operation:</b> ${escapeHTML(data.x)}<br/>
+              <b>Task:</b> ${escapeHTML(data.taskName)}<br/>
+              <b>Status:</b> ${data.status}<br/>
+              <b>Duration:</b> ${formatDurationValue(duration)}
+            </div>`;
           },
         },
-        series: [{ name: "Tasks", data: ganttData }],
       });
+      ganttChart.render();
     }
 
     DOM.pieChartContainer.innerHTML = "";
-    for (let i = 0; i < yama.length; i += 1) {
+    for (let i = 0; i < operations.length; i += 1) {
+      const op = operations[i];
       const statusDurations = { VA: 0, NVA: 0, W: 0 };
-      if (yama[i] && Array.isArray(yama[i])) {
-        for (let j = 0; j < yama[i].length; j += 1) {
-          if (yama[i][j]?.taskStatus) {
-            const status = yama[i][j].taskStatus.toUpperCase();
-            if (status in statusDurations) {
-              statusDurations[status] += yama[i][j].taskHeight;
-            }
-          } else {
-            toConsole("Invalid task data at", `Operation ${i}, Task ${j}`, debuggin);
-          }
+      for (let j = 0; j < op.tasks.length; j += 1) {
+        if (op.tasks[j]?.status) {
+          statusDurations[op.tasks[j].status.toUpperCase()] += op.tasks[j].duration;
         }
-      } else {
-        toConsole("No tasks for operation", opNames[i], debuggin);
-        continue;
       }
-      toConsole(
-        "Pie chart data for operation",
-        `${opNames[i]}: VA=${statusDurations.VA}, NVA=${statusDurations.NVA}, W=${statusDurations.W}`,
-        debuggin,
-      );
+
       const pieData = [
         { name: "VA", y: statusDurations.VA, color: "#10b981" },
         { name: "NVA", y: statusDurations.NVA, color: "#f59e0b" },
         { name: "W", y: statusDurations.W, color: "#f43f5e" },
       ].filter((item) => item.y > 0);
-      if (pieData.length === 0) {
-        toConsole("No valid pie chart data for operation", opNames[i], debuggin);
-        continue;
-      }
+
+      if (pieData.length === 0) continue;
+
       const pieDiv = document.createElement("div");
       pieDiv.id = `pieChart${i}`;
-      pieDiv.className = "pieChart";
+      pieDiv.className = "pieChart w-[300px] h-[250px] m-2 inline-block";
       DOM.pieChartContainer.appendChild(pieDiv);
-      Highcharts.chart(`pieChart${i}`, {
-        chart: { type: "pie", height: 200 },
-        accessibility: { enabled: false },
-        title: { text: `${opNames[i]} Duration by Status` },
+
+      const pie = new ApexCharts(pieDiv, {
+        series: pieData.map((d) => d.y),
+        labels: pieData.map((d) => d.name),
+        colors: pieData.map((d) => d.color),
+        chart: { type: "pie", height: 250, background: "transparent" },
+        theme: { mode: isDarkMode ? "dark" : "light" },
+        title: { text: `${op.name} Duration` },
         tooltip: {
-          pointFormatter() {
-            const duration =
-              durationMode === "hhmmssms"
-                ? formatDuration(this.y)
-                : durationMode === "ms"
-                  ? `${this.y.toFixed(3)} ms`
-                  : `${formatDecimalMinutes(this.y)} min`;
-            return `Duration: <b>${duration} (${this.percentage.toFixed(1)}%)</b>`;
+          y: { formatter: (val) => formatDurationValue(val) },
+        },
+        dataLabels: {
+          formatter: (val, opts) => {
+            return `${opts.w.globals.labels[opts.seriesIndex]}: ${val.toFixed(1)}%`;
           },
         },
-        plotOptions: {
-          pie: {
-            allowPointSelect: true,
-            cursor: "pointer",
-            dataLabels: {
-              enabled: true,
-              formatter() {
-                return `${this.point.name}: ${
-                  durationMode === "hhmmssms"
-                    ? formatDuration(this.y)
-                    : durationMode === "ms"
-                      ? this.y.toFixed(3)
-                      : formatDecimalMinutes(this.y)
-                }`;
-              },
-            },
-          },
-        },
-        series: [
-          {
-            name: "Duration",
-            data: pieData,
-          },
-        ],
       });
+      pie.render();
+      pieCharts.push(pie);
     }
   } catch (error) {
     toConsole("drawTable error", error.message, debuggin);
