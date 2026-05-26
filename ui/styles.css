@@ -199,8 +199,8 @@ dialog:modal {
     height: 500px;
   }
   .controls-container {
-    margin-top: 0 !important;
-    padding: 5px !important;
+    margin-top: 0;
+    padding: 5px;
     padding-left: 5%;
   }
   .play-button {
@@ -228,8 +228,8 @@ dialog:modal {
       height: 500px;
     }
     .controls-container {
-      margin-top: 0 !important;
-      padding: 10px !important;
+      margin-top: 0;
+      padding: 10px;
     }
     #chartContainer,
     #pieChartContainer {

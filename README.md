@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.4.6-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.4.7-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -14,6 +14,10 @@
 - **Dark/Light Mode**: Toggle between themes for improved usability.
 - **Zoom Controls**: Marquee-based video zoom with reset functionality.
 - **Takt Time**: Set and visualize takt time for process optimization.
+
+## Version 0.4.7 Updates
+- **UI Enhancements**: Implemented borderless action icons across task rows for a cleaner appearance.
+- **Inline Assignment**: Replaced modals with contextual inline dropdown menus for assigning Part Numbers and Labour Codes, now fully supporting quantity inputs.
 
 ## Version 0.4.6 Updates
 - **Native App Enhancements**: Switched native Save/Load behaviors to Tauri Core Invoke commands for reliable app-specific behavior.

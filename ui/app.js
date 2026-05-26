@@ -52,7 +52,7 @@ let unitsPerCycle = 1;
 let playbackSpeed = 1;
 let volumeLevel = 1;
 
-const APP_VERSION = "0.4.6";
+const APP_VERSION = "0.4.7";
 
 let isDrawing = false;
 let startX;
@@ -79,56 +79,6 @@ const openStatusModal = (e, opIndex, taskIndex) => {
 
   dialog.style.left = `${left}px`;
   dialog.style.top = `${top}px`;
-};
-
-const openTagModal = async (type, opIndex, taskIndex) => {
-  let title = "Assign Tag";
-  let message = "Select or type a new tag:";
-  let suggestions = [];
-
-  if (type.includes("part")) {
-    title = "Assign Part Number";
-    message = "Select a Part Number or enter a new one (Format: [number] - [desc]):";
-    suggestions = masterParts;
-  } else if (type.includes("labour")) {
-    title = "Assign Labour Code";
-    message = "Select a Labour Code or enter a new one (Format: [code] - [desc]):";
-    suggestions = masterLabour;
-  }
-
-  const result = await asyncPrompt(message, "", title, suggestions);
-
-  if (result && result.trim() !== "") {
-    const newTag = result.trim();
-    let addedNewMaster = false;
-
-    if (type.includes("part")) {
-      if (!masterParts.includes(newTag)) {
-        masterParts.push(newTag);
-        addedNewMaster = true;
-      }
-      if (type === "op-parts") {
-        if (!opPartTags[opIndex].includes(newTag)) opPartTags[opIndex].push(newTag);
-      } else if (type === "task-parts") {
-        if (!yama[opIndex][taskIndex].partTags.includes(newTag)) yama[opIndex][taskIndex].partTags.push(newTag);
-      }
-    } else if (type.includes("labour")) {
-      if (!masterLabour.includes(newTag)) {
-        masterLabour.push(newTag);
-        addedNewMaster = true;
-      }
-      if (type === "task-labour") {
-        if (!yama[opIndex][taskIndex].labourTags.includes(newTag)) yama[opIndex][taskIndex].labourTags.push(newTag);
-      }
-    }
-
-    if (addedNewMaster) {
-      showToast("New tag added to Master Data.", "success");
-    }
-
-    saveLocalState();
-    updateTaskList();
-  }
 };
 
 const removeTag = (target, opIndex, taskIndex, tagType, tagIdx) => {
@@ -307,6 +257,111 @@ const openOpPartDropdown = (e, opIndex) => {
   attachListEvents();
 };
 
+const openTaskLabourDropdown = (e, opIndex, taskIndex) => {
+  e.stopPropagation();
+  let dropdown = document.getElementById("task-labour-dropdown");
+  if (!dropdown) {
+    dropdown = document.createElement("div");
+    dropdown.id = "task-labour-dropdown";
+    dropdown.className =
+      "absolute bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg z-50 flex flex-col w-96 max-h-64";
+    document.body.appendChild(dropdown);
+
+    document.addEventListener("click", (ev) => {
+      if (dropdown && !dropdown.classList.contains("hidden") && !dropdown.contains(ev.target)) {
+        dropdown.classList.add("hidden");
+      }
+    });
+  }
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  dropdown.style.left = `${rect.left + window.scrollX}px`;
+  dropdown.style.top = `${rect.bottom + 4 + window.scrollY}px`;
+  dropdown.classList.remove("hidden");
+
+  const renderList = (filter = "") => {
+    const currentTags = yama[opIndex][taskIndex].labourTags || [];
+    const filtered = masterLabour.filter(
+      (p) => p.toLowerCase().includes(filter.toLowerCase()) && !currentTags.includes(p),
+    );
+    if (filtered.length === 0 && filter.trim() === "") {
+      return `<li class="px-2 py-1 text-sm text-zinc-500 italic">No labour codes available. Type to add one.</li>`;
+    }
+    return filtered
+      .map(
+        (p) =>
+          `<li class="px-2 py-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer rounded truncate" data-labour="${escapeHTML(p)}" title="${escapeHTML(p)}">${escapeHTML(p)}</li>`,
+      )
+      .join("");
+  };
+
+  dropdown.innerHTML = `
+    <div class="p-2 border-b border-zinc-200 dark:border-zinc-700 flex gap-1.5">
+      <input type="text" id="task-labour-search" class="form-control text-sm flex-1" placeholder="Search or add new... (Enter)">
+    </div>
+    <ul id="task-labour-list" class="overflow-y-auto flex-1 p-1 m-0 list-none space-y-0.5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full">
+      ${renderList()}
+    </ul>
+  `;
+
+  const input = document.getElementById("task-labour-search");
+  const list = document.getElementById("task-labour-list");
+
+  input.focus();
+
+  const attachListEvents = () => {
+    for (const li of list.querySelectorAll("li[data-labour]")) {
+      li.addEventListener("click", () => {
+        addTag(li.getAttribute("data-labour"));
+      });
+    }
+  };
+
+  const addTag = (newTag) => {
+    if (!newTag) return;
+
+    let addedNewMaster = false;
+    if (!masterLabour.includes(newTag)) {
+      masterLabour.push(newTag);
+      addedNewMaster = true;
+    }
+
+    if (!yama[opIndex][taskIndex].labourTags) {
+      yama[opIndex][taskIndex].labourTags = [];
+    }
+
+    if (!yama[opIndex][taskIndex].labourTags.includes(newTag)) {
+      yama[opIndex][taskIndex].labourTags.push(newTag);
+    }
+    if (addedNewMaster) {
+      showToast("New labour code added to Master Data.", "success");
+    }
+    saveLocalState();
+    updateTaskList();
+
+    input.value = "";
+    list.innerHTML = renderList("");
+    attachListEvents();
+    input.focus();
+  };
+
+  input.addEventListener("input", (ev) => {
+    list.innerHTML = renderList(ev.target.value);
+    attachListEvents();
+  });
+
+  input.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      addTag(input.value.trim());
+    } else if (ev.key === "Escape") {
+      dropdown.classList.add("hidden");
+    }
+  });
+
+  attachListEvents();
+};
+
 const renderTags = (tags, type, target, opIndex, taskIndex = -1, size = "normal") => {
   if (!tags || tags.length === 0) return "";
   const typeClass = type === "part" ? "tag-pill-part" : "tag-pill-labour";
@@ -467,7 +522,7 @@ const saveLocalState = () => {
 const renderTrialSelect = () => {
   if (!DOM.trialSelect) return;
   DOM.trialSelect.innerHTML = "";
-  trials.forEach((trial, index) => {
+  for (const [index, trial] of trials.entries()) {
     const option = document.createElement("option");
     option.value = index;
     option.textContent = trial.trialName;
@@ -476,7 +531,7 @@ const renderTrialSelect = () => {
       option.selected = true;
     }
     DOM.trialSelect.appendChild(option);
-  });
+  }
 };
 
 const switchTrial = async (index) => {
@@ -698,8 +753,11 @@ const openCompareDashboard = () => {
       chart: { type: "column" },
       title: { text: "Estimated Labor Cost per Unit" },
       xAxis: { categories },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: Highcharts formatting string
       yAxis: { title: { text: "Cost ($)" }, labels: { format: "${value:.4f}" } },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: Highcharts formatting string
       tooltip: { pointFormat: "<b>${point.y:.4f}</b>" },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: Highcharts formatting string
       plotOptions: { column: { dataLabels: { enabled: true, format: "${y:.4f}" } } },
       series: [{ name: "Cost", data: costData, color: "#8b5cf6", showInLegend: false }],
     });
@@ -2155,7 +2213,7 @@ const updateTaskList = () => {
                      chartMode === "column"
                        ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 8h6"/><path d="M11 12h5"/><path d="M14 16h6"/></svg>`
                        : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`
-                   }
+}
                  </button>
                  <span>Operation</span>
                </div>
@@ -2215,8 +2273,6 @@ const updateTaskList = () => {
             : durationMode === "ms"
               ? task.taskHeight.toFixed(3)
               : formatDecimalMinutes(task.taskHeight);
-
-        const taskPartTags = task.partTags || [];
         const taskLabourTags = task.labourTags || [];
 
         const safeTaskName = escapeHTML(task.taskName);
@@ -2232,12 +2288,12 @@ const updateTaskList = () => {
         rows.push(`
           <tr>
             <td>
-              <div class="ml-5 flex flex-col items-start">
+              <div class="ml-5 flex items-center gap-2 flex-wrap">
                 <input type="text" class="font-semibold bg-transparent border-0 outline-none shadow-none focus:ring-0 focus:bg-zinc-100 dark:focus:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded px-1 py-0.5 h-auto leading-tight transition-colors m-0 cursor-text max-w-full" style="width: ${Math.max(safeTaskName.length + 1, 5)}ch;" value="${safeTaskName}" oninput="this.style.width = (this.value.length + 1) + 'ch';" onchange="handleInlineNameEdit(${i}, ${j}, this.value)" onfocus="this.select()" title="Edit Task Name">
-                <div class="px-1">
-                  ${renderTags(taskPartTags, "part", "task", i, j)}
-                  ${renderTags(taskLabourTags, "labour", "task", i, j)}
-                </div>
+                <button onclick="openTaskLabourDropdown(event, ${i}, ${j})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Assign Labour Codes">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                </button>
+                ${renderTags(taskLabourTags, "labour", "task", i, j, "xs")}
               </div>
             </td>
             <td class="text-center whitespace-nowrap align-top pt-1.5">
@@ -2249,13 +2305,7 @@ const updateTaskList = () => {
               </button>
             </td>
             <td class="flex gap-1.5 justify-center">
-              <button onclick="openTagModal('task-parts', ${i}, ${j})" class="btn btn-outline-secondary p-1" title="Assign Part Numbers">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
-              </button>
-              <button onclick="openTagModal('task-labour', ${i}, ${j})" class="btn btn-outline-secondary p-1" title="Assign Labour Codes">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-              </button>
-              <button onclick="insertTask(${i}, ${j})" class="btn btn-outline-secondary p-1 ml-2" title="Split Task">
+              <button onclick="insertTask(${i}, ${j})" class="btn btn-outline-secondary p-1" title="Split Task">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
               </button>
               <button onclick="deleteTask(${i}, ${j})" class="btn btn-outline-danger p-1" title="Delete Task">
