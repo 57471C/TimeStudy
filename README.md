@@ -1,19 +1,23 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.4.7-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.5.0-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
 
 - **Video Playback**: Load and control video files with play, pause, seek, speed (0.5x–8x), and volume adjustments.
-- **Task Management**: Add, edit, split, and delete operations and tasks with Value-Added (VA), Non-Value-Added (NVA), and Waste (W) statuses.
-- **Multi-Trial Kaizen**: Duplicate and compare multiple trials within a single project to visualize process improvements over time.
-- **Comparison Dashboard**: Full-screen Highcharts dashboard comparing Value-Add breakdown, estimated capacity (Units per Shift), and Labor Cost per Unit across trials.
-- **garting**: Visualize task durations with Gantt, column, and pie charts, customizable by time format (MM:SS:MS, ms, decimal minutes).
-- **Dark/Light Mode**: Toggle between themes for improved usability.
 - **Zoom Controls**: Marquee-based video zoom with reset functionality.
+- **Task Management**: Add, edit, split, and delete Operations and Tasks with Value-Added (VA), Non-Value-Added (NVA), and Waste (W) statuses.
+- **Charting**: Visualize task durations with Gantt, column, and pie charts, customizable by time format (MM:SS:MS, ms, decimal minutes).
+- **Multi-Trial Kaizen**: Duplicate and compare multiple trials within a single project to visualize process improvements over time.
+- **Comparison Dashboard**: Full-screen dashboard comparing Value-Add breakdown, estimated capacity (Units per Shift), and Labor Cost per Unit across trials.
 - **Takt Time**: Set and visualize takt time for process optimization.
+- **Dark/Light Mode**: Toggle between themes for improved usability.
+
+## Version 0.5.0 Updates
+- **UI Overhaul**: Purged legacy custom CSS in favor of standard Tailwind CSS utility classes.
+- **Optimized Layouts**: Adjusted chart dimensions and compressed table row heights to improve information density and readability.
 
 ## Version 0.4.7 Updates
 - **UI Enhancements**: Implemented borderless action icons across task rows for a cleaner appearance.
@@ -79,7 +83,7 @@ n
 
 ## Beta Testing
 
-- **Focus**: Validate two-column layout, styling, XLSX handling, lazy-loaded Highcharts, and core functionality.
+- **Focus**: Validate two-column layout, styling, CSV handling, ApexCharts, and core functionality.
 - **Feedback**: Report issues via GitHub Issues at https://github.com/57471C/TimeStudy/issues.
 - **Known Limitations**: Monitor performance with large datasets.
 

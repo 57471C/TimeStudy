@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TimeStudy v0.4.7</title>
+    <title>TimeStudy v0.5.0</title>
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="icons/favicon.ico" />
     <link rel="icon" type="image/png" href="icons/favicon.png" />
@@ -17,19 +17,19 @@
   </head>
   <body class="font-sans bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 min-h-screen flex flex-col transition-colors duration-200">
     <!-- Header -->
-    <header class="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 shadow-sm p-4 flex justify-between items-center z-10">
+    <header class="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 shadow-sm py-1.5 px-4 flex justify-between items-center z-10 min-h-[32px]">
       <div class="flex items-center gap-2 sm:gap-3">
-        <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap hidden lg:block">TimeStudy v0.4.7</h1>
+        <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap hidden lg:block">TimeStudy v0.5.0</h1>
         <span class="text-zinc-300 dark:text-zinc-600 hidden lg:inline font-light text-xl">/</span>
         <input type="text" id="projectNameInput" placeholder="Untitled Project" class="project-name-input" />
         <span class="text-zinc-300 dark:text-zinc-600 hidden sm:inline font-light text-xl">/</span>
         <div class="flex items-center gap-1">
           <select id="trialSelect" class="trial-select" title="Switch Trial"></select>
-          <button id="editTrialBtn" class="btn border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 p-1.5 flex items-center justify-center rounded-md w-8 h-8 transition-colors shadow-none" title="Rename Trial">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+          <button id="editTrialBtn" class="border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 p-1 flex items-center justify-center rounded-md w-8 h-8 transition-colors shadow-none cursor-pointer" title="Rename Trial">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
           </button>
-          <button id="addTrialBtn" class="btn border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 p-1.5 flex items-center justify-center rounded-md w-8 h-8 transition-colors shadow-none" title="Add Trial">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <button id="addTrialBtn" class="border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 p-1 flex items-center justify-center rounded-md w-8 h-8 transition-colors shadow-none cursor-pointer" title="Add Trial">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           </button>
         </div>
       </div>
@@ -79,17 +79,17 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Left Column: Video and Controls -->
         <div class="flex flex-col gap-4">
-          <div class="video-container">
+          <div class="w-full h-[500px] relative group">
             <div id="videoPlaceholder" class="w-full h-full min-h-[500px] bg-zinc-900 text-zinc-400 flex items-center justify-center text-lg p-5 absolute top-0 left-0 z-10 cursor-pointer border border-transparent dark:border-zinc-700 transition-colors duration-200">Load a video to get started</div>
-            <div id="videoWrapper">
-              <div id="marqueeOverlay" class="marquee-overlay">
-                <div id="marqueeRect" class="marquee-rect"></div>
+            <div id="videoWrapper" class="w-full h-full absolute top-0 left-0 overflow-hidden bg-black z-10" style="display: none;">
+              <div id="marqueeOverlay" class="absolute inset-0 z-[12] cursor-crosshair">
+                <div id="marqueeRect" class="absolute border-2 border-dashed border-blue-600 bg-blue-600/10 pointer-events-none hidden"></div>
               </div>
-              <video id="my_video">
+              <video id="my_video" class="max-h-full w-auto h-full block object-contain origin-top-left transition-transform duration-300 ease-in-out z-[1]">
                 <track kind="captions" />
                 Your browser does not support the video tag.
               </video>
-              <div class="zoom-controls">
+              <div class="absolute top-2.5 right-2.5 z-[15] hidden group-hover:block">
                 <button id="zoomIn" class="btn btn-sm btn-dark-gray">+</button>
                 <button id="zoomOut" class="btn btn-sm btn-dark-gray">-</button>
                 <button id="resetZoom" class="btn btn-sm btn-dark-gray">Reset</button>
@@ -97,13 +97,13 @@
             </div>
           </div>
           <div class="w-full p-2.5 lg:p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm flex flex-wrap gap-1.5 z-0 transition-colors duration-200">
-            <div id="video_controls_bar">
-              <div class="control-row items-center gap-4">
+            <div id="video_controls_bar" class="w-full m-0 p-0">
+              <div class="w-full flex items-center gap-4">
                 <span id="currentTime" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-24 text-center">00:00:00.00</span>
                 <input type="range" class="form-range flex-1 timeline-ticks" min="0" max="100" value="0" id="seekBar" aria-label="Seek Video" />
                 <span id="durationTime" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-24 text-center">00:00:00.00</span>
               </div>
-              <div class="control-row button-row">
+              <div class="w-full flex items-center justify-center flex-wrap mt-2.5 gap-1.5 sm:gap-2">
                 <button id="loadVideoButton" class="btn-icon-highlight mr-8" title="Load Video">
                   <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m6 14 1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2"></path>
@@ -162,7 +162,7 @@
                     <line x1="17" y1="9" x2="23" y2="15"></line>
                   </svg>
                 </button>
-                <div class="flex items-center w-32 sm:w-40 shrink min-w-[100px] gap-2">
+                <div class="flex items-center w-32 sm:w-40 shrink min-w-[100px] gap-4">
                   <input
                     type="range"
                     class="form-range slider-ticks flex-1"
@@ -176,7 +176,7 @@
                   <span id="volumeValue" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-7 text-right">100</span>
                 </div>
               </div>
-              <div class="control-row items-center gap-4 mt-2">
+              <div class="w-full flex items-center gap-2 sm:gap-8 mt-4">
                 <span class="font-mono text-sm text-zinc-500 dark:text-zinc-400 w-20 text-center">Speed</span>
                 <input type="range" class="form-range flex-1 timeline-ticks" style="--tick-interval: 6.6667%;" min="0.5" max="8" step="0.1" value="1" id="speedSlider" aria-label="Playback Speed" />
                 <span id="speedValue" class="font-mono tabular-nums text-sm text-zinc-500 dark:text-zinc-400 w-20 text-center">1.0x</span>
@@ -202,7 +202,7 @@
                 </button>
                 <div class="hidden sm:block w-px h-6 bg-zinc-200 dark:bg-zinc-700 mx-1"></div>
                 <button id="compareTrialsBtn" class="btn btn-outline-secondary flex items-center gap-1.5 shadow-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                   Compare
                 </button>
               </div>
@@ -228,9 +228,9 @@
 
       <!-- Full-Width Charts -->
       <div class="mt-8 space-y-6">
-        <div id="chartContainer"></div>
-        <div id="ganttChartContainer"></div>
-        <div id="pieChartContainer" class="flex flex-wrap gap-4"></div>
+        <div id="chartContainer" class="my-5"></div>
+        <div id="ganttChartContainer" class="my-5"></div>
+        <div id="pieChartContainer" class="flex flex-wrap gap-4 my-5"></div>
       </div>
     </div>
 
@@ -250,7 +250,7 @@
         </h5>
         <button type="button" id="closeSettingsBtn" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl font-bold px-2 leading-none">&times;</button>
       </div>
-      <div class="p-5 overflow-y-auto flex-1 flex flex-col gap-6">
+      <div class="p-5 overflow-y-auto flex-1 flex flex-col gap-6 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full">
         <div>
           <label for="projectCommentsInput" class="form-label">Project Comments</label>
           <textarea id="projectCommentsInput" class="form-control w-full" rows="3" placeholder="Notes about this study or trial..."></textarea>
@@ -357,7 +357,7 @@
           </h5>
           <button type="button" id="closeCompareBtn" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl font-bold px-2 leading-none">&times;</button>
         </div>
-        <div class="p-4 overflow-y-auto flex-1 bg-zinc-50 dark:bg-zinc-900/50">
+        <div class="p-4 overflow-y-auto flex-1 bg-zinc-50 dark:bg-zinc-900/50 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div class="bg-white dark:bg-zinc-800 p-4 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700">
               <div id="compareVaNvaChart" class="w-full h-80"></div>
@@ -381,7 +381,7 @@
       </div>
       <div class="p-4 space-y-4">
         <h6 class="font-medium text-zinc-800 dark:text-zinc-200">Keyboard Shortcuts</h6>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full">
           <table class="table w-full">
             <tbody>
               <tr><td><strong>Space</strong></td><td>Play / Pause</td></tr>
@@ -414,7 +414,7 @@
         <h5 class="text-lg font-semibold" id="masterDataModalTitle">Master Data</h5>
         <button type="button" id="closeMasterDataBtnX" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl font-bold px-2 leading-none">&times;</button>
       </div>
-      <div class="p-0 overflow-y-auto max-h-[60vh]">
+      <div class="p-0 overflow-y-auto max-h-[60vh] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full">
         <ul id="masterDataList" class="divide-y divide-zinc-200 dark:divide-zinc-700"></ul>
       </div>
       <div class="p-4 border-t border-zinc-200 dark:border-zinc-700 flex justify-between items-center">

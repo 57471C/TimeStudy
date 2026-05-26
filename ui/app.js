@@ -46,7 +46,7 @@ let unitsPerCycle = 1;
 let playbackSpeed = 1;
 let volumeLevel = 1;
 
-const APP_VERSION = "0.4.7";
+const APP_VERSION = "0.5.0";
 
 let isDrawing = false;
 let startX;
@@ -567,10 +567,14 @@ const toggleChartMode = () => {
 
 const updateChartThemes = (isDark) => {
   const mode = isDark ? "dark" : "light";
-  if (columnChart) columnChart.updateOptions({ theme: { mode } });
-  if (ganttChart) ganttChart.updateOptions({ theme: { mode } });
-  pieCharts.forEach((c) => c.updateOptions({ theme: { mode } }));
-  compareCharts.forEach((c) => c.updateOptions({ theme: { mode } }));
+  if (columnChart) columnChart.updateOptions({ theme: { mode: mode } });
+  if (ganttChart) ganttChart.updateOptions({ theme: { mode: mode } });
+  pieCharts.forEach((c) => {
+    c.updateOptions({ theme: { mode: mode } });
+  });
+  compareCharts.forEach((c) => {
+    c.updateOptions({ theme: { mode: mode } });
+  });
 };
 
 const saveLocalState = () => {
@@ -768,7 +772,9 @@ const openCompareDashboard = () => {
 
   const isDark = document.documentElement.classList.contains("dark");
 
-  compareCharts.forEach((c) => c.destroy());
+  compareCharts.forEach((c) => {
+    c.destroy();
+  });
   compareCharts = [];
 
   setTimeout(() => {
@@ -778,7 +784,7 @@ const openCompareDashboard = () => {
         { name: "Non-Value-Add (NVA)", data: nvaData, color: "#f59e0b" },
         { name: "Waste (W)", data: wData, color: "#f43f5e" },
       ],
-      chart: { type: "bar", height: 400, stacked: true, background: "transparent", toolbar: { show: false } },
+      chart: { type: "bar", height: 360, stacked: true, background: "transparent", toolbar: { show: false } },
       theme: { mode: isDark ? "dark" : "light" },
       xaxis: { categories: categories },
       yAxis: {
@@ -803,7 +809,7 @@ const openCompareDashboard = () => {
 
     const unitsChart = new ApexCharts(document.getElementById("compareUnitsChart"), {
       series: [{ name: "Units", data: unitsData, color: "#3b82f6" }],
-      chart: { type: "bar", height: 400, background: "transparent", toolbar: { show: false } },
+      chart: { type: "bar", height: 360, background: "transparent", toolbar: { show: false } },
       theme: { mode: isDark ? "dark" : "light" },
       xaxis: { categories: categories },
       yaxis: { title: { text: "Units" } },
@@ -815,7 +821,7 @@ const openCompareDashboard = () => {
 
     const costChart = new ApexCharts(document.getElementById("compareCostChart"), {
       series: [{ name: "Cost", data: costData, color: "#8b5cf6" }],
-      chart: { type: "bar", height: 400, background: "transparent", toolbar: { show: false } },
+      chart: { type: "bar", height: 360, background: "transparent", toolbar: { show: false } },
       theme: { mode: isDark ? "dark" : "light" },
       xaxis: { categories: categories },
       yaxis: {
@@ -2191,7 +2197,7 @@ const updateTaskList = () => {
     if (!DOM.taskList) throw new Error("Task list element not found");
     const isDarkMode = document.documentElement.classList.contains("dark");
     const rows = [
-      `<table class="table task-table font-mono text-base tabular-nums">
+      `<table class="table mt-5 w-full font-mono text-base tabular-nums [&_th]:align-middle [&_td]:align-middle [&_th]:text-sm sm:[&_th]:text-base [&_td]:text-sm sm:[&_td]:text-base [&_th]:py-1 [&_th]:h-[20px]">
          <thead>
            <tr>
              <th scope="col" class="text-left align-middle">
@@ -2232,9 +2238,9 @@ const updateTaskList = () => {
                   <span class="font-bold text-lg shrink-0">
                     ${safeOpName}
                   </span>
-                  <span class="op-time-container shrink-0">
+                  <span class="inline-flex items-center gap-1.5 ml-2.5 shrink-0">
                     <label for="${opTimeInputId}" class="form-label font-mono text-base mb-0" style="width: auto;">Start:</label>
-                    <input type="text" id="${opTimeInputId}" class="form-control op-time-input font-mono tabular-nums text-base" value="${formattedTime}">
+                    <input type="text" id="${opTimeInputId}" class="form-control w-[125px] px-1 text-center font-mono tabular-nums text-base" value="${formattedTime}">
                   </span>
                   <button onclick="openOpPartDropdown(event, ${i})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Assign Part Numbers">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
@@ -2317,7 +2323,7 @@ const updateTaskList = () => {
 
     DOM.taskTableFoot = document.getElementById("taskTableFoot");
 
-    const table = document.querySelector(".task-table");
+    const table = DOM.taskList.querySelector("table");
     if (!table) throw new Error("Task table element not found");
     if (operations.length > 0) {
       table.style.display = "table";
@@ -2373,17 +2379,17 @@ const updateProcessTimes = () => {
       <tr>
         <td colspan="4" class="table-foot">
           <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 w-full py-1">
-            <span class="process-time-container">
+            <span class="inline-flex items-center gap-1.5">
               <label for="taktTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Takt Time:</label>
-              <input type="text" id="taktTimeInput" class="form-control process-time-input font-mono tabular-nums text-sm" value="${formatTaktTime(taktTime)}">
+              <input type="text" id="taktTimeInput" class="form-control w-[110px] px-1 text-center font-mono tabular-nums text-sm" value="${formatTaktTime(taktTime)}">
             </span>
-            <span class="process-time-container">
+            <span class="inline-flex items-center gap-1.5">
               <label for="processEndTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Process end time:</label>
-              <input type="text" id="processEndTimeInput" class="form-control process-time-input font-mono tabular-nums text-sm" value="${formattedEndTime}">
+              <input type="text" id="processEndTimeInput" class="form-control w-[110px] px-1 text-center font-mono tabular-nums text-sm" value="${formattedEndTime}">
             </span>
-            <span class="process-time-container">
+            <span class="inline-flex items-center gap-1.5">
               <label for="totalProcessTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Total Process time:</label>
-              <input type="text" id="totalProcessTimeInput" class="form-control process-time-input font-mono tabular-nums text-sm" value="${totalProcessTime}" disabled>
+              <input type="text" id="totalProcessTimeInput" class="form-control w-[110px] px-1 text-center font-mono tabular-nums text-sm" value="${totalProcessTime}" disabled>
             </span>
           </div>
         </td>
@@ -2711,39 +2717,37 @@ const drawTable = () => {
       ganttChart.destroy();
       ganttChart = null;
     }
-    pieCharts.forEach((c) => c.destroy());
+    pieCharts.forEach((c) => {
+      c.destroy();
+    });
     pieCharts = [];
 
     if (chartMode === "column") {
       DOM.chartContainer.style.display = "block";
       DOM.ganttChartContainer.style.display = "none";
 
-      const vaData = [];
-      const nvaData = [];
-      const wData = [];
-
+      const series = [];
       for (let j = 0; j < operations.length; j += 1) {
         const op = operations[j];
-        let va = 0,
-          nva = 0,
-          w = 0;
         for (let i = 0; i < op.tasks.length; i += 1) {
           const task = op.tasks[i];
-          if (task.status === "VA") va += task.duration;
-          else if (task.status === "NVA") nva += task.duration;
-          else if (task.status === "W") w += task.duration;
+          const data = new Array(operations.length).fill(0);
+          data[j] = task.duration;
+
+          let color = "#10b981";
+          if (task.status === "NVA") color = "#f59e0b";
+          else if (task.status === "W") color = "#f43f5e";
+
+          series.push({
+            name: task.name || `Task ${i + 1}`,
+            data: data,
+            color: color,
+          });
         }
-        vaData.push(va);
-        nvaData.push(nva);
-        wData.push(w);
       }
 
       columnChart = new ApexCharts(DOM.chartContainer, {
-        series: [
-          { name: "VA", data: vaData, color: "#10b981" },
-          { name: "NVA", data: nvaData, color: "#f59e0b" },
-          { name: "W", data: wData, color: "#f43f5e" },
-        ],
+        series: series,
         chart: { type: "bar", height: 400, stacked: true, background: "transparent", toolbar: { show: false } },
         theme: { mode: isDarkMode ? "dark" : "light" },
         plotOptions: { bar: { columnWidth: "50%" } },
@@ -2752,7 +2756,8 @@ const drawTable = () => {
           title: { text: "Duration" },
           labels: { formatter: (val) => formatDurationValue(val) },
         },
-        title: { text: "Operation Task Durations by Status" },
+        title: { text: "Operation Task Durations" },
+        legend: { show: false },
         dataLabels: {
           enabled: true,
           formatter: (val) => (val > 0 ? formatDurationValue(val) : ""),
@@ -2814,7 +2819,7 @@ const drawTable = () => {
         },
         title: { text: "Task Timeline (Gantt)" },
         tooltip: {
-          custom: function ({ seriesIndex, dataPointIndex, w }) {
+          custom: ({ seriesIndex, dataPointIndex, w }) => {
             const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
             const duration = data.y[1] - data.y[0];
             return `<div class="p-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm rounded">
@@ -2849,14 +2854,16 @@ const drawTable = () => {
 
       const pieDiv = document.createElement("div");
       pieDiv.id = `pieChart${i}`;
-      pieDiv.className = "pieChart w-[300px] h-[250px] m-2 inline-block";
+      pieDiv.className = "pieChart w-[180px] h-[150px] m-2 inline-block";
       DOM.pieChartContainer.appendChild(pieDiv);
 
       const pie = new ApexCharts(pieDiv, {
         series: pieData.map((d) => d.y),
         labels: pieData.map((d) => d.name),
         colors: pieData.map((d) => d.color),
-        chart: { type: "pie", height: 250, background: "transparent" },
+        chart: { type: "pie", height: 150, width: 180, background: "transparent" },
+        legend: { show: false },
+        stroke: { width: 1 },
         theme: { mode: isDarkMode ? "dark" : "light" },
         title: { text: `${op.name} Duration` },
         tooltip: {
