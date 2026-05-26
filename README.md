@@ -15,6 +15,17 @@
 - **Takt Time**: Set and visualize takt time for process optimization.
 - **Dark/Light Mode**: Toggle between themes for improved usability.
 
+## Usage
+
+1. **Load Video**: Click “Load” or the placeholder to select a video file.
+2. **Configure Project**: Open the Settings (Gear) menu to set Hourly Rate, Shift Length, and Efficiency.
+3. **Add Operations/Tasks**: Use “Add Operation” and “Add Task” buttons to log process steps.
+4. **Analyze Data**: View the inline Gantt/Column charts, or create a new Trial via the header dropdown to analyze improvements.
+5. **Compare Trials**: Click "Compare Trials" to view the full-screen Kaizen dashboard.
+6. **Save/Load**: Use “Save Project” to export your `.json` state.
+6. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
+7. **Dark Mode**: Click the sun/moon icon to toggle themes.
+
 ## Version 0.5.0 Updates
 - **UI Overhaul**: Purged legacy custom CSS in favor of standard Tailwind CSS utility classes.
 - **Optimized Layouts**: Adjusted chart dimensions and compressed table row heights to improve information density and readability.
@@ -41,51 +52,8 @@
 : Added "Units per Cycle" and "Project Comments" to the Settings panel.
 - **Cleanup**: Removed legacy XLSX and Excel handling dependencies.
 
-   ```bash
-   git clone https://github.com/57471C/TimeStudy.git
-   cd TimeStudy
-   ```
-
-2. Install dependencies (if applicable):
-
-   ```bash
-   npm install
-   ```
-
-3. Run the application locally:
-   ```bash
-   python -m http.server 8500
-   ```
-   - Open `http://localhost:8500` in a browser.
-
-## Usage
-
-1. **Load Video**: Click “Load” or the placeholder to select a video file.
-2. **Configure Project**: Open the Settings (Gear) menu to set Hourly Rate, Shift Length, and Efficiency.
-3. **Add Operations/Tasks**: Use “Add Operation” and “Add Task” buttons to log process steps.
-4. **Analyze Data**: View the inline Gantt/Column charts, or create a new Trial via the header dropdown to analyze improvements.
-5. **Compare Trials**: Click "Compare Trials" to view the full-screen Kaizen dashboard.
-6. **Save/Load**: Use “Save Project” to export your `.json` state.
-6. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
-7. **Dark Mode**: Click the sun/moon icon to toggle themes.
-
 ## Project Structure
-n
-## Development
 
-- **Branch**: `feature/v0.3.1` merged into `main` for beta testing.
-- **Tools**: Windows 11, VS Code, ESLint, Prettier, Google’s JavaScript style guide.
-- **Linting/Formatting**:
-  ```bash
-  npm run lint:fix
-  npm run format
-  ```
-
-## Beta Testing
-
-- **Focus**: Validate two-column layout, styling, CSV handling, ApexCharts, and core functionality.
-- **Feedback**: Report issues via GitHub Issues at https://github.com/57471C/TimeStudy/issues.
-- **Known Limitations**: Monitor performance with large datasets.
 
 ## Contributing
 
