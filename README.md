@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.5.0-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.5.1-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -26,6 +26,11 @@
 6. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 7. **Dark Mode**: Click the sun/moon icon to toggle themes.
 
+## Version 0.5.1 Updates
+- **Performance Optimizations**: Switched real-time inputs to `change` events, drastically reducing chart re-renders and eliminating UI freezing.
+- **Tailwind v4 Upgrade**: Updated codebase to utilize modern Tailwind v4 syntax and dynamic spacing scales.
+- **Developer Experience**: Configured workspace settings to prevent Language Server out-of-memory crashes from minified and auto-generated files.
+
 ## Version 0.5.0 Updates
 - **UI Overhaul**: Purged legacy custom CSS in favor of standard Tailwind CSS utility classes.
 - **Optimized Layouts**: Adjusted chart dimensions and compressed table row heights to improve information density and readability.
@@ -48,8 +53,9 @@
 
 ## Version 0.4.4 Updates
 - **Multi-Trial Support**: Added the ability to create, duplicate, and seamlessly switch between multiple trials within a single project.
-- **Kaizen Comparison Dashboard**: Introduced a dedicated analytics mo- **Video Blob Caching**: Switching trials automatically caches and restores video streams without requiring manual file re-linking.
-: Added "Units per Cycle" and "Project Comments" to the Settings panel.
+- **Kaizen Comparison Dashboard**: Introduced a dedicated analytics dashboard to compare metrics across trials.
+- **Video Blob Caching**: Switching trials automatically caches and restores video streams without requiring manual file re-linking.
+- **Settings**: Added "Units per Cycle" and "Project Comments" to the Settings panel.
 - **Cleanup**: Removed legacy XLSX and Excel handling dependencies.
 
 ## Project Structure
