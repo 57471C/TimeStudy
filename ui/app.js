@@ -903,6 +903,10 @@ const initializePlayer = () => {
 };
 
 window.onload = () => {
+  // Prevent horizontal scrolling/panning of the page in the Windows app
+  document.documentElement.style.overflowX = "hidden";
+  document.body.style.overflowX = "hidden";
+
   initializePlayer();
   toggleVideoPlaceholder(true);
 
