@@ -1,3 +1,16 @@
+const ICONS = {
+  trash: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
+  part: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>`,
+  partSmall: `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>`,
+  labour: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`,
+  labourSmall: `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`,
+  chartCol: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 8h6"/><path d="M11 12h5"/><path d="M14 16h6"/></svg>`,
+  chartGantt: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  jump: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 12 12 4 20 4 4"></polygon><line x1="16" y1="4" x2="16" y2="20"></line><line x1="20" y1="4" x2="20" y2="20"></line></svg>`,
+  edit: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>`,
+  split: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>`
+};
+
 const openStatusModal = (e, opIndex, taskIndex) => {
   currentStatusEdit = { opIndex, taskIndex };
   const dialog = DOM.statusModal;
@@ -60,7 +73,7 @@ const showMasterDataModal = (title, dataArray, type) => {
     ? dataArray
         .map(
           (item, idx) =>
-            `<li class="px-4 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex justify-between items-center group"><span>${escapeHTML(item)}</span><button type="button" onclick="deleteMasterDataTag('${type}', ${idx})" class="text-zinc-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none transition-colors opacity-0 group-hover:opacity-100" title="Delete Tag"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></li>`,
+            `<li class="px-4 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex justify-between items-center group"><span>${escapeHTML(item)}</span><button type="button" onclick="deleteMasterDataTag('${type}', ${idx})" class="text-zinc-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none transition-colors opacity-0 group-hover:opacity-100" title="Delete Tag">${ICONS.trash}</button></li>`,
         )
         .join("")
     : `<li class="px-4 py-4 text-sm text-zinc-500 italic text-center">No data loaded.</li>`;
@@ -419,14 +432,234 @@ const renderTags = (tags, type, target, opIndex, taskIndex = -1, size = "normal"
     sizeClasses = "text-[10px] py-0.5 px-1.5 leading-none";
   }
 
-  const icon =
-    size === "xs"
-      ? ""
-      : type === "part"
-        ? `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><path d="M12.586 2.586a2 2 0 0 0-2.828 0L2.586 9.757a2 2 0 0 0 0 2.828l9.172 9.172a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828L12.586 2.586z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>`
-        : `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`;
+  const icon = size === "xs" ? "" : type === "part" ? ICONS.partSmall : ICONS.labourSmall;
 
   return `<div class="tag-container ${size === "xs" ? "gap-1 mt-0" : ""}">
-    ${tags.map((tag, idx) => `<span class="tag-pill ${typeClass} ${sizeClasses}">${icon ? `${icon} ` : ""}<span class="${size === "xs" ? "translate-y-[1px]" : ""}">${escapeHTML(tag)}</span><button type="button" onclick="removeTag('${target}', ${opIndex}, ${taskIndex}, '${type}', ${idx})" class="hover:text-red-500 dark:hover:text-red-400 font-bold ml-0.5 leading-none focus:outline-none transition-colors" title="Remove Tag">&times;</button></span>`).join("")}
+    ${tags.map((tag, idx) => `<span class="tag-pill ${typeClass} ${sizeClasses}">${icon ? `${icon} ` : ""}<span class="${size === "xs" ? "translate-y-px" : ""}">${escapeHTML(tag)}</span><button type="button" onclick="removeTag('${target}', ${opIndex}, ${taskIndex}, '${type}', ${idx})" class="hover:text-red-500 dark:hover:text-red-400 font-bold ml-0.5 leading-none focus:outline-none transition-colors" title="Remove Tag">&times;</button></span>`).join("")}
   </div>`;
+};
+
+const buildOpRow = (op, i) => {
+  const opTimeInputId = `opTimeInput-${i}`;
+  const formattedTime = formatTimeToHHMMSSMS(op.startTime);
+  const safeOpName = escapeHTML(op.name);
+  return `
+    <tr>
+      <td colspan="4">
+        <div class="flex items-center justify-between w-full">
+          <div class="flex-1 mr-4">
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="jumpToOperationTime('${opTimeInputId}')" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Jump to Operation Time">
+                ${ICONS.jump}
+              </button>
+              <span class="font-bold text-lg shrink-0">${safeOpName}</span>
+              <span class="inline-flex items-center gap-1.5 ml-2.5 shrink-0">
+                <label for="${opTimeInputId}" class="form-label font-mono text-base mb-0" style="width: auto;">Start:</label>
+              <input type="text" id="${opTimeInputId}" class="form-control w-31.25 px-1 text-center font-mono tabular-nums text-base" value="${formattedTime}">
+              </span>
+              <button onclick="openOpPartDropdown(event, ${i})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Assign Part Numbers">
+                ${ICONS.part}
+              </button>
+              ${renderTags(op.partTags || [], "part", "op", i, -1, "xs")}
+              <button onclick="openOpBulkLabourDropdown(event, ${i})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0 ml-1" title="Assign Labour to All Tasks">
+                ${ICONS.labour}
+              </button>
+            </div>
+          </div>
+          <div class="flex gap-1.5">
+            <button onclick="renameOperation(${i})" class="btn btn-primary p-1 shadow-sm" title="Rename Operation">${ICONS.edit}</button>
+            <button onclick="deleteOperation(${i})" class="btn btn-danger p-1 shadow-sm" title="Delete Operation">${ICONS.trash}</button>
+          </div>
+        </div>
+      </td>
+    </tr>
+  `;
+};
+
+const buildTaskRow = (task, i, j) => {
+  const durationValue = durationMode === "hhmmssms" ? formatDuration(task.duration) : durationMode === "ms" ? task.duration.toFixed(3) : formatDecimalMinutes(task.duration);
+  const safeTaskName = escapeHTML(task.name);
+  let badgeClass = "";
+  
+  if (task.status === "VA") badgeClass = "border-emerald-500/50 text-emerald-600 dark:border-emerald-400/50 dark:text-emerald-400";
+  else if (task.status === "NVA") badgeClass = "border-amber-500/50 text-amber-600 dark:border-amber-400/50 dark:text-amber-400";
+  else if (task.status === "W") badgeClass = "border-rose-500/50 text-rose-600 dark:border-rose-400/50 dark:text-rose-400";
+
+  return `
+    <tr>
+      <td>
+        <div class="ml-5 flex items-center gap-2 flex-wrap">
+          <input type="text" class="font-semibold bg-transparent border-0 outline-none shadow-none focus:ring-0 focus:bg-zinc-100 dark:focus:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded px-1 py-0.5 h-auto leading-tight transition-colors m-0 cursor-text max-w-full" style="width: ${Math.max(safeTaskName.length + 1, 5)}ch;" value="${safeTaskName}" oninput="this.style.width = (this.value.length + 1) + 'ch';" onchange="handleInlineNameEdit(${i}, ${j}, this.value)" onfocus="this.select()" title="Edit Task Name">
+          <button onclick="openTaskLabourDropdown(event, ${i}, ${j})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Assign Labour Codes">
+            ${ICONS.labour}
+          </button>
+          ${renderTags(task.labourTags || [], "labour", "task", i, j, "xs")}
+        </div>
+      </td>
+      <td class="text-center whitespace-nowrap align-top pt-1.5">
+        <input type="text" class="font-mono tabular-nums text-sm text-center mx-auto py-1 px-1 h-auto leading-none bg-transparent border-0 outline-none shadow-none focus:ring-0 focus:bg-zinc-100 dark:focus:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors m-0 cursor-text" style="width: ${Math.max(durationValue.length + 1, 3)}ch;" value="${durationValue}" oninput="this.style.width = (this.value.length + 1) + 'ch';" onchange="handleInlineDurationEdit(${i}, ${j}, this.value)" onfocus="this.select()" title="Edit Duration">
+      </td>
+      <td class="text-center whitespace-nowrap align-top pt-1.5">
+        <button type="button" onclick="openStatusModal(event, ${i}, ${j})" class="outline-none inline-block px-2 py-0.5 rounded border bg-transparent text-xs font-bold cursor-pointer text-center hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${badgeClass}" title="Change Status">
+          ${task.status}
+        </button>
+      </td>
+      <td class="flex gap-1.5 justify-center">
+        <button onclick="insertTask(${i}, ${j})" class="btn btn-outline-secondary p-1" title="Split Task">${ICONS.split}</button>
+        <button onclick="deleteTask(${i}, ${j})" class="btn btn-outline-danger p-1" title="Delete Task">${ICONS.trash}</button>
+      </td>
+    </tr>
+  `;
+};
+
+const updateTaskList = () => {
+  try {
+    if (!DOM.taskList) throw new Error("Task list element not found");
+    const rows = [
+        `<table class="table mt-5 w-full font-mono text-base tabular-nums [&_th]:align-middle [&_td]:align-middle [&_th]:text-sm sm:[&_th]:text-base [&_td]:text-sm sm:[&_td]:text-base [&_th]:py-1 [&_th]:h-5">
+         <thead>
+           <tr>
+             <th scope="col" class="text-left align-middle">
+               <div class="flex items-center gap-2">
+                 <button onclick="toggleChartMode()" class="btn btn-sm btn-outline-secondary p-1 flex items-center justify-center" title="Toggle Chart View (Show ${chartMode === "column" ? "Gantt" : "Column"})">
+                   ${chartMode === "column" ? ICONS.chartCol : ICONS.chartGantt}
+                 </button>
+                 <span>Operation</span>
+               </div>
+             </th>
+             <th scope="col" class="text-center w-0 whitespace-nowrap">Duration</th>
+             <th scope="col" class="text-center w-0 whitespace-nowrap">Status</th>
+             <th scope="col" class="text-center w-0 whitespace-nowrap">Actions</th>
+           </tr>
+         </thead>
+         <tbody>`,
+    ];
+    for (let i = 0; i < operations.length; i += 1) {
+      rows.push(buildOpRow(operations[i], i));
+      for (let j = 0; j < operations[i].tasks.length; j += 1) {
+        rows.push(buildTaskRow(operations[i].tasks[j], i, j));
+      }
+    }
+    rows.push(`
+        </tbody>
+        <tfoot id="taskTableFoot"></tfoot>
+      </table>
+    `);
+    DOM.taskList.innerHTML = rows.join("");
+
+    DOM.taskTableFoot = document.getElementById("taskTableFoot");
+
+    const table = DOM.taskList.querySelector("table");
+    if (!table) throw new Error("Task table element not found");
+    if (operations.length > 0) {
+      table.style.display = "table";
+      updateProcessTimes();
+      addTaskButton.disabled = false;
+    } else {
+      table.style.display = "none";
+      addTaskButton.disabled = true;
+    }
+
+    for (let i = 0; i < operations.length; i += 1) {
+      const opTimeInput = document.getElementById(`opTimeInput-${i}`);
+      if (!opTimeInput) throw new Error(`Operation time input opTimeInput-${i} not found`);
+      opTimeInput.addEventListener("change", (event) => {
+        const newTime = parseTimeFromHHMMSSMS(event.target.value);
+        if (newTime !== null) {
+          operations[i].startTime = newTime;
+          toConsole(`Operation ${i} start time updated`, operations[i].startTime, debuggin);
+          saveLocalState();
+          updateProcessTimes();
+        } else {
+          alert("Invalid time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
+          opTimeInput.value = formatTimeToHHMMSSMS(operations[i].startTime);
+        }
+      });
+    }
+  } catch (error) {
+    toConsole("updateTaskList error", error.message, debuggin);
+    alert("Failed to update task list. Please check the console for details.");
+  }
+};
+
+const updateProcessTimes = () => {
+  try {
+    if (operations.length === 0) return;
+
+    if (!DOM.taskTableFoot) {
+      toConsole("updateProcessTimes skipped", "taskTableFoot is null", debuggin);
+      return;
+    }
+
+    const formattedEndTime = formatTimeToHHMMSSMS(processEndTime);
+    let totalProcessTime = "00:00:00:00";
+    if (operations.length > 0) {
+      const durationSeconds = Math.max(0, processEndTime - operations[0].startTime);
+      totalProcessTime = formatTimeToHHMMSSMS(durationSeconds);
+    }
+
+    DOM.taskTableFoot.innerHTML = `
+      <tr>
+        <td colspan="4" class="table-foot">
+          <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 w-full py-1">
+            <span class="inline-flex items-center gap-1.5">
+              <label for="taktTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Takt Time:</label>
+              <input type="text" id="taktTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${formatTaktTime(taktTime)}">
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <label for="processEndTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Process end time:</label>
+              <input type="text" id="processEndTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${formattedEndTime}">
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <label for="totalProcessTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Total Process time:</label>
+              <input type="text" id="totalProcessTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${totalProcessTime}" disabled>
+            </span>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    const taktTimeInput = document.getElementById("taktTimeInput");
+    if (taktTimeInput) {
+      taktTimeInput.addEventListener("change", (event) => {
+        const newTaktTime = parseTaktTime(event.target.value);
+        if (newTaktTime !== null) {
+          taktTime = newTaktTime;
+          saveLocalState();
+          toConsole("Takt Time updated", taktTime, debuggin);
+          drawTable();
+        } else {
+          alert("Invalid Takt Time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
+          taktTimeInput.value = formatTaktTime(taktTime);
+        }
+      });
+
+      taktTimeInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.target.blur();
+          drawTable();
+        }
+      });
+    }
+
+    const processEndTimeInput = document.getElementById("processEndTimeInput");
+    if (!processEndTimeInput) throw new Error("Process end time input not found");
+    processEndTimeInput.addEventListener("change", (event) => {
+      const newEndTime = parseTimeFromHHMMSSMS(event.target.value);
+      if (newEndTime !== null) {
+        processEndTime = newEndTime;
+        toConsole("Process end time updated", processEndTime, debuggin);
+        const durationSeconds = operations.length > 0 ? Math.max(0, processEndTime - operations[0].startTime) : 0;
+        document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
+        saveLocalState();
+      } else {
+        alert("Invalid time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
+        processEndTimeInput.value = formatTimeToHHMMSSMS(processEndTime);
+      }
+    });
+  } catch (error) {
+    toConsole("updateProcessTimes error", error.message, debuggin);
+    alert("Failed to update process times. Please check the console for details.");
+  }
 };

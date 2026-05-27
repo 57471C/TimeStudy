@@ -9,7 +9,11 @@
     "ignoreUnknown": false,
     "includes": [
       "ui/app.js",
-      "ui/functions.js",
+      "ui/charts.js",
+      "ui/state.js",
+      "ui/ui-modals.js",
+      "ui/ui-components.js",
+      "ui/utils.js",
       "ui/index.html",
       "ui/input.css",
       "ui/styles.css",

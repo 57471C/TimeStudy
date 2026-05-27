@@ -88,3 +88,9 @@ const formatDecimalMinutes = (ms) => {
   const minutes = ms / (60 * 1000);
   return minutes.toFixed(2);
 };
+
+const formatDurationValue = (val) => {
+  if (durationMode === "hhmmssms") return formatDuration(val);
+  if (durationMode === "ms") return `${val.toFixed(0)} ms`;
+  return `${formatDecimalMinutes(val)} min`;
+};

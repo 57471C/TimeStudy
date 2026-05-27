@@ -1,13 +1,12 @@
 {
-  "editor.formatOnSave": true,
-  "editor.defaultFormatter": "biomejs.biome",
-  "[javascript]": {
-    "editor.defaultFormatter": "biomejs.biome"
+  "files.exclude": {
+    "**/libs/apexcharts.js": true,
+    "**/src-tauri/gen/schemas/**": true
   },
-  "[json]": {
-    "editor.defaultFormatter": "biomejs.biome"
-  },
-  "[jsonc]": {
-    "editor.defaultFormatter": "biomejs.biome"
+  "files.watcherExclude": {
+    "**/libs/**": true,
+    "**/src-tauri/gen/**": true,
+    "**/src-tauri/target/**": true,
+    "**/node_modules/**": true
   }
 }

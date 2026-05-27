@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TimeStudy v0.5.0</title>
+    <title>TimeStudy v0.5.1</title>
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="icons/favicon.ico" />
     <link rel="icon" type="image/png" href="icons/favicon.png" />
@@ -17,9 +17,9 @@
   </head>
   <body class="font-sans bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 min-h-screen flex flex-col transition-colors duration-200">
     <!-- Header -->
-    <header class="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 shadow-sm py-1.5 px-4 flex justify-between items-center z-10 min-h-[32px]">
+    <header class="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 shadow-sm py-1.5 px-4 flex justify-between items-center z-10 min-h-8">
       <div class="flex items-center gap-2 sm:gap-3">
-        <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap hidden lg:block">TimeStudy v0.5.0</h1>
+        <h1 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap hidden lg:block">TimeStudy v0.5.1</h1>
         <span class="text-zinc-300 dark:text-zinc-600 hidden lg:inline font-light text-xl">/</span>
         <input type="text" id="projectNameInput" placeholder="Untitled Project" class="project-name-input" />
         <span class="text-zinc-300 dark:text-zinc-600 hidden sm:inline font-light text-xl">/</span>
@@ -79,17 +79,17 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Left Column: Video and Controls -->
         <div class="flex flex-col gap-4">
-          <div class="w-full h-[500px] relative group">
-            <div id="videoPlaceholder" class="w-full h-full min-h-[500px] bg-zinc-900 text-zinc-400 flex items-center justify-center text-lg p-5 absolute top-0 left-0 z-10 cursor-pointer border border-transparent dark:border-zinc-700 transition-colors duration-200">Load a video to get started</div>
+          <div class="w-full h-125 relative group">
+            <div id="videoPlaceholder" class="w-full h-full min-h-125 bg-zinc-900 text-zinc-400 flex items-center justify-center text-lg p-5 absolute top-0 left-0 z-10 cursor-pointer border border-transparent dark:border-zinc-700 transition-colors duration-200">Load a video to get started</div>
             <div id="videoWrapper" class="w-full h-full absolute top-0 left-0 overflow-hidden bg-black z-10" style="display: none;">
-              <div id="marqueeOverlay" class="absolute inset-0 z-[12] cursor-crosshair">
+              <div id="marqueeOverlay" class="absolute inset-0 z-12 cursor-crosshair">
                 <div id="marqueeRect" class="absolute border-2 border-dashed border-blue-600 bg-blue-600/10 pointer-events-none hidden"></div>
               </div>
-              <video id="my_video" class="max-h-full w-auto h-full block object-contain origin-top-left transition-transform duration-300 ease-in-out z-[1]">
+              <video id="my_video" class="max-h-full w-auto h-full block object-contain origin-top-left transition-transform duration-300 ease-in-out z-1">
                 <track kind="captions" />
                 Your browser does not support the video tag.
               </video>
-              <div class="absolute top-2.5 right-2.5 z-[15] hidden group-hover:block">
+              <div class="absolute top-2.5 right-2.5 z-15 hidden group-hover:block">
                 <button id="zoomIn" class="btn btn-sm btn-dark-gray">+</button>
                 <button id="zoomOut" class="btn btn-sm btn-dark-gray">-</button>
                 <button id="resetZoom" class="btn btn-sm btn-dark-gray">Reset</button>
@@ -162,7 +162,7 @@
                     <line x1="17" y1="9" x2="23" y2="15"></line>
                   </svg>
                 </button>
-                <div class="flex items-center w-32 sm:w-40 shrink min-w-[100px] gap-4">
+                <div class="flex items-center w-32 sm:w-40 shrink min-w-25 gap-4">
                   <input
                     type="range"
                     class="form-range slider-ticks flex-1"
@@ -235,11 +235,11 @@
     </div>
 
     <!-- Toast Notification Container -->
-    <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none items-center w-full max-w-md px-4"></div>
+    <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-100 flex flex-col gap-2 pointer-events-none items-center w-full max-w-md px-4"></div>
 
     <!-- Settings Slide-out Panel -->
-    <div id="settingsBackdrop" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[40] hidden transition-opacity duration-300 opacity-0"></div>
-    <div id="settingsPanel" class="fixed top-0 right-0 h-full w-80 max-w-[90vw] bg-white dark:bg-zinc-800 shadow-2xl z-[50] transform translate-x-full transition-transform duration-300 flex flex-col border-l border-zinc-200 dark:border-zinc-700">
+    <div id="settingsBackdrop" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden transition-opacity duration-300 opacity-0"></div>
+    <div id="settingsPanel" class="fixed top-0 right-0 h-full w-80 max-w-[90vw] bg-white dark:bg-zinc-800 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col border-l border-zinc-200 dark:border-zinc-700">
       <div class="flex justify-between items-center p-4 border-b border-zinc-200 dark:border-zinc-700">
         <h5 class="text-lg font-semibold flex items-center gap-2 text-zinc-900 dark:text-white">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500">
@@ -259,7 +259,7 @@
           <label for="hourlyRateInput" class="form-label">Labor Hourly Rate</label>
           <div class="relative">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 font-medium">$</span>
-            <input type="number" id="hourlyRateInput" class="form-control w-full !pl-8 no-spinners" placeholder="0.00" min="0" step="0.01">
+            <input type="number" id="hourlyRateInput" class="form-control w-full pl-8! no-spinners" placeholder="0.00" min="0" step="0.01">
           </div>
           <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Used for cost estimation in generated reports.</p>
         </div>
@@ -270,7 +270,7 @@
         <div>
           <label for="targetEfficiencyInput" class="form-label">Target Efficiency (%)</label>
           <div class="relative">
-            <input type="number" id="targetEfficiencyInput" class="form-control w-full !pr-8 no-spinners" placeholder="100" min="1" max="200" step="1">
+            <input type="number" id="targetEfficiencyInput" class="form-control w-full pr-8! no-spinners" placeholder="100" min="1" max="200" step="1">
             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 font-medium">%</span>
           </div>
         </div>
@@ -425,8 +425,10 @@
 
     <!-- Application Logic -->
     <script src="utils.js"></script>
+    <script src="state.js"></script>
 <script src="ui-modals.js"></script>
 <script src="ui-components.js"></script>
+    <script src="charts.js"></script>
     <script src="app.js"></script>
 
   </body>
