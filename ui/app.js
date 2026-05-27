@@ -185,6 +185,7 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
       DOM.projectNameInput.value = "";
     }
     updateTaskList();
+    if (typeof drawTable === "function") drawTable();
     addTaskButton.disabled = true;
     toConsole("Cleared all previous data and charts", null, debuggin);
   } else {
@@ -561,6 +562,7 @@ const initializePlayer = () => {
     toggleVideoPlaceholder(true);
     updateLoadButtonColor();
     updateTaskList();
+    if (typeof drawTable === "function") drawTable();
     saveLocalState();
 
     showToast("New project started.", "success");

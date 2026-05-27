@@ -147,6 +147,20 @@ const drawTable = () => {
     if (!DOM.chartContainer || !DOM.pieChartContainer) {
       throw new Error("Chart container elements not found");
     }
+
+    if (columnChart) {
+      columnChart.destroy();
+      columnChart = null;
+    }
+    if (ganttChart) {
+      ganttChart.destroy();
+      ganttChart = null;
+    }
+    pieCharts.forEach((c) => {
+      c.destroy();
+    });
+    pieCharts = [];
+
     if (operations.length === 0) {
       DOM.chartContainer.innerHTML = "";
       DOM.ganttChartContainer.innerHTML = "";
@@ -162,19 +176,6 @@ const drawTable = () => {
     const isDarkMode = document.documentElement.classList.contains("dark");
 
     const opNames = operations.map((o) => o.name);
-
-    if (columnChart) {
-      columnChart.destroy();
-      columnChart = null;
-    }
-    if (ganttChart) {
-      ganttChart.destroy();
-      ganttChart = null;
-    }
-    pieCharts.forEach((c) => {
-      c.destroy();
-    });
-    pieCharts = [];
 
     if (chartMode === "column") {
       DOM.chartContainer.style.display = "block";
