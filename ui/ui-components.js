@@ -8,7 +8,7 @@ const ICONS = {
   chartGantt: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
   jump: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 12 12 4 20 4 4"></polygon><line x1="16" y1="4" x2="16" y2="20"></line><line x1="20" y1="4" x2="20" y2="20"></line></svg>`,
   edit: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>`,
-  split: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>`
+  split: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>`,
 };
 
 const openStatusModal = (e, opIndex, taskIndex) => {
@@ -477,13 +477,21 @@ const buildOpRow = (op, i) => {
 };
 
 const buildTaskRow = (task, i, j) => {
-  const durationValue = durationMode === "hhmmssms" ? formatDuration(task.duration) : durationMode === "ms" ? task.duration.toFixed(3) : formatDecimalMinutes(task.duration);
+  const durationValue =
+    durationMode === "hhmmssms"
+      ? formatDuration(task.duration)
+      : durationMode === "ms"
+        ? task.duration.toFixed(3)
+        : formatDecimalMinutes(task.duration);
   const safeTaskName = escapeHTML(task.name);
   let badgeClass = "";
-  
-  if (task.status === "VA") badgeClass = "border-emerald-500/50 text-emerald-600 dark:border-emerald-400/50 dark:text-emerald-400";
-  else if (task.status === "NVA") badgeClass = "border-amber-500/50 text-amber-600 dark:border-amber-400/50 dark:text-amber-400";
-  else if (task.status === "W") badgeClass = "border-rose-500/50 text-rose-600 dark:border-rose-400/50 dark:text-rose-400";
+
+  if (task.status === "VA")
+    badgeClass = "border-emerald-500/50 text-emerald-600 dark:border-emerald-400/50 dark:text-emerald-400";
+  else if (task.status === "NVA")
+    badgeClass = "border-amber-500/50 text-amber-600 dark:border-amber-400/50 dark:text-amber-400";
+  else if (task.status === "W")
+    badgeClass = "border-rose-500/50 text-rose-600 dark:border-rose-400/50 dark:text-rose-400";
 
   return `
     <tr>
@@ -516,7 +524,7 @@ const updateTaskList = () => {
   try {
     if (!DOM.taskList) throw new Error("Task list element not found");
     const rows = [
-        `<table class="table mt-5 w-full font-mono text-base tabular-nums [&_th]:align-middle [&_td]:align-middle [&_th]:text-sm sm:[&_th]:text-base [&_td]:text-sm sm:[&_td]:text-base [&_th]:py-1 [&_th]:h-5">
+      `<table class="table mt-5 w-full font-mono text-base tabular-nums [&_th]:align-middle [&_td]:align-middle [&_th]:text-sm sm:[&_th]:text-base [&_td]:text-sm sm:[&_td]:text-base [&_th]:py-1 [&_th]:h-5">
          <thead>
            <tr>
              <th scope="col" class="text-left align-middle">

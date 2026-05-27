@@ -12,10 +12,15 @@ let activeTrialIndex = 0;
 const videoBlobCache = {};
 let operations = [];
 let taktTime = 60000;
+// biome-ignore lint/style/useConst: Global state modified in other scripts
 let durationMode = "hhmmssms";
+// biome-ignore lint/style/useConst: Global state modified in other scripts
 let playerReady = false;
+// biome-ignore lint/style/useConst: Global state modified in other scripts
 let zoomLevel = 1;
+// biome-ignore lint/style/useConst: Global state modified in other scripts
 let translateX = 0;
+// biome-ignore lint/style/useConst: Global state modified in other scripts
 let translateY = 0;
 let processEndTime = 0;
 let hourlyRate = 0;
@@ -27,12 +32,14 @@ let volumeLevel = 1;
 
 const APP_VERSION = "0.5.1";
 
+// biome-ignore lint/style/useConst: Global state modified in other scripts
 let isDrawing = false;
 let startX;
 let startY;
 let marqueeOverlay;
 let marqueeRect;
 
+// biome-ignore lint/style/useConst: Global state modified in other scripts
 let currentStatusEdit = null;
 
 const DOM = {
@@ -220,13 +227,18 @@ const exportToJSON = async (isSaveAs = false) => {
       if (isSaveAs === true || !projectFilePath) {
         const defaultName = projectFilePath ? projectFilePath.split(/[/\\]/).pop() : filename;
         const filePath = await window.__TAURI__.core.invoke("plugin:dialog|save", {
-          filters: [{ name: "TimeStudy Project", extensions: ["tsp"] }],
-          defaultPath: defaultName,
+          options: {
+            filters: [{ name: "TimeStudy Project", extensions: ["tsp"] }],
+            defaultPath: defaultName,
+          },
         });
         if (filePath) {
-          projectFilePath = filePath;
+          projectFilePath = typeof filePath === "object" ? filePath.path : filePath;
           localStorage.setItem("projectFilePath", projectFilePath);
-          await window.__TAURI__.core.invoke("plugin:fs|write_text_file", { path: filePath, data: formattedDataStr });
+          await window.__TAURI__.core.invoke("plugin:fs|write_text_file", {
+            path: projectFilePath,
+            data: formattedDataStr,
+          });
           showToast("Project saved successfully.", "success");
         }
       } else {
@@ -295,6 +307,30 @@ const importFromJSON = (jsonText) => {
       projectComments = data.projectMeta?.projectComments || "";
       masterParts = data.projectMeta?.masterParts || [];
       masterLabour = data.projectMeta?.masterLabour || [];
+    } else if (data.operations || data.appState?.operations) {
+      // Graceful fallback for older single-trial formats
+      trials = [
+        {
+          trialId: 1,
+          trialName: "Current State",
+          videoFileName: data.videoFileName || "",
+          videoFilePath: data.videoFilePath || "",
+          processEndTime: data.processEndTime || 0,
+          taktTime: data.taktTime || 60000,
+          costingConfig: data.costingConfig || {
+            hourlyRate: 0,
+            shiftLength: 480,
+            targetEfficiency: 100,
+            unitsPerCycle: 1,
+          },
+          appState: { operations: data.operations || data.appState?.operations || [] },
+        },
+      ];
+      activeTrialIndex = 0;
+      projectName = data.projectName || data.projectMeta?.projectName || "";
+      projectComments = data.projectComments || data.projectMeta?.projectComments || "";
+      masterParts = data.masterParts || data.projectMeta?.masterParts || [];
+      masterLabour = data.masterLabour || data.projectMeta?.masterLabour || [];
     } else {
       alert("Invalid project file format.");
       return;
@@ -352,7 +388,7 @@ const importFromJSON = (jsonText) => {
     showToast("Project loaded successfully.", "success");
   } catch (e) {
     toConsole("Error importing JSON", e, debuggin);
-    alert("Error reading project file. It may be corrupted or in an invalid format.");
+    alert(`Error reading project file. It may be corrupted or in an invalid format. Details: ${e.message || e}`);
   }
 };
 
@@ -410,14 +446,20 @@ const exportToCSV = async () => {
   }
 
   const isTauri = window.__TAURI__ !== undefined;
-  if (isTauri && window.__TAURI__.dialog && window.__TAURI__.fs) {
+  if (isTauri) {
     try {
-      const filePath = await window.__TAURI__.dialog.save({
-        filters: [{ name: "CSV", extensions: ["csv"] }],
-        defaultPath: filename,
+      const filePath = await window.__TAURI__.core.invoke("plugin:dialog|save", {
+        options: {
+          filters: [{ name: "CSV", extensions: ["csv"] }],
+          defaultPath: filename,
+        },
       });
       if (filePath) {
-        await window.__TAURI__.fs.writeTextFile(filePath, csvContent);
+        const actualPath = typeof filePath === "object" ? filePath.path : filePath;
+        await window.__TAURI__.core.invoke("plugin:fs|write_text_file", {
+          path: actualPath,
+          data: csvContent,
+        });
         showToast("Data exported to CSV successfully.", "success");
       }
     } catch (e) {

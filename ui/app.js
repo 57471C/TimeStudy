@@ -151,8 +151,8 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
   const isRelinking = !hasExistingVideo && (operations.length > 0 || projectName !== "");
 
   if (isTauriPath) {
-    const filePath = fileOrPath;
-    videoFileName = filePath.split(/[/\\]/).pop();
+    const filePath = typeof fileOrPath === "object" ? fileOrPath.path : fileOrPath;
+    videoFileName = typeof fileOrPath === "object" && fileOrPath.name ? fileOrPath.name : filePath.split(/[/\\]/).pop();
     videoFilePath = filePath;
 
     const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
@@ -489,20 +489,24 @@ const initializePlayer = () => {
 
   projectImportButton.addEventListener("click", async () => {
     const isTauri = window.__TAURI__ !== undefined;
-    if (isTauri && window.__TAURI__.dialog && window.__TAURI__.fs) {
+    if (isTauri) {
       try {
-        const selected = await window.__TAURI__.dialog.open({
-          multiple: false,
-          filters: [{ name: "TimeStudy Project", extensions: ["tsp"] }],
+        const selected = await window.__TAURI__.core.invoke("plugin:dialog|open", {
+          options: {
+            multiple: false,
+            filters: [{ name: "TimeStudy Project", extensions: ["tsp"] }],
+          },
         });
         if (selected) {
-          projectFilePath = selected;
+          projectFilePath = typeof selected === "object" ? selected.path : selected;
           localStorage.setItem("projectFilePath", projectFilePath);
-          const contents = await window.__TAURI__.fs.readTextFile(selected);
-          importFromJSON(contents);
+          const contents = await window.__TAURI__.core.invoke("plugin:fs|read_text_file", { path: projectFilePath });
+          const jsonText = typeof contents === "string" ? contents : new TextDecoder().decode(new Uint8Array(contents));
+          importFromJSON(jsonText);
         }
       } catch (e) {
         toConsole("Error loading project via Tauri", e, debuggin);
+        alert("Tauri Error (Project Load): " + (e.message || JSON.stringify(e)));
         showToast("Error loading project file.", "error");
       }
     } else {
@@ -569,17 +573,20 @@ const initializePlayer = () => {
   });
   loadVideoButton.addEventListener("click", async () => {
     const isTauri = window.__TAURI__ !== undefined;
-    if (isTauri && window.__TAURI__.dialog) {
+    if (isTauri) {
       try {
-        const selected = await window.__TAURI__.dialog.open({
-          multiple: false,
-          filters: [{ name: "Video", extensions: ["mp4", "webm", "ogg", "mov", "avi"] }],
+        const selected = await window.__TAURI__.core.invoke("plugin:dialog|open", {
+          options: {
+            multiple: false,
+            filters: [{ name: "Video", extensions: ["mp4", "webm", "ogg", "mov", "avi"] }],
+          },
         });
         if (selected) {
           await processNewVideoFile(selected, true);
         }
       } catch (e) {
         toConsole("Error opening video via Tauri", e, debuggin);
+        alert("Tauri Error (Video Load): " + (e.message || JSON.stringify(e)));
       }
     } else {
       DOM.videoFileInput.click();
@@ -588,17 +595,20 @@ const initializePlayer = () => {
 
   DOM.videoPlaceholder.addEventListener("click", async () => {
     const isTauri = window.__TAURI__ !== undefined;
-    if (isTauri && window.__TAURI__.dialog) {
+    if (isTauri) {
       try {
-        const selected = await window.__TAURI__.dialog.open({
-          multiple: false,
-          filters: [{ name: "Video", extensions: ["mp4", "webm", "ogg", "mov", "avi"] }],
+        const selected = await window.__TAURI__.core.invoke("plugin:dialog|open", {
+          options: {
+            multiple: false,
+            filters: [{ name: "Video", extensions: ["mp4", "webm", "ogg", "mov", "avi"] }],
+          },
         });
         if (selected) {
           await processNewVideoFile(selected, true);
         }
       } catch (e) {
         toConsole("Error opening video via Tauri", e, debuggin);
+        alert("Tauri Error (Video Placeholder): " + (e.message || JSON.stringify(e)));
       }
     } else {
       DOM.videoFileInput.click();
@@ -895,6 +905,29 @@ const initializePlayer = () => {
 window.onload = () => {
   initializePlayer();
   toggleVideoPlaceholder(true);
+
+  const isTauri = window.__TAURI__ !== undefined;
+  if (isTauri) {
+    window.__TAURI__.core
+      .invoke("get_startup_file")
+      .then(async (startupFile) => {
+        if (startupFile) {
+          try {
+            projectFilePath = startupFile;
+            localStorage.setItem("projectFilePath", projectFilePath);
+            const contents = await window.__TAURI__.core.invoke("plugin:fs|read_text_file", { path: startupFile });
+            const jsonText =
+              typeof contents === "string" ? contents : new TextDecoder().decode(new Uint8Array(contents));
+            importFromJSON(jsonText);
+            toConsole("Auto-loaded project from file association", startupFile, debuggin);
+          } catch (e) {
+            toConsole("Error auto-loading startup file", e, debuggin);
+            showToast("Failed to auto-load project.", "error");
+          }
+        }
+      })
+      .catch((e) => toConsole("Failed to check startup file", e, debuggin));
+  }
 };
 
 const startMarquee = (e) => {
