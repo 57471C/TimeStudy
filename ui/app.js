@@ -1184,7 +1184,7 @@ const updateSliderTicks = () => {
     DOM.endTick.classList.add("hidden");
     if (DOM.endGreyOut) DOM.endGreyOut.classList.add("hidden");
   }
-
+  t;
   if (DOM.opTicksContainer) {
     DOM.opTicksContainer.innerHTML = "";
     operations.forEach((op) => {
