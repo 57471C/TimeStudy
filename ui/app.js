@@ -1184,6 +1184,25 @@ const updateSliderTicks = () => {
     DOM.endTick.classList.add("hidden");
     if (DOM.endGreyOut) DOM.endGreyOut.classList.add("hidden");
   }
+
+  if (DOM.opTicksContainer) {
+    DOM.opTicksContainer.innerHTML = "";
+    operations.forEach((op) => {
+      if (op.startTime >= 0 && op.startTime <= player.duration) {
+        const pct = (op.startTime / player.duration) * 100;
+        const tick = document.createElement("div");
+        tick.className =
+          "absolute h-3 w-0.5 bg-yellow-500 top-1/2 -translate-y-1/2 cursor-pointer transition-colors hover:bg-yellow-400";
+        tick.style.pointerEvents = "auto";
+        tick.style.left = `calc(${pct}% - 1px)`;
+        tick.title = op.name; // Uses browser's native alt hover text
+        tick.addEventListener("click", () => {
+          player.currentTime = op.startTime;
+        });
+        DOM.opTicksContainer.appendChild(tick);
+      }
+    });
+  }
 };
 
 const updateTimeDisplay = (seconds, elementId) => {

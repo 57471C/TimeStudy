@@ -60,6 +60,7 @@ const DOM = {
   endGreyOut: document.getElementById("endGreyOut"),
   startTick: document.getElementById("startTick"),
   endTick: document.getElementById("endTick"),
+  opTicksContainer: document.getElementById("opTicksContainer"),
   playIcon: document.getElementById("playIcon"),
   pauseIcon: document.getElementById("pauseIcon"),
   speedValue: document.getElementById("speedValue"),
