@@ -261,6 +261,41 @@ const drawTable = () => {
           height: Math.max(300, operations.length * 80),
           background: "transparent",
           toolbar: { show: false },
+          zoom: {
+            enabled: true,
+            type: "x",
+          },
+          events: {
+            beforeZoom: (chartContext, { xaxis }) => {
+              const boundaryMin = processStartTime * 1000;
+              const boundaryMax = processEndTime > processStartTime ? processEndTime * 1000 : processStartTime * 1000;
+
+              let newMin = xaxis.min;
+              let newMax = xaxis.max;
+
+              // 1. Prevent zooming out beyond the defined process start/end times
+              if (newMin <= boundaryMin && newMax >= boundaryMax) {
+                if (chartContext.w.globals.minX <= boundaryMin && chartContext.w.globals.maxX >= boundaryMax) {
+                  return { xaxis: { min: chartContext.w.globals.minX, max: chartContext.w.globals.maxX } };
+                }
+                return { xaxis: { min: boundaryMin, max: boundaryMax } };
+              }
+
+              if (newMin < boundaryMin) newMin = boundaryMin;
+              if (newMax > boundaryMax) newMax = boundaryMax;
+
+              // 2. Prevent zooming in too much (less than 100ms range)
+              const minZoomRange = 100;
+              if (newMax - newMin < minZoomRange) {
+                // To prevent the zoom, we return the chart's current range
+                return { xaxis: { min: chartContext.w.globals.minX, max: chartContext.w.globals.maxX } };
+              }
+
+              return {
+                xaxis: { min: newMin, max: newMax },
+              };
+            },
+          },
         },
         theme: { mode: isDarkMode ? "dark" : "light" },
         plotOptions: {
@@ -268,6 +303,8 @@ const drawTable = () => {
         },
         xaxis: {
           type: "datetime",
+          min: processStartTime * 1000,
+          max: processEndTime > processStartTime ? processEndTime * 1000 : processStartTime * 1000,
           labels: {
             formatter: (val) => formatDurationValue(val),
           },
