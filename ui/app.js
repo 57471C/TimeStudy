@@ -44,6 +44,7 @@ const switchTrial = async (index) => {
 
   videoFileName = currentTrial.videoFileName || "";
   videoFilePath = currentTrial.videoFilePath || "";
+  processStartTime = currentTrial.processStartTime || 0;
   processEndTime = currentTrial.processEndTime || 0;
   taktTime = currentTrial.taktTime || 60000;
   hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
@@ -84,6 +85,7 @@ const switchTrial = async (index) => {
   }
 
   showToast(`Switched to: ${currentTrial.trialName}`, "success");
+  updateSliderTicks();
 };
 
 const addTrial = async () => {
@@ -104,6 +106,7 @@ const addTrial = async () => {
         trialName,
         videoFileName: "",
         videoFilePath: "",
+        processStartTime: 0,
         processEndTime: 0,
         taktTime,
         costingConfig: { hourlyRate, shiftLength, targetEfficiency },
@@ -194,6 +197,7 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
 
   DOM.videoPlaceholder.textContent = "Load a video to get started";
   saveLocalState();
+  updateSliderTicks();
 
   updateLoadButtonColor();
 };
@@ -412,6 +416,7 @@ const initializePlayer = () => {
       const tickInterval = (tickSeconds / duration) * 100;
       seekBar.style.setProperty("--tick-interval", `${tickInterval}%`);
     }
+    processStartTime = 0;
     processEndTime = duration;
     if (duration > 0 && duration < 60 && operations.length === 0) {
       taktTime = Math.max(1000, Math.round(duration * 0.9) * 1000);
@@ -422,6 +427,7 @@ const initializePlayer = () => {
     positionControls();
     updateLoadButtonColor();
     toggleVideoPlaceholder(false);
+    updateSliderTicks();
     updateProcessTimes();
 
     player.playbackRate = playbackSpeed;
@@ -485,6 +491,56 @@ const initializePlayer = () => {
     drawTable();
   }
 
+  // Setup Context Menu for Current Time
+  DOM.currentTime.addEventListener("click", (e) => {
+    if (!player.duration) return;
+    e.preventDefault();
+    const rect = e.target.getBoundingClientRect();
+    DOM.timeContextMenu.style.left = `${rect.left}px`;
+    DOM.timeContextMenu.style.top = `${rect.bottom + 5}px`;
+    DOM.timeContextMenu.classList.remove("hidden");
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!DOM.timeContextMenu.contains(e.target) && e.target !== DOM.currentTime) {
+      DOM.timeContextMenu.classList.add("hidden");
+    }
+  });
+
+  DOM.setStartBtn.addEventListener("click", () => {
+    processStartTime = player.currentTime;
+    DOM.timeContextMenu.classList.add("hidden");
+
+    const invalidOps = operations.filter((op) => op.startTime < processStartTime);
+    if (invalidOps.length > 0) {
+      invalidOps.forEach((op) => {
+        showToast(`Operation "${op.name}" starts before Process Start Time.`, "error");
+      });
+    }
+
+    if (typeof updateProcessTimes === "function") updateProcessTimes();
+    saveLocalState();
+    updateSliderTicks();
+    if (typeof updateTaskList === "function") updateTaskList();
+  });
+
+  DOM.setEndBtn.addEventListener("click", () => {
+    processEndTime = player.currentTime;
+    DOM.timeContextMenu.classList.add("hidden");
+
+    const invalidOps = operations.filter((op) => op.startTime > processEndTime);
+    if (invalidOps.length > 0) {
+      invalidOps.forEach((op) => {
+        showToast(`Operation "${op.name}" starts after Process End Time.`, "error");
+      });
+    }
+
+    if (typeof updateProcessTimes === "function") updateProcessTimes();
+    saveLocalState();
+    updateSliderTicks();
+    if (typeof updateTaskList === "function") updateTaskList();
+  });
+
   const urlParams = new URLSearchParams(window.location.search);
   const videoUrl = urlParams.get("v");
   if (videoUrl) {
@@ -519,7 +575,7 @@ const initializePlayer = () => {
         }
       } catch (e) {
         toConsole("Error loading project via Tauri", e, debuggin);
-        alert("Tauri Error (Project Load): " + (e.message || JSON.stringify(e)));
+        alert(`Tauri Error (Project Load): ${e.message || JSON.stringify(e)}`);
         showToast("Error loading project file.", "error");
       }
     } else {
@@ -556,6 +612,7 @@ const initializePlayer = () => {
     projectComments = "";
     masterParts = [];
     masterLabour = [];
+    processStartTime = 0;
     processEndTime = 0;
 
     trials = [
@@ -564,6 +621,7 @@ const initializePlayer = () => {
         trialName: "Current State",
         videoFileName: "",
         videoFilePath: "",
+        processStartTime: 0,
         processEndTime: 0,
         taktTime: taktTime,
         costingConfig: { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle },
@@ -581,6 +639,7 @@ const initializePlayer = () => {
     updateTaskList();
     if (typeof drawTable === "function") drawTable();
     saveLocalState();
+    updateSliderTicks();
 
     showToast("New project started.", "success");
   });
@@ -597,7 +656,7 @@ const initializePlayer = () => {
         }
       } catch (e) {
         toConsole("Error opening video via Tauri", e, debuggin);
-        alert("Tauri Error (Video Load): " + (e.message || JSON.stringify(e)));
+        alert(`Tauri Error (Video Load): ${e.message || JSON.stringify(e)}`);
       }
     } else {
       DOM.videoFileInput.click();
@@ -617,7 +676,7 @@ const initializePlayer = () => {
         }
       } catch (e) {
         toConsole("Error opening video via Tauri", e, debuggin);
-        alert("Tauri Error (Video Placeholder): " + (e.message || JSON.stringify(e)));
+        alert(`Tauri Error (Video Placeholder): ${e.message || JSON.stringify(e)}`);
       }
     } else {
       DOM.videoFileInput.click();
@@ -648,16 +707,16 @@ const initializePlayer = () => {
   });
 
   jumpToStartButton.addEventListener("click", () => {
-    player.currentTime = 0;
+    player.currentTime = processStartTime || 0;
     toConsole("Jumped to Start", player.currentTime, debuggin);
   });
 
   rewind5sButton.addEventListener("click", () => {
-    player.currentTime = Math.max(0, player.currentTime - 5);
+    player.currentTime = Math.max(processStartTime || 0, player.currentTime - 5);
     toConsole("Rewind 5s", player.currentTime, debuggin);
   });
   rewind1sButton.addEventListener("click", () => {
-    player.currentTime = Math.max(0, player.currentTime - 1);
+    player.currentTime = Math.max(processStartTime || 0, player.currentTime - 1);
     toConsole("Rewind 1s", player.currentTime, debuggin);
   });
   forward1sButton.addEventListener("click", () => {
@@ -734,8 +793,10 @@ const initializePlayer = () => {
     seekBar.addEventListener(
       "input",
       debounce((event) => {
-        const time = Number.parseFloat(event.target.value);
+        let time = Number.parseFloat(event.target.value);
         if (!Number.isNaN(time)) {
+          if (processStartTime > 0 && time < processStartTime) time = processStartTime;
+          if (processEndTime > 0 && time > processEndTime) time = processEndTime;
           player.currentTime = time;
           toConsole("Seek bar input event fired", time, debuggin);
           toConsole("Video seeked to", time, debuggin);
@@ -814,13 +875,13 @@ const initializePlayer = () => {
       case "ArrowLeft":
         e.preventDefault();
         if (!player.src) return;
-        player.currentTime = Math.max(0, player.currentTime - 1);
+        player.currentTime = Math.max(processStartTime || 0, player.currentTime - 1);
         toConsole("Rewind 1s (Left Arrow)", player.currentTime, debuggin);
         break;
       case "ArrowDown":
         e.preventDefault();
         if (!player.src) return;
-        player.currentTime = Math.max(0, player.currentTime - 5);
+        player.currentTime = Math.max(processStartTime || 0, player.currentTime - 5);
         toConsole("Rewind 5s (Down Arrow)", player.currentTime, debuggin);
         break;
       case "ArrowRight":
@@ -1077,6 +1138,51 @@ const seektimeupdate = () => {
     if (duration) {
       updateTimeDisplay(duration, "durationTime");
     }
+
+    // Constrain seek if we try to go before the processStartTime
+    if (processStartTime > 0 && currentTime < processStartTime) {
+      player.currentTime = processStartTime;
+      return;
+    }
+
+    // Stop playback and constrain seek if we hit the processEndTime
+    if (processEndTime > 0 && currentTime > processEndTime) {
+      if (!player.paused) {
+        player.pause();
+      }
+      player.currentTime = processEndTime;
+      return;
+    }
+  }
+};
+
+const updateSliderTicks = () => {
+  if (!player?.duration || !DOM.startTick || !DOM.endTick) return;
+
+  if (processStartTime > 0) {
+    const startPct = (processStartTime / player.duration) * 100;
+    DOM.startTick.style.left = `calc(${startPct}% - 1px)`;
+    DOM.startTick.classList.remove("hidden");
+    if (DOM.startGreyOut) {
+      DOM.startGreyOut.style.width = `${startPct}%`;
+      DOM.startGreyOut.classList.remove("hidden");
+    }
+  } else {
+    DOM.startTick.classList.add("hidden");
+    if (DOM.startGreyOut) DOM.startGreyOut.classList.add("hidden");
+  }
+
+  if (processEndTime > 0 && processEndTime < player.duration) {
+    const endPct = (processEndTime / player.duration) * 100;
+    DOM.endTick.style.left = `calc(${endPct}% - 1px)`;
+    DOM.endTick.classList.remove("hidden");
+    if (DOM.endGreyOut) {
+      DOM.endGreyOut.style.width = `${100 - endPct}%`;
+      DOM.endGreyOut.classList.remove("hidden");
+    }
+  } else {
+    DOM.endTick.classList.add("hidden");
+    if (DOM.endGreyOut) DOM.endGreyOut.classList.add("hidden");
   }
 };
 
@@ -1186,6 +1292,12 @@ const addOp = async () => {
   }
   const startTime = player.currentTime;
   toConsole("Operation start time", startTime, debuggin);
+
+  if (startTime < processStartTime) {
+    showToast(`Operation "${opName}" starts before Process Start Time.`, "error");
+  } else if (processEndTime > 0 && startTime > processEndTime) {
+    showToast(`Operation "${opName}" starts after Process End Time.`, "error");
+  }
 
   operations.push({
     name: opName,

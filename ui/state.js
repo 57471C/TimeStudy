@@ -22,6 +22,7 @@ let zoomLevel = 1;
 let translateX = 0;
 // biome-ignore lint/style/useConst: Global state modified in other scripts
 let translateY = 0;
+let processStartTime = 0;
 let processEndTime = 0;
 let hourlyRate = 0;
 let shiftLength = 480;
@@ -55,6 +56,10 @@ const DOM = {
   moonIcon: document.getElementById("moonIcon"),
   currentTime: document.getElementById("currentTime"),
   durationTime: document.getElementById("durationTime"),
+  startGreyOut: document.getElementById("startGreyOut"),
+  endGreyOut: document.getElementById("endGreyOut"),
+  startTick: document.getElementById("startTick"),
+  endTick: document.getElementById("endTick"),
   playIcon: document.getElementById("playIcon"),
   pauseIcon: document.getElementById("pauseIcon"),
   speedValue: document.getElementById("speedValue"),
@@ -100,6 +105,9 @@ const DOM = {
   closeMasterDataBtn: document.getElementById("closeMasterDataBtn"),
   closeMasterDataBtnX: document.getElementById("closeMasterDataBtnX"),
   statusModal: document.getElementById("statusModal"),
+  timeContextMenu: document.getElementById("timeContextMenu"),
+  setStartBtn: document.getElementById("setStartBtn"),
+  setEndBtn: document.getElementById("setEndBtn"),
 };
 
 const saveLocalState = () => {
@@ -115,6 +123,7 @@ const saveLocalState = () => {
   // Sync active global variables to the current trial object
   trials[activeTrialIndex].videoFileName = videoFileName;
   trials[activeTrialIndex].videoFilePath = videoFilePath;
+  trials[activeTrialIndex].processStartTime = processStartTime;
   trials[activeTrialIndex].processEndTime = processEndTime;
   trials[activeTrialIndex].taktTime = taktTime;
   trials[activeTrialIndex].costingConfig = { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle };
@@ -178,6 +187,7 @@ const loadLocalState = () => {
       trialName: "Current State",
       videoFileName: "",
       videoFilePath: "",
+      processStartTime: 0,
       processEndTime: 0,
       taktTime: 60000,
       costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
@@ -190,6 +200,7 @@ const loadLocalState = () => {
   const currentTrial = trials[activeTrialIndex];
   videoFileName = currentTrial.videoFileName || "";
   videoFilePath = currentTrial.videoFilePath || "";
+  processStartTime = currentTrial.processStartTime || 0;
   processEndTime = currentTrial.processEndTime || 0;
   taktTime = currentTrial.taktTime || 60000;
 
@@ -308,6 +319,7 @@ const importFromJSON = (jsonText) => {
           trialName: "Current State",
           videoFileName: data.videoFileName || "",
           videoFilePath: data.videoFilePath || "",
+          processStartTime: data.processStartTime || 0,
           processEndTime: data.processEndTime || 0,
           taktTime: data.taktTime || 60000,
           costingConfig: data.costingConfig || {
@@ -333,6 +345,7 @@ const importFromJSON = (jsonText) => {
     const currentTrial = trials[activeTrialIndex];
     videoFileName = currentTrial.videoFileName || "";
     videoFilePath = currentTrial.videoFilePath || "";
+    processStartTime = currentTrial.processStartTime || 0;
     processEndTime = currentTrial.processEndTime || 0;
     taktTime = currentTrial.taktTime || 60000;
 
@@ -390,12 +403,12 @@ const exportToCSV = async () => {
     alert("No operations or tasks to export.");
     return;
   }
-  let csvContent = "ProcessEndTime";
+  let csvContent = "ProcessStartTime,ProcessEndTime";
   for (let i = 0; i < operations.length; i++) {
     csvContent += `,OpStartTime-${i}`;
   }
   csvContent += "\n";
-  csvContent += `${formatTimeToHHMMSSMS(processEndTime)}`;
+  csvContent += `${formatTimeToHHMMSSMS(processStartTime)},${formatTimeToHHMMSSMS(processEndTime)}`;
   for (let i = 0; i < operations.length; i++) {
     csvContent += `,${formatTimeToHHMMSSMS(operations[i].startTime || 0)}`;
   }

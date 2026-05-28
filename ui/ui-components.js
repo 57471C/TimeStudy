@@ -443,6 +443,8 @@ const buildOpRow = (op, i) => {
   const opTimeInputId = `opTimeInput-${i}`;
   const formattedTime = formatTimeToHHMMSSMS(op.startTime);
   const safeOpName = escapeHTML(op.name);
+  const isInvalid = op.startTime < processStartTime || (processEndTime > 0 && op.startTime > processEndTime);
+  const inputClass = isInvalid ? "text-red-500 dark:text-red-400" : "";
   return `
     <tr>
       <td colspan="4">
@@ -455,7 +457,7 @@ const buildOpRow = (op, i) => {
               <span class="font-bold text-lg shrink-0">${safeOpName}</span>
               <span class="inline-flex items-center gap-1.5 ml-2.5 shrink-0">
                 <label for="${opTimeInputId}" class="form-label font-mono text-base mb-0" style="width: auto;">Start:</label>
-              <input type="text" id="${opTimeInputId}" class="form-control w-31.25 px-1 text-center font-mono tabular-nums text-base" value="${formattedTime}">
+              <input type="text" id="${opTimeInputId}" class="form-control w-31.25 px-1 text-center font-mono tabular-nums text-base ${inputClass}" value="${formattedTime}">
               </span>
               <button onclick="openOpPartDropdown(event, ${i})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Assign Part Numbers">
                 ${ICONS.part}
@@ -576,8 +578,14 @@ const updateTaskList = () => {
         if (newTime !== null) {
           operations[i].startTime = newTime;
           toConsole(`Operation ${i} start time updated`, operations[i].startTime, debuggin);
+          if (newTime < processStartTime) {
+            showToast(`Operation "${operations[i].name}" starts before Process Start Time.`, "error");
+          } else if (processEndTime > 0 && newTime > processEndTime) {
+            showToast(`Operation "${operations[i].name}" starts after Process End Time.`, "error");
+          }
           saveLocalState();
           updateProcessTimes();
+          updateTaskList();
         } else {
           alert("Invalid time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
           opTimeInput.value = formatTimeToHHMMSSMS(operations[i].startTime);
@@ -599,10 +607,11 @@ const updateProcessTimes = () => {
       return;
     }
 
+    const formattedStartTime = formatTimeToHHMMSSMS(processStartTime);
     const formattedEndTime = formatTimeToHHMMSSMS(processEndTime);
     let totalProcessTime = "00:00:00:00";
     if (operations.length > 0) {
-      const durationSeconds = Math.max(0, processEndTime - operations[0].startTime);
+      const durationSeconds = Math.max(0, processEndTime - processStartTime);
       totalProcessTime = formatTimeToHHMMSSMS(durationSeconds);
     }
 
@@ -610,6 +619,10 @@ const updateProcessTimes = () => {
       <tr>
         <td colspan="4" class="table-foot">
           <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 w-full py-1">
+            <span class="inline-flex items-center gap-1.5">
+              <label for="processStartTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Process start time:</label>
+              <input type="text" id="processStartTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${formattedStartTime}">
+            </span>
             <span class="inline-flex items-center gap-1.5">
               <label for="processEndTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Process end time:</label>
               <input type="text" id="processEndTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${formattedEndTime}">
@@ -623,7 +636,35 @@ const updateProcessTimes = () => {
       </tr>
     `;
 
-    
+    const processStartTimeInput = document.getElementById("processStartTimeInput");
+    if (!processStartTimeInput) throw new Error("Process start time input not found");
+    processStartTimeInput.addEventListener("change", (event) => {
+      const newStartTime = parseTimeFromHHMMSSMS(event.target.value);
+      if (newStartTime !== null) {
+        processStartTime = newStartTime;
+        toConsole("Process start time updated", processStartTime, debuggin);
+
+        if (typeof player !== "undefined" && player && player.currentTime < processStartTime) {
+          player.currentTime = processStartTime;
+        }
+
+        const invalidOps = operations.filter((op) => op.startTime < processStartTime);
+        if (invalidOps.length > 0) {
+          invalidOps.forEach((op) => {
+            showToast(`Operation "${op.name}" starts before Process Start Time.`, "error");
+          });
+        }
+
+        const durationSeconds = Math.max(0, processEndTime - processStartTime);
+        document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
+        saveLocalState();
+        if (typeof updateSliderTicks === "function") updateSliderTicks();
+        if (typeof updateTaskList === "function") updateTaskList();
+      } else {
+        alert("Invalid time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
+        processStartTimeInput.value = formatTimeToHHMMSSMS(processStartTime);
+      }
+    });
 
     const processEndTimeInput = document.getElementById("processEndTimeInput");
     if (!processEndTimeInput) throw new Error("Process end time input not found");
@@ -632,9 +673,23 @@ const updateProcessTimes = () => {
       if (newEndTime !== null) {
         processEndTime = newEndTime;
         toConsole("Process end time updated", processEndTime, debuggin);
-        const durationSeconds = operations.length > 0 ? Math.max(0, processEndTime - operations[0].startTime) : 0;
+
+        if (typeof player !== "undefined" && player && processEndTime > 0 && player.currentTime > processEndTime) {
+          player.currentTime = processEndTime;
+        }
+
+        const invalidOps = operations.filter((op) => op.startTime > processEndTime);
+        if (invalidOps.length > 0) {
+          invalidOps.forEach((op) => {
+            showToast(`Operation "${op.name}" starts after Process End Time.`, "error");
+          });
+        }
+
+        const durationSeconds = Math.max(0, processEndTime - processStartTime);
         document.getElementById("totalProcessTimeInput").value = formatTimeToHHMMSSMS(durationSeconds);
         saveLocalState();
+        if (typeof updateSliderTicks === "function") updateSliderTicks();
+        if (typeof updateTaskList === "function") updateTaskList();
       } else {
         alert("Invalid time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
         processEndTimeInput.value = formatTimeToHHMMSSMS(processEndTime);
