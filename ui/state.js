@@ -44,6 +44,8 @@ let marqueeRect;
 
 // biome-ignore lint/style/useConst: Global state modified in other scripts
 let currentStatusEdit = null;
+// biome-ignore lint/style/useConst: Global state modified in other scripts
+let currentOpContextIndex = null;
 
 const DOM = {
   taskList: document.getElementById("taskList"),
@@ -111,6 +113,9 @@ const DOM = {
   timeContextMenu: document.getElementById("timeContextMenu"),
   setStartBtn: document.getElementById("setStartBtn"),
   setEndBtn: document.getElementById("setEndBtn"),
+  opContextMenu: document.getElementById("opContextMenu"),
+  opRenameBtn: document.getElementById("opRenameBtn"),
+  opDeleteBtn: document.getElementById("opDeleteBtn"),
 };
 
 const saveLocalState = () => {

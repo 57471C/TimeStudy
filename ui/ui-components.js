@@ -30,6 +30,29 @@ const openStatusModal = (e, opIndex, taskIndex) => {
   dialog.style.top = `${top}px`;
 };
 
+const openOpContextMenu = (e, opIndex) => {
+  e.stopPropagation();
+  currentOpContextIndex = opIndex;
+
+  const menu = DOM.opContextMenu;
+  menu.classList.remove("hidden");
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  let left = rect.left + window.scrollX;
+  let top = rect.bottom + 4 + window.scrollY;
+
+  const menuRect = menu.getBoundingClientRect();
+  if (left + menuRect.width > window.innerWidth) {
+    left = window.innerWidth - menuRect.width - 10;
+  }
+  if (top + menuRect.height > window.innerHeight) {
+    top = rect.top + window.scrollY - menuRect.height - 4;
+  }
+
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+};
+
 const removeTag = (target, opIndex, taskIndex, tagType, tagIdx) => {
   if (target === "op") {
     operations[opIndex].partTags.splice(tagIdx, 1);
@@ -445,6 +468,16 @@ const buildOpRow = (op, i) => {
   const safeOpName = escapeHTML(op.name);
   const isInvalid = op.startTime < processStartTime || (processEndTime > 0 && op.startTime > processEndTime);
   const inputClass = isInvalid ? "text-red-500 dark:text-red-400" : "";
+
+  // Sum sub-task durations
+  const totalMs = (op.tasks || []).reduce((sum, task) => sum + (task.duration || 0), 0);
+  const formattedTotalTime =
+    durationMode === "hhmmssms"
+      ? formatDuration(totalMs)
+      : durationMode === "ms"
+        ? totalMs.toFixed(3)
+        : formatDecimalMinutes(totalMs);
+
   return `
     <tr>
       <td colspan="4">
@@ -454,10 +487,14 @@ const buildOpRow = (op, i) => {
               <button onclick="jumpToOperationTime('${opTimeInputId}')" class="p-1 bg-transparent border-0 shadow-none hover:bg-yellow-50 dark:hover:bg-yellow-500/10 rounded transition-colors text-yellow-500 dark:text-yellow-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Jump to Operation Time">
                 ${ICONS.jump}
               </button>
-              <span class="font-bold text-lg shrink-0">${safeOpName}</span>
+              <button onclick="openOpContextMenu(event, ${i})" class="font-bold text-lg shrink-0 text-left bg-transparent border-0 p-0 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer focus:outline-none transition-colors hover:underline select-none" title="Operation Options">${safeOpName}</button>
               <span class="inline-flex items-center gap-1.5 ml-2.5 shrink-0">
                 <label for="${opTimeInputId}" class="form-label font-mono text-base mb-0" style="width: auto;">Start:</label>
-              <input type="text" id="${opTimeInputId}" class="form-control w-31.25 px-1 text-center font-mono tabular-nums text-base ${inputClass}" value="${formattedTime}">
+                <input type="text" id="${opTimeInputId}" class="form-control w-31.25 px-1 text-center font-mono tabular-nums text-base ${inputClass}" value="${formattedTime}">
+              </span>
+              <span class="inline-flex items-center gap-1.5 ml-2.5 shrink-0">
+                <span class="font-mono text-base text-zinc-500 dark:text-zinc-400">Total:</span>
+                <input type="text" class="form-control w-31.25 px-1 text-center font-mono tabular-nums text-base bg-zinc-100 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 cursor-not-allowed border-zinc-200 dark:border-zinc-700" value="${formattedTotalTime}" readonly tabindex="-1" title="Total sub-task duration">
               </span>
               <button onclick="openOpPartDropdown(event, ${i})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Assign Part Numbers">
                 ${ICONS.part}
@@ -467,10 +504,6 @@ const buildOpRow = (op, i) => {
                 ${ICONS.labour}
               </button>
             </div>
-          </div>
-          <div class="flex gap-1.5">
-            <button onclick="renameOperation(${i})" class="btn btn-primary p-1 shadow-sm" title="Rename Operation">${ICONS.edit}</button>
-            <button onclick="deleteOperation(${i})" class="btn btn-danger p-1 shadow-sm" title="Delete Operation">${ICONS.trash}</button>
           </div>
         </div>
       </td>

@@ -237,7 +237,10 @@ const drawTable = () => {
           }
 
           series.push({
-            name: displayName,
+            name: `${op.name}-${i}-${displayName}`, // Make name unique to prevent ApexCharts stacking bug
+            taskName: task.name || `Task ${i + 1}`,
+            taskStatus: task.status,
+            taskLabour: getTaskLabourCode(task),
             data: data,
             color: color,
           });
@@ -248,7 +251,22 @@ const drawTable = () => {
         series: series,
         chart: { type: "bar", height: 400, stacked: true, background: "transparent", toolbar: { show: false } },
         theme: { mode: isDarkMode ? "dark" : "light" },
-        plotOptions: { bar: { columnWidth: "50%" } },
+        plotOptions: {
+          bar: {
+            columnWidth: "50%",
+            dataLabels: {
+              total: {
+                enabled: true,
+                style: {
+                  fontSize: "12px",
+                  fontWeight: 900,
+                  color: isDarkMode ? "#ffffff" : "#000000",
+                },
+                formatter: (val) => formatDurationValue(val),
+              },
+            },
+          },
+        },
         xaxis: { categories: opNames },
         yaxis: {
           title: { text: "Duration" },
@@ -260,7 +278,30 @@ const drawTable = () => {
           enabled: true,
           formatter: (val) => (val > 0 ? formatDurationValue(val) : ""),
         },
-        tooltip: { y: { formatter: (val) => formatDurationValue(val) } },
+        tooltip: {
+          custom: ({ series, seriesIndex, dataPointIndex, w }) => {
+            const s = w.config.series[seriesIndex];
+            const val = s.data[dataPointIndex];
+            if (!val || val <= 0) return "";
+
+            const taskName = s.taskName || s.name;
+            const opName = w.globals.labels[dataPointIndex];
+
+            let extraInfo = "";
+            if (groupingMode === "lean") {
+              extraInfo = `<b>Status:</b> ${s.taskStatus || "VA"}`;
+            } else {
+              extraInfo = `<b>Labour:</b> ${escapeHTML(s.taskLabour || "Unassigned")}`;
+            }
+
+            return `<div class="p-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm rounded">
+              <b>Operation:</b> ${escapeHTML(opName)}<br/>
+              <b>Task:</b> ${escapeHTML(taskName)}<br/>
+              ${extraInfo}<br/>
+              <b>Duration:</b> ${formatDurationValue(val)}
+            </div>`;
+          },
+        },
         annotations: {
           yaxis: [
             {

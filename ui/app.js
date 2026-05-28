@@ -511,9 +511,29 @@ const initializePlayer = () => {
     DOM.timeContextMenu.classList.remove("hidden");
   });
 
+  // Setup Context Menu for Operation
+  if (DOM.opContextMenu) {
+    DOM.opRenameBtn.addEventListener("click", () => {
+      if (currentOpContextIndex !== null && currentOpContextIndex !== undefined) {
+        renameOperation(currentOpContextIndex);
+      }
+      DOM.opContextMenu.classList.add("hidden");
+    });
+
+    DOM.opDeleteBtn.addEventListener("click", () => {
+      if (currentOpContextIndex !== null && currentOpContextIndex !== undefined) {
+        deleteOperation(currentOpContextIndex);
+      }
+      DOM.opContextMenu.classList.add("hidden");
+    });
+  }
+
   document.addEventListener("click", (e) => {
     if (!DOM.timeContextMenu.contains(e.target) && e.target !== DOM.currentTime) {
       DOM.timeContextMenu.classList.add("hidden");
+    }
+    if (DOM.opContextMenu && !DOM.opContextMenu.contains(e.target)) {
+      DOM.opContextMenu.classList.add("hidden");
     }
   });
 
