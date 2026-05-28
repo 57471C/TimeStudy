@@ -86,6 +86,7 @@ const DOM = {
   shiftLengthInput: document.getElementById("shiftLengthInput"),
   targetEfficiencyInput: document.getElementById("targetEfficiencyInput"),
   unitsPerCycleInput: document.getElementById("unitsPerCycleInput"),
+  taktTimeInput: document.getElementById("taktTimeInput"),
   partsFileInput: document.getElementById("partsFileInput"),
   labourFileInput: document.getElementById("labourFileInput"),
   partsUploadBtn: document.getElementById("partsUploadBtn"),

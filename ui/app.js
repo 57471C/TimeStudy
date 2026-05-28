@@ -274,26 +274,42 @@ const initializePlayer = () => {
       shiftLength = Number.parseFloat(DOM.shiftLengthInput.value) || 480;
       targetEfficiency = Number.parseFloat(DOM.targetEfficiencyInput.value) || 100;
       unitsPerCycle = Number.parseFloat(DOM.unitsPerCycleInput.value) || 1;
+      if (DOM.taktTimeInput) {
+        const parsedTakt = parseTaktTime(DOM.taktTimeInput.value);
+        if (parsedTakt !== null) {
+          taktTime = parsedTakt;
+        } else {
+          alert("Invalid Takt Time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
+          return false; // Prevent saving and closing if invalid
+        }
+      }
       if (DOM.projectCommentsInput) projectComments = DOM.projectCommentsInput.value;
       saveLocalState();
+      // Redraw charts and update UI to reflect new Takt Time
+      if (typeof updateProcessTimes === "function") updateProcessTimes();
+      if (typeof drawTable === "function") drawTable();
+      return true;
     };
 
     DOM.openSettingsBtn.addEventListener("click", () => toggleSettings(true));
 
     DOM.closeSettingsBtn.addEventListener("click", () => {
-      saveSettingsData();
-      toggleSettings(false);
+      if (saveSettingsData()) {
+        toggleSettings(false);
+      }
     });
 
     DOM.settingsBackdrop.addEventListener("click", () => {
-      saveSettingsData();
-      toggleSettings(false);
+      if (saveSettingsData()) {
+        toggleSettings(false);
+      }
     });
 
     DOM.saveSettingsBtn.addEventListener("click", () => {
-      saveSettingsData();
-      toggleSettings(false);
-      showToast("Project variables saved successfully.", "success");
+      if (saveSettingsData()) {
+        toggleSettings(false);
+        showToast("Project variables saved successfully.", "success");
+      }
     });
 
     // Basic CSV parser for 2 columns: [ID], [Description]
@@ -1137,6 +1153,7 @@ const toggleSettings = (show) => {
     DOM.shiftLengthInput.value = shiftLength || 480;
     DOM.targetEfficiencyInput.value = targetEfficiency || 100;
     DOM.unitsPerCycleInput.value = unitsPerCycle || 1;
+    if (DOM.taktTimeInput) DOM.taktTimeInput.value = formatTaktTime(taktTime);
     if (DOM.projectCommentsInput) DOM.projectCommentsInput.value = projectComments || "";
   } else {
     DOM.settingsPanel.classList.add("translate-x-full");

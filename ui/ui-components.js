@@ -611,10 +611,6 @@ const updateProcessTimes = () => {
         <td colspan="4" class="table-foot">
           <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 w-full py-1">
             <span class="inline-flex items-center gap-1.5">
-              <label for="taktTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Takt Time:</label>
-              <input type="text" id="taktTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${formatTaktTime(taktTime)}">
-            </span>
-            <span class="inline-flex items-center gap-1.5">
               <label for="processEndTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Process end time:</label>
               <input type="text" id="processEndTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${formattedEndTime}">
             </span>
@@ -627,29 +623,7 @@ const updateProcessTimes = () => {
       </tr>
     `;
 
-    const taktTimeInput = document.getElementById("taktTimeInput");
-    if (taktTimeInput) {
-      taktTimeInput.addEventListener("change", (event) => {
-        const newTaktTime = parseTaktTime(event.target.value);
-        if (newTaktTime !== null) {
-          taktTime = newTaktTime;
-          saveLocalState();
-          toConsole("Takt Time updated", taktTime, debuggin);
-          drawTable();
-        } else {
-          alert("Invalid Takt Time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).");
-          taktTimeInput.value = formatTaktTime(taktTime);
-        }
-      });
-
-      taktTimeInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          e.target.blur();
-          drawTable();
-        }
-      });
-    }
+    
 
     const processEndTimeInput = document.getElementById("processEndTimeInput");
     if (!processEndTimeInput) throw new Error("Process end time input not found");
