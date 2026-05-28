@@ -211,6 +211,16 @@ const initializePlayer = () => {
   marqueeOverlay = DOM.marqueeOverlay;
   marqueeRect = DOM.marqueeRect;
 
+  const activeLoggingPanel = document.getElementById("activeLoggingPanel");
+  if (activeLoggingPanel) {
+    new ResizeObserver(() => {
+      const thead = document.querySelector("#taskList thead");
+      if (thead) {
+        thead.style.top = `${activeLoggingPanel.offsetHeight}px`;
+      }
+    }).observe(activeLoggingPanel);
+  }
+
   const isDarkMode = localStorage.getItem("darkMode") === "true";
   if (typeof ApexCharts !== "undefined") {
     updateChartThemes(isDarkMode);

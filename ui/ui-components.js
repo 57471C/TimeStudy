@@ -514,9 +514,11 @@ const buildTaskRow = (task, i, j) => {
           ${task.status}
         </button>
       </td>
-      <td class="flex gap-1.5 justify-center">
-        <button onclick="insertTask(${i}, ${j})" class="btn btn-outline-secondary p-1" title="Split Task">${ICONS.split}</button>
-        <button onclick="deleteTask(${i}, ${j})" class="btn btn-outline-danger p-1" title="Delete Task">${ICONS.trash}</button>
+      <td class="text-center whitespace-nowrap align-top pt-1.5">
+        <div class="flex gap-1.5 justify-center">
+          <button onclick="insertTask(${i}, ${j})" class="btn btn-outline-secondary p-1" title="Split Task">${ICONS.split}</button>
+          <button onclick="deleteTask(${i}, ${j})" class="btn btn-outline-danger p-1" title="Delete Task">${ICONS.trash}</button>
+        </div>
       </td>
     </tr>
   `;
@@ -526,10 +528,10 @@ const updateTaskList = () => {
   try {
     if (!DOM.taskList) throw new Error("Task list element not found");
     const rows = [
-      `<table class="table mt-5 w-full font-mono text-base tabular-nums [&_th]:align-middle [&_td]:align-middle [&_th]:text-sm sm:[&_th]:text-base [&_td]:text-sm sm:[&_td]:text-base [&_th]:py-1 [&_th]:h-5">
-         <thead class="sticky top-0 z-10 bg-zinc-50 dark:bg-zinc-900 shadow-sm">
+      `<table class="table table-fixed border-collapse mt-5 w-full font-mono text-base tabular-nums [&_th]:align-middle [&_td]:align-middle [&_th]:text-sm sm:[&_th]:text-base [&_td]:text-sm sm:[&_td]:text-base [&_th]:py-1 [&_th]:h-5">
+           <thead class="sticky z-20 bg-zinc-50 dark:bg-zinc-900 shadow-sm">
            <tr>
-             <th scope="col" class="text-left align-middle">
+             <th scope="col" class="text-left align-middle w-auto pl-1 sm:pl-2">
                <div class="flex items-center gap-2">
                  <button onclick="toggleChartMode()" class="btn btn-sm btn-outline-secondary p-1 flex items-center justify-center" title="Toggle Chart View (Show ${chartMode === "column" ? "Gantt" : "Column"})">
                    ${chartMode === "column" ? ICONS.chartCol : ICONS.chartGantt}
@@ -537,9 +539,9 @@ const updateTaskList = () => {
                  <span>Operation</span>
                </div>
              </th>
-             <th scope="col" class="text-center w-0 whitespace-nowrap">Duration</th>
-             <th scope="col" class="text-center w-0 whitespace-nowrap">Status</th>
-             <th scope="col" class="text-center w-0 whitespace-nowrap">Actions</th>
+             <th scope="col" class="text-center w-28 sm:w-32 whitespace-nowrap px-1">Duration</th>
+             <th scope="col" class="text-center w-24 sm:w-28 whitespace-nowrap px-1">Status</th>
+             <th scope="col" class="text-center w-20 sm:w-24 whitespace-nowrap pr-1 sm:pr-2">Actions</th>
            </tr>
          </thead>
          <tbody>`,
@@ -568,6 +570,12 @@ const updateTaskList = () => {
     } else {
       table.style.display = "none";
       addTaskButton.disabled = true;
+    }
+
+    const activeLoggingPanel = document.getElementById("activeLoggingPanel");
+    const tableHeader = DOM.taskList.querySelector("thead");
+    if (activeLoggingPanel && tableHeader) {
+      tableHeader.style.top = `${activeLoggingPanel.offsetHeight}px`;
     }
 
     for (let i = 0; i < operations.length; i += 1) {
