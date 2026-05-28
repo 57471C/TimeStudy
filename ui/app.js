@@ -491,17 +491,14 @@ const initializePlayer = () => {
     const isTauri = window.__TAURI__ !== undefined;
     if (isTauri) {
       try {
-        const selected = await window.__TAURI__.core.invoke("plugin:dialog|open", {
-          options: {
-            multiple: false,
-            filters: [{ name: "TimeStudy Project", extensions: ["tsp"] }],
-          },
+        const selected = await window.__TAURI__.dialog.open({
+          multiple: false,
+          filters: [{ name: "TimeStudy Project", extensions: ["tsp"] }],
         });
         if (selected) {
           projectFilePath = typeof selected === "object" ? selected.path : selected;
           localStorage.setItem("projectFilePath", projectFilePath);
-          const contents = await window.__TAURI__.core.invoke("plugin:fs|read_text_file", { path: projectFilePath });
-          const jsonText = typeof contents === "string" ? contents : new TextDecoder().decode(new Uint8Array(contents));
+          const jsonText = await window.__TAURI__.fs.readTextFile(projectFilePath);
           importFromJSON(jsonText);
         }
       } catch (e) {
@@ -575,11 +572,9 @@ const initializePlayer = () => {
     const isTauri = window.__TAURI__ !== undefined;
     if (isTauri) {
       try {
-        const selected = await window.__TAURI__.core.invoke("plugin:dialog|open", {
-          options: {
-            multiple: false,
-            filters: [{ name: "Video", extensions: ["mp4", "webm", "ogg", "mov", "avi"] }],
-          },
+        const selected = await window.__TAURI__.dialog.open({
+          multiple: false,
+          filters: [{ name: "Video", extensions: ["mp4", "webm", "ogg", "mov", "avi"] }],
         });
         if (selected) {
           await processNewVideoFile(selected, true);
@@ -597,11 +592,9 @@ const initializePlayer = () => {
     const isTauri = window.__TAURI__ !== undefined;
     if (isTauri) {
       try {
-        const selected = await window.__TAURI__.core.invoke("plugin:dialog|open", {
-          options: {
-            multiple: false,
-            filters: [{ name: "Video", extensions: ["mp4", "webm", "ogg", "mov", "avi"] }],
-          },
+        const selected = await window.__TAURI__.dialog.open({
+          multiple: false,
+          filters: [{ name: "Video", extensions: ["mp4", "webm", "ogg", "mov", "avi"] }],
         });
         if (selected) {
           await processNewVideoFile(selected, true);
@@ -919,9 +912,7 @@ window.onload = () => {
           try {
             projectFilePath = startupFile;
             localStorage.setItem("projectFilePath", projectFilePath);
-            const contents = await window.__TAURI__.core.invoke("plugin:fs|read_text_file", { path: startupFile });
-            const jsonText =
-              typeof contents === "string" ? contents : new TextDecoder().decode(new Uint8Array(contents));
+            const jsonText = await window.__TAURI__.fs.readTextFile(startupFile);
             importFromJSON(jsonText);
             toConsole("Auto-loaded project from file association", startupFile, debuggin);
           } catch (e) {

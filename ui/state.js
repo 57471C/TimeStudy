@@ -226,26 +226,18 @@ const exportToJSON = async (isSaveAs = false) => {
     try {
       if (isSaveAs === true || !projectFilePath) {
         const defaultName = projectFilePath ? projectFilePath.split(/[/\\]/).pop() : filename;
-        const filePath = await window.__TAURI__.core.invoke("plugin:dialog|save", {
-          options: {
-            filters: [{ name: "TimeStudy Project", extensions: ["tsp"] }],
-            defaultPath: defaultName,
-          },
+        const filePath = await window.__TAURI__.dialog.save({
+          filters: [{ name: "TimeStudy Project", extensions: ["tsp"] }],
+          defaultPath: defaultName,
         });
         if (filePath) {
           projectFilePath = typeof filePath === "object" ? filePath.path : filePath;
           localStorage.setItem("projectFilePath", projectFilePath);
-          await window.__TAURI__.core.invoke("plugin:fs|write_text_file", {
-            path: projectFilePath,
-            data: formattedDataStr,
-          });
+          await window.__TAURI__.fs.writeTextFile(projectFilePath, formattedDataStr);
           showToast("Project saved successfully.", "success");
         }
       } else {
-        await window.__TAURI__.core.invoke("plugin:fs|write_text_file", {
-          path: projectFilePath,
-          data: formattedDataStr,
-        });
+        await window.__TAURI__.fs.writeTextFile(projectFilePath, formattedDataStr);
         showToast("Project saved successfully.", "success");
       }
     } catch (e) {
@@ -448,18 +440,13 @@ const exportToCSV = async () => {
   const isTauri = window.__TAURI__ !== undefined;
   if (isTauri) {
     try {
-      const filePath = await window.__TAURI__.core.invoke("plugin:dialog|save", {
-        options: {
-          filters: [{ name: "CSV", extensions: ["csv"] }],
-          defaultPath: filename,
-        },
+      const filePath = await window.__TAURI__.dialog.save({
+        filters: [{ name: "CSV", extensions: ["csv"] }],
+        defaultPath: filename,
       });
       if (filePath) {
         const actualPath = typeof filePath === "object" ? filePath.path : filePath;
-        await window.__TAURI__.core.invoke("plugin:fs|write_text_file", {
-          path: actualPath,
-          data: csvContent,
-        });
+        await window.__TAURI__.fs.writeTextFile(actualPath, csvContent);
         showToast("Data exported to CSV successfully.", "success");
       }
     } catch (e) {
