@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.5.1-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.5.2-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -25,6 +25,11 @@
 6. **Save/Load**: Use “Save Project” to export your `.json` state.
 6. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 7. **Dark Mode**: Click the sun/moon icon to toggle themes.
+
+## Version 0.5.2 Updates
+- **Lean/Labour Grouping Mode**: Introduced a new toggle in the table header to switch charts between Lean analysis (VA/NVA/W) and Labour code grouping.
+- **UI/UX Refinements**: Added operation start-time tick marks to the timeline seekbar and enabled scroll-sticky headers for video and operations tables.
+- **Tauri & State Fixes**: Upgraded Tauri save/load integration, resolved horizontal window panning issues, and corrected takt time/process limits logic.
 
 ## Version 0.5.1 Updates
 - **Performance Optimizations**: Switched real-time inputs to `change` events, drastically reducing chart re-renders and eliminating UI freezing.

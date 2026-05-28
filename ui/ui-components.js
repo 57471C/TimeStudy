@@ -536,6 +536,9 @@ const updateTaskList = () => {
                  <button onclick="toggleChartMode()" class="btn btn-sm btn-outline-secondary p-1 flex items-center justify-center" title="Toggle Chart View (Show ${chartMode === "column" ? "Gantt" : "Column"})">
                    ${chartMode === "column" ? ICONS.chartCol : ICONS.chartGantt}
                  </button>
+                 <button onclick="toggleGroupingMode()" class="btn btn-sm btn-outline-secondary p-1 flex items-center justify-center" title="Toggle Grouping Mode (Show ${groupingMode === "lean" ? "Labour" : "Lean"})">
+                   ${groupingMode === "lean" ? '<span class="w-4 h-4 flex items-center justify-center font-black text-sm leading-none">L</span>' : ICONS.labour}
+                 </button>
                  <span>Operation</span>
                </div>
              </th>

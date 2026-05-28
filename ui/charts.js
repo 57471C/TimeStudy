@@ -4,8 +4,44 @@ let pieCharts = [];
 let compareCharts = [];
 let chartMode = "column";
 
+const LABOUR_COLORS = [
+  "#3b82f6", // Blue
+  "#8b5cf6", // Purple
+  "#ec4899", // Pink
+  "#06b6d4", // Cyan
+  "#f59e0b", // Amber
+  "#14b8a6", // Teal
+  "#10b981", // Emerald
+  "#6366f1", // Indigo
+  "#f43f5e", // Rose
+  "#84cc16", // Lime
+];
+
+const getLabourColor = (code) => {
+  if (!code) return "#a1a1aa"; // Neutral gray for Unassigned
+  let hash = 0;
+  for (let i = 0; i < code.length; i++) {
+    hash = code.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % LABOUR_COLORS.length;
+  return LABOUR_COLORS[index];
+};
+
+const getTaskLabourCode = (task) => {
+  if (task && task.labourTags && task.labourTags.length > 0) {
+    return task.labourTags[0];
+  }
+  return null;
+};
+
 const toggleChartMode = () => {
   chartMode = chartMode === "column" ? "gantt" : "column";
+  if (typeof updateTaskList === "function") updateTaskList();
+  drawTable();
+};
+
+const toggleGroupingMode = () => {
+  groupingMode = groupingMode === "lean" ? "labour" : "lean";
   if (typeof updateTaskList === "function") updateTaskList();
   drawTable();
 };
@@ -190,11 +226,18 @@ const drawTable = () => {
           data[j] = task.duration;
 
           let color = "#10b981";
-          if (task.status === "NVA") color = "#f59e0b";
-          else if (task.status === "W") color = "#f43f5e";
+          let displayName = task.name || `Task ${i + 1}`;
+          if (groupingMode === "lean") {
+            if (task.status === "NVA") color = "#f59e0b";
+            else if (task.status === "W") color = "#f43f5e";
+          } else {
+            const code = getTaskLabourCode(task);
+            color = getLabourColor(code);
+            displayName += ` (${code || "Unassigned"})`;
+          }
 
           series.push({
-            name: task.name || `Task ${i + 1}`,
+            name: displayName,
             data: data,
             color: color,
           });
@@ -242,13 +285,19 @@ const drawTable = () => {
         let currentStart = op.startTime * 1000;
         for (let j = 0; j < op.tasks.length; j += 1) {
           const task = op.tasks[j];
-          const color = task.status === "VA" ? "#10b981" : task.status === "NVA" ? "#f59e0b" : "#f43f5e";
+          let color = "#10b981";
+          if (groupingMode === "lean") {
+            color = task.status === "VA" ? "#10b981" : task.status === "NVA" ? "#f59e0b" : "#f43f5e";
+          } else {
+            color = getLabourColor(getTaskLabourCode(task));
+          }
           ganttData.push({
             x: op.name,
             y: [currentStart, currentStart + task.duration],
             fillColor: color,
             taskName: task.name,
             status: task.status,
+            labour: getTaskLabourCode(task),
           });
           currentStart += task.duration;
         }
@@ -314,10 +363,13 @@ const drawTable = () => {
           custom: ({ seriesIndex, dataPointIndex, w }) => {
             const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
             const duration = data.y[1] - data.y[0];
+            const extraInfo = groupingMode === "lean"
+              ? `<b>Status:</b> ${data.status}`
+              : `<b>Labour:</b> ${escapeHTML(data.labour || "Unassigned")}`;
             return `<div class="p-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm rounded">
               <b>Operation:</b> ${escapeHTML(data.x)}<br/>
               <b>Task:</b> ${escapeHTML(data.taskName)}<br/>
-              <b>Status:</b> ${data.status}<br/>
+              ${extraInfo}<br/>
               <b>Duration:</b> ${formatDurationValue(duration)}
             </div>`;
           },
@@ -329,18 +381,33 @@ const drawTable = () => {
     DOM.pieChartContainer.innerHTML = "";
     for (let i = 0; i < operations.length; i += 1) {
       const op = operations[i];
-      const statusDurations = { VA: 0, NVA: 0, W: 0 };
-      for (let j = 0; j < op.tasks.length; j += 1) {
-        if (op.tasks[j]?.status) {
-          statusDurations[op.tasks[j].status.toUpperCase()] += op.tasks[j].duration;
+      
+      let pieData = [];
+      if (groupingMode === "lean") {
+        const statusDurations = { VA: 0, NVA: 0, W: 0 };
+        for (let j = 0; j < op.tasks.length; j += 1) {
+          if (op.tasks[j]?.status) {
+            statusDurations[op.tasks[j].status.toUpperCase()] += op.tasks[j].duration;
+          }
         }
+        pieData = [
+          { name: "VA", y: statusDurations.VA, color: "#10b981" },
+          { name: "NVA", y: statusDurations.NVA, color: "#f59e0b" },
+          { name: "W", y: statusDurations.W, color: "#f43f5e" },
+        ].filter((item) => item.y > 0);
+      } else {
+        const labourDurations = {};
+        for (let j = 0; j < op.tasks.length; j += 1) {
+          const task = op.tasks[j];
+          const code = getTaskLabourCode(task) || "Unassigned";
+          labourDurations[code] = (labourDurations[code] || 0) + task.duration;
+        }
+        pieData = Object.entries(labourDurations).map(([code, duration]) => ({
+          name: code,
+          y: duration,
+          color: getLabourColor(code === "Unassigned" ? null : code),
+        })).filter((item) => item.y > 0);
       }
-
-      const pieData = [
-        { name: "VA", y: statusDurations.VA, color: "#10b981" },
-        { name: "NVA", y: statusDurations.NVA, color: "#f59e0b" },
-        { name: "W", y: statusDurations.W, color: "#f43f5e" },
-      ].filter((item) => item.y > 0);
 
       if (pieData.length === 0) continue;
 
