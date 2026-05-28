@@ -111,11 +111,21 @@
   }
 
   .table {
-    @apply w-full text-left border-collapse text-sm;
+    @apply w-full text-left text-sm;
+    border-collapse: separate;
+    border-spacing: 0;
   }
   .table th,
   .table td {
-    @apply p-2 border border-zinc-200 dark:border-zinc-700;
+    @apply p-2 border-b border-r border-zinc-200 dark:border-zinc-700;
+  }
+  .table tr:first-child th,
+  .table tr:first-child td {
+    @apply border-t border-zinc-200 dark:border-zinc-700;
+  }
+  .table th:first-child,
+  .table td:first-child {
+    @apply border-l border-zinc-200 dark:border-zinc-700;
   }
   .table thead th {
     @apply bg-zinc-100 dark:bg-zinc-800 font-semibold;

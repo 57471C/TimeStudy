@@ -561,7 +561,7 @@ const updateTaskList = () => {
   try {
     if (!DOM.taskList) throw new Error("Task list element not found");
     const rows = [
-      `<table class="table table-fixed border-collapse mt-5 w-full font-mono text-base tabular-nums [&_th]:align-middle [&_td]:align-middle [&_th]:text-sm sm:[&_th]:text-base [&_td]:text-sm sm:[&_td]:text-base [&_th]:py-1 [&_th]:h-5">
+      `<table class="table table-fixed w-full font-mono text-base tabular-nums [&_th]:align-middle [&_td]:align-middle [&_th]:text-sm sm:[&_th]:text-base [&_td]:text-sm sm:[&_td]:text-base [&_th]:py-1 [&_th]:h-5">
            <thead class="sticky z-20 bg-zinc-50 dark:bg-zinc-900 shadow-sm">
            <tr>
              <th scope="col" class="text-left align-middle w-auto pl-1 sm:pl-2">
