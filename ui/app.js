@@ -1747,10 +1747,8 @@ const initializeTrimFeature = () => {
       await processVideo(startVal, endVal, qualityMode, isCompression);
     } catch (err) {
       toConsole("Error processing video", err, debuggin);
+      trimModal.close();
       alert(`Video processing failed: ${err.message || err}`);
-      trimOnlyBtn.disabled = false;
-      trimCompressBtn.disabled = false;
-      cancelTrimBtn.disabled = false;
     }
   };
 
