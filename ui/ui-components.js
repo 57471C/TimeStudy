@@ -466,8 +466,12 @@ const buildOpRow = (op, i) => {
   const opTimeInputId = `opTimeInput-${i}`;
   const formattedTime = formatTimeToHHMMSSMS(op.startTime);
   const safeOpName = escapeHTML(op.name);
-  const isInvalid = op.startTime < processStartTime || (processEndTime > 0 && op.startTime > processEndTime);
+  const isNegative = op.startTime < 0;
+  const isInvalid = isNegative || op.startTime < processStartTime || (processEndTime > 0 && op.startTime > processEndTime);
   const inputClass = isInvalid ? "text-red-500 dark:text-red-400" : "";
+  const tdBgClass = isNegative
+    ? "bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400"
+    : "bg-zinc-50 dark:bg-zinc-900";
 
   // Sum sub-task durations
   const totalMs = (op.tasks || []).reduce((sum, task) => sum + (task.duration || 0), 0);
@@ -480,7 +484,7 @@ const buildOpRow = (op, i) => {
 
   return `
     <tr class="operation-row">
-      <td colspan="4" class="sticky z-10 bg-zinc-50 dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-700 shadow-sm">
+      <td colspan="4" class="sticky z-10 ${tdBgClass} border-y border-zinc-200 dark:border-zinc-700 shadow-sm">
         <div class="flex items-center justify-between w-full">
           <div class="flex-1 mr-4">
             <div class="flex items-center gap-2 flex-wrap">

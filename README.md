@@ -88,6 +88,13 @@
    git push origin feature/your-feature
    ```
 
+## Native Video Processing Setup (FFmpeg Sidecar)
+
+For the desktop app's native video trimming/compression feature to work, you must bundle the FFmpeg binary as a Tauri sidecar:
+1. Create a `src-tauri/binaries/` folder if it does not exist.
+2. Download the FFmpeg executable for your target platform.
+3. Rename and place the executable in the `src-tauri/binaries/` folder according to Tauri's target triple naming convention (e.g. `ffmpeg-x86_64-pc-windows-msvc.exe` on Windows).
+
 ## License
 
 MIT License (see `LICENSE` file, if applicable).

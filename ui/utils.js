@@ -71,12 +71,15 @@ const parseTimeFromHHMMSSMS = (input) => {
 };
 
 const formatDuration = (ms) => {
-  if (!ms || ms <= 0) return "00:00:00.00";
-  const hours = Math.floor(ms / 3600000);
-  const minutes = Math.floor((ms % 3600000) / 60000);
-  const seconds = Math.floor((ms % 60000) / 1000);
-  const milliseconds = Math.floor((ms % 1000) / 10);
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${milliseconds.toString().padStart(2, "0")}`;
+  if (ms === undefined || ms === null || Number.isNaN(ms)) return "00:00:00.00";
+  const isNeg = ms < 0;
+  const absMs = Math.abs(ms);
+  const hours = Math.floor(absMs / 3600000);
+  const minutes = Math.floor((absMs % 3600000) / 60000);
+  const seconds = Math.floor((absMs % 60000) / 1000);
+  const milliseconds = Math.floor((absMs % 1000) / 10);
+  const sign = isNeg ? "-" : "";
+  return `${sign}${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${milliseconds.toString().padStart(2, "0")}`;
 };
 
 const formatTaktTime = formatDuration;
@@ -84,7 +87,7 @@ const formatTaktTime = formatDuration;
 const formatTimeToHHMMSSMS = (seconds) => formatDuration(seconds ? seconds * 1000 : 0);
 
 const formatDecimalMinutes = (ms) => {
-  if (!ms || ms <= 0) return "0.00";
+  if (ms === undefined || ms === null || Number.isNaN(ms)) return "0.00";
   const minutes = ms / (60 * 1000);
   return minutes.toFixed(2);
 };

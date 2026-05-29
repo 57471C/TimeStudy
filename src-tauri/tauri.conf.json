@@ -41,6 +41,9 @@
         "role": "Editor"
       }
     ],
+    "externalBin": [
+      "binaries/ffmpeg"
+    ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }

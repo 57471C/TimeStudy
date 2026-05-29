@@ -1054,6 +1054,7 @@ window.onload = () => {
       })
       .catch((e) => toConsole("Failed to check startup file", e, debuggin));
   }
+  initializeTrimFeature();
 };
 
 const startMarquee = (e) => {
@@ -1684,3 +1685,197 @@ const jumpToOperationTime = (inputId) => {
     alert("Invalid time format in the input field.");
   }
 };
+
+// Video Trimming & Compression Feature
+const initializeTrimFeature = () => {
+  const isTauri = window.__TAURI__ !== undefined;
+  if (!isTauri) return;
+
+  const trimVideoBtn = document.getElementById("trimVideoBtn");
+  const trimModal = document.getElementById("trimModal");
+  const closeTrimBtnX = document.getElementById("closeTrimBtnX");
+  const cancelTrimBtn = document.getElementById("cancelTrimBtn");
+  const trimOnlyBtn = document.getElementById("trimOnlyBtn");
+  const trimCompressBtn = document.getElementById("trimCompressBtn");
+
+  if (trimVideoBtn) {
+    trimVideoBtn.classList.remove("hidden");
+    trimVideoBtn.addEventListener("click", () => {
+      if (!player || !player.src) {
+        alert("Please load a video first.");
+        return;
+      }
+      document.getElementById("trimStartInput").value = formatTimeToHHMMSSMS(processStartTime);
+      document.getElementById("trimEndInput").value = formatTimeToHHMMSSMS(processEndTime || player.duration);
+      document.getElementById("trimProgressContainer").classList.add("hidden");
+      document.getElementById("trimProgressBar").style.width = "0%";
+      document.getElementById("trimProgressText").textContent = "0%";
+      trimOnlyBtn.disabled = false;
+      trimCompressBtn.disabled = false;
+      cancelTrimBtn.disabled = false;
+      trimModal.showModal();
+    });
+  }
+
+  const closeTrim = () => {
+    trimModal.close();
+  };
+
+  if (closeTrimBtnX) closeTrimBtnX.addEventListener("click", closeTrim);
+  if (cancelTrimBtn) cancelTrimBtn.addEventListener("click", closeTrim);
+
+  const handleTrimAction = async (isCompression) => {
+    const startVal = parseTimeFromHHMMSSMS(document.getElementById("trimStartInput").value);
+    const endVal = parseTimeFromHHMMSSMS(document.getElementById("trimEndInput").value);
+
+    if (startVal === null || endVal === null) {
+      alert("Invalid start or end time format.");
+      return;
+    }
+    if (startVal >= endVal) {
+      alert("Start time must be less than end time.");
+      return;
+    }
+
+    const qualityMode = document.querySelector('input[name="trimQuality"]:checked').value;
+    
+    trimOnlyBtn.disabled = true;
+    trimCompressBtn.disabled = true;
+    cancelTrimBtn.disabled = true;
+
+    try {
+      await processVideo(startVal, endVal, qualityMode, isCompression);
+    } catch (err) {
+      toConsole("Error processing video", err, debuggin);
+      alert(`Video processing failed: ${err.message || err}`);
+      trimOnlyBtn.disabled = false;
+      trimCompressBtn.disabled = false;
+      cancelTrimBtn.disabled = false;
+    }
+  };
+
+  if (trimOnlyBtn) trimOnlyBtn.addEventListener("click", () => handleTrimAction(false));
+  if (trimCompressBtn) trimCompressBtn.addEventListener("click", () => handleTrimAction(true));
+};
+
+const processVideo = async (start, end, qualityMode, isCompression) => {
+  if (!videoFilePath) {
+    alert("No active video file path found.");
+    return;
+  }
+
+  const defaultPath = `trimmed_${videoFileName || "video.mp4"}`;
+  const outputPath = await window.__TAURI__.dialog.save({
+    filters: [{ name: "Video", extensions: ["mp4", "webm", "mov", "avi"] }],
+    defaultPath: defaultPath,
+  });
+
+  if (!outputPath) {
+    throw new Error("Save location was not specified.");
+  }
+
+  const actualOutputPath = typeof outputPath === "object" ? outputPath.path : outputPath;
+
+  // Build FFmpeg args
+  const args = [
+    "-i", videoFilePath,
+    "-ss", start.toString(),
+    "-to", end.toString()
+  ];
+
+  if (!isCompression) {
+    args.push("-c", "copy");
+  } else {
+    if (qualityMode === "low") {
+      args.push("-vf", "scale=-1:720", "-c:v", "libx264", "-crf", "32", "-preset", "veryfast");
+    } else if (qualityMode === "high") {
+      args.push("-vf", "scale=-1:1080", "-c:v", "libx264", "-crf", "18", "-preset", "medium");
+    } else {
+      args.push("-vf", "scale=-1:1080", "-c:v", "libx264", "-crf", "26", "-preset", "fast");
+    }
+  }
+
+  args.push(actualOutputPath);
+
+  const progressContainer = document.getElementById("trimProgressContainer");
+  const progressBar = document.getElementById("trimProgressBar");
+  const progressText = document.getElementById("trimProgressText");
+
+  progressContainer.classList.remove("hidden");
+  progressBar.style.width = "0%";
+  progressText.textContent = "0%";
+
+  const { Command } = window.__TAURI__.shell;
+  const sidecarCmd = Command.sidecar("binaries/ffmpeg", args);
+
+  const duration = end - start;
+
+  sidecarCmd.on("stderr", (line) => {
+    const match = line.match(/time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
+    if (match) {
+      const hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const seconds = parseInt(match[3], 10);
+      const hundredths = parseInt(match[4], 10);
+      const currentSeconds = hours * 3600 + minutes * 60 + seconds + hundredths / 100;
+      if (duration > 0) {
+        const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
+        progressBar.style.width = `${pct}%`;
+        progressText.textContent = `${pct}%`;
+      }
+    }
+  });
+
+  return new Promise((resolve, reject) => {
+    sidecarCmd.on("close", async (data) => {
+      if (data.code === 0) {
+        try {
+          for (let i = 0; i < operations.length; i += 1) {
+            operations[i].startTime = operations[i].startTime - start;
+          }
+
+          processStartTime = 0;
+          processEndTime = end - start;
+
+          videoFilePath = actualOutputPath;
+          videoFileName = actualOutputPath.replace(/^.*[\\\/]/, "");
+          
+          const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
+          player.src = tauriAssetUrl;
+          player.preload = "auto";
+          player.load();
+          toggleVideoPlaceholder(false);
+
+          saveLocalState();
+          updateTaskList();
+          if (typeof drawTable === "function") drawTable();
+
+          showToast("Video processed successfully.", "success");
+          document.getElementById("trimModal").close();
+          
+          setTimeout(async () => {
+            const saveConfirm = await asyncConfirm("Timestamps shifted. Save project changes now?", "Save Project");
+            if (saveConfirm) {
+              await exportToJSON(false);
+            }
+          }, 500);
+
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      } else {
+        reject(new Error(`FFmpeg failed with exit code ${data.code}`));
+      }
+    });
+
+    sidecarCmd.on("error", (err) => {
+      reject(new Error(err));
+    });
+
+    sidecarCmd.spawn().catch((err) => {
+      reject(err);
+    });
+  });
+};
+
