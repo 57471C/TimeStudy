@@ -1897,12 +1897,13 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   if (!isCompression) {
     args.push("-c", "copy");
   } else {
+    // Limit CPU threads to 4 to prevent thread/CPU starvation of the Tauri host IPC.
     if (qualityMode === "low") {
-      args.push("-vf", "scale=-2:720", "-c:v", "libx264", "-crf", "32", "-preset", "veryfast");
+      args.push("-vf", "scale=-2:720", "-c:v", "libx264", "-crf", "32", "-preset", "veryfast", "-threads", "4");
     } else if (qualityMode === "high") {
-      args.push("-vf", "scale=-2:1080", "-c:v", "libx264", "-crf", "18", "-preset", "medium");
+      args.push("-vf", "scale=-2:1080", "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-threads", "4");
     } else {
-      args.push("-vf", "scale=-2:1080", "-c:v", "libx264", "-crf", "26", "-preset", "fast");
+      args.push("-vf", "scale=-2:1080", "-c:v", "libx264", "-crf", "26", "-preset", "fast", "-threads", "4");
     }
   }
 
