@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.5.2-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.5.3-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -22,9 +22,15 @@
 3. **Add Operations/Tasks**: Use “Add Operation” and “Add Task” buttons to log process steps.
 4. **Analyze Data**: View the inline Gantt/Column charts, or create a new Trial via the header dropdown to analyze improvements.
 5. **Compare Trials**: Click "Compare Trials" to view the full-screen Kaizen dashboard.
-6. **Save/Load**: Use “Save Project” to export your `.json` state.
+6. **Save/Load**: Use “Save Project” to `.tsp` file (JSON).
+7. **Export**: Use "Export" to save data as CSV or XLSX formats.
 6. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 7. **Dark Mode**: Click the sun/moon icon to toggle themes.
+
+## Version 0.5.3 Updates
+- **Charts update**: font size changes to make it readble if there are a lot of Tasks.
+- **Project Exporting**: Corrected the formatting of CSV export. Added XLSX export and formatting.
+- **Table Scrolling**: The table header row and Operations rows are now "sticky" when vertical scrolling.
 
 ## Version 0.5.2 Updates
 - **Lean/Labour Grouping Mode**: Introduced a new toggle in the table header to switch charts between Lean analysis (VA/NVA/W) and Labour code grouping.

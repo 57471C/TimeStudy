@@ -33,7 +33,7 @@ let volumeLevel = 1;
 // biome-ignore lint/style/useConst: Global state modified in other scripts
 let groupingMode = "lean";
 
-const APP_VERSION = "0.5.2";
+const APP_VERSION = "0.5.3";
 
 // biome-ignore lint/style/useConst: Global state modified in other scripts
 let isDrawing = false;
@@ -485,7 +485,8 @@ const exportToCSV = async () => {
     const opTotalTime = op.tasks.reduce((sum, t) => sum + t.duration, 0);
 
     // Operation Titles
-    csvContent += "Operation Name,Operation Part Qty,Operation Part Numbers,Operation Part Description,Operation Start Time,Operation Total Time\n";
+    csvContent +=
+      "Operation Name,Operation Part Qty,Operation Part Numbers,Operation Part Description,Operation Start Time,Operation Total Time\n";
 
     // Operation Values
     const partTags = op.partTags || [];
@@ -581,7 +582,7 @@ const exportToXLSX = async () => {
 
   for (let tIdx = 0; tIdx < trials.length; tIdx += 1) {
     const trial = trials[tIdx];
-    
+
     // Sanitize sheet name: max 31 chars, no invalid chars, unique
     let sheetName = (trial.trialName || `Trial ${tIdx + 1}`).trim();
     sheetName = sheetName.replace(/[*?:/\\[\]]/g, "");
@@ -620,20 +621,28 @@ const exportToXLSX = async () => {
     };
 
     // Video File Name link logic
-    const videoCellVal = (trialVideoFileName && trialVideoFilePath) ? {
-      text: trialVideoFileName,
-      hyperlink: trialVideoFilePath.startsWith("file://") ? trialVideoFilePath : `file:///${trialVideoFilePath.replace(/\\/g, "/")}`
-    } : trialVideoFileName;
+    const videoCellVal =
+      trialVideoFileName && trialVideoFilePath
+        ? {
+            text: trialVideoFileName,
+            hyperlink: trialVideoFilePath.startsWith("file://")
+              ? trialVideoFilePath
+              : `file:///${trialVideoFilePath.replace(/\\/g, "/")}`,
+          }
+        : trialVideoFileName;
 
     // Metadata titles & values
-    addRow(["Project Name", "Project Trial Name", "Process Start Time", "Process End Time", "Takt Time", "Video File Name"], true);
+    addRow(
+      ["Project Name", "Project Trial Name", "Process Start Time", "Process End Time", "Takt Time", "Video File Name"],
+      true,
+    );
     addRow([
       projectName,
       trial.trialName || "",
       formatTimeToHHMMSSMS(trialStartTime),
       formatTimeToHHMMSSMS(trialEndTime),
       parseFloat(formatDurationForExport(trialTaktTime)) || 0,
-      videoCellVal
+      videoCellVal,
     ]);
     addRow([]);
 
@@ -643,7 +652,17 @@ const exportToXLSX = async () => {
       const opTotalTime = op.tasks.reduce((sum, t) => sum + t.duration, 0);
 
       // Operation Headers
-      addRow(["Operation Name", "Operation Part Qty", "Operation Part Numbers", "Operation Part Description", "Operation Start Time", "Operation Total Time"], true);
+      addRow(
+        [
+          "Operation Name",
+          "Operation Part Qty",
+          "Operation Part Numbers",
+          "Operation Part Description",
+          "Operation Start Time",
+          "Operation Total Time",
+        ],
+        true,
+      );
 
       // Operation Values
       const partTags = op.partTags || [];
@@ -654,7 +673,7 @@ const exportToXLSX = async () => {
           "",
           "",
           formatTimeToHHMMSSMS(op.startTime),
-          parseFloat(formatDecimalMinutes(opTotalTime)) || 0
+          parseFloat(formatDecimalMinutes(opTotalTime)) || 0,
         ]);
       } else {
         for (let pIdx = 0; pIdx < partTags.length; pIdx += 1) {
@@ -666,17 +685,10 @@ const exportToXLSX = async () => {
               partNumber,
               partDescription,
               formatTimeToHHMMSSMS(op.startTime),
-              parseFloat(formatDecimalMinutes(opTotalTime)) || 0
+              parseFloat(formatDecimalMinutes(opTotalTime)) || 0,
             ]);
           } else {
-            addRow([
-              "",
-              qty ? parseInt(qty, 10) : "",
-              partNumber,
-              partDescription,
-              "",
-              ""
-            ]);
+            addRow(["", qty ? parseInt(qty, 10) : "", partNumber, partDescription, "", ""]);
           }
         }
       }
