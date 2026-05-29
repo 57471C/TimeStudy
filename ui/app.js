@@ -1871,10 +1871,13 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
     throw new Error("Input and output paths are identical.");
   }
 
-  // Build FFmpeg args
+  // Build FFmpeg args.
+  // -progress pipe:1 routes machine-readable progress (key=value, newline-delimited)
+  // to stdout, avoiding the carriage-return buffering issue with stderr stats on Windows.
   const args = [
     "-y",
     "-nostdin",
+    "-progress", "pipe:1",
     "-i", videoFilePath,
     "-ss", start.toString(),
     "-to", end.toString()
@@ -1920,35 +1923,41 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   const stderrLogs = [];
 
   return new Promise((resolve, reject) => {
-    // Listen for stderr events on the command instance to update the progress bar in real-time
+    // Collect stderr for error reporting only — no progress parsing here.
+    // Progress now comes via -progress pipe:1 on stdout (newline-delimited key=value).
     sidecarCmd.stderr.on("data", (line) => {
       stderrLogs.push(line);
       if (stderrLogs.length > 50) {
         stderrLogs.shift();
       }
-      const match = line.match(/time=(\d{2}):(\d{2}):(\d{2})[.,](\d+)/);
-      if (match) {
-        const hours = Number.parseInt(match[1], 10);
-        const minutes = Number.parseInt(match[2], 10);
-        const seconds = Number.parseInt(match[3], 10);
-        const frac = Number.parseFloat("0." + match[4]);
-        const currentSeconds = hours * 3600 + minutes * 60 + seconds + frac;
-        if (duration > 0) {
-          const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
-          progressBar.style.width = `${pct}%`;
-          progressText.textContent = `${pct}%`;
-          if (typeof window.updateTetrisProgress === "function") {
-            window.updateTetrisProgress(pct);
+    });
+
+    // Parse FFmpeg -progress pipe:1 output from stdout.
+    // Format: one key=value pair per line, e.g. "out_time_ms=5000000".
+    // This is newline-terminated so the Tauri IPC bridge flushes on every
+    // field — no carriage-return buffering that would stall the process.
+    let progressBuffer = "";
+    sidecarCmd.stdout.on("data", (chunk) => {
+      progressBuffer += chunk;
+      const lines = progressBuffer.split("\n");
+      // Keep the last (potentially incomplete) line in the buffer
+      progressBuffer = lines.pop() ?? "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        // out_time_ms is in microseconds despite the name — divide by 1e6 for seconds
+        const match = trimmed.match(/^out_time_ms=(\d+)$/);
+        if (match) {
+          const currentSeconds = Number.parseInt(match[1], 10) / 1_000_000;
+          if (duration > 0) {
+            const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
+            progressBar.style.width = `${pct}%`;
+            progressText.textContent = `${pct}%`;
+            if (typeof window.updateTetrisProgress === "function") {
+              window.updateTetrisProgress(pct);
+            }
           }
         }
       }
-    });
-
-    // Drain stdout to prevent pipe buffer deadlock stalling FFmpeg mid-encode.
-    // FFmpeg may write muxer progress or stream mapping info to stdout, and if the
-    // pipe buffer fills without a reader the entire process blocks indefinitely.
-    sidecarCmd.stdout.on("data", (_line) => {
-      // intentionally empty — we only need to drain the pipe
     });
 
     // Listen for close event on the command instance

@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.5.4-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.5.5-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -26,6 +26,10 @@
 7. **Export**: Use "Export" to save data as CSV or XLSX formats.
 6. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 7. **Dark Mode**: Click the sun/moon icon to toggle themes.
+
+## Version 0.5.5 Updates
+- **FFmpeg Progress Pipeline Rewrite**: Switched from parsing FFmpeg's human-readable `stderr` stats (which use `\r` carriage-return overwriting and intermittently stalled on Windows due to pipe buffer deadlock) to the machine-readable `-progress pipe:1` flag. Progress data is now emitted to `stdout` as newline-delimited `key=value` pairs (`out_time_ms`), which the Tauri IPC bridge flushes reliably on every line. Eliminates the intermittent freeze at ~10–12% during compressed encodes.
+- **Capabilities Cleanup**: Removed the invalid `shell:allow-execute` permission block from `default.json` (not a valid Tauri v2 identifier). Only `shell:allow-spawn` is required for sidecar execution.
 
 ## Version 0.5.4 Updates
 - **Tetris Easter Egg**: Added a playable Tetris clone easter egg inside the video processing modal triggered by double-clicking the progress bar. Features dynamic difficulty (garbage lines on FFmpeg progress), a "Boss Key" (panic toggle via B key), high score tracking, and custom overlay actions on complete.
