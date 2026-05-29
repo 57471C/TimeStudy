@@ -406,52 +406,132 @@ const importFromJSON = (jsonText) => {
   }
 };
 
+const parsePartTag = (tagStr) => {
+  let qty = "";
+  let partStr = tagStr;
+  const xIdx = tagStr.indexOf(" x ");
+  if (xIdx !== -1) {
+    qty = tagStr.substring(0, xIdx).trim();
+    partStr = tagStr.substring(xIdx + 3).trim();
+  }
+  let partNumber = partStr;
+  let partDescription = "";
+  const dashIdx = partStr.indexOf(" - ");
+  if (dashIdx !== -1) {
+    partNumber = partStr.substring(0, dashIdx).trim();
+    partDescription = partStr.substring(dashIdx + 3).trim();
+  }
+  return { qty, partNumber, partDescription };
+};
+
+const parseLabourTag = (tagStr) => {
+  let code = tagStr;
+  let description = "";
+  const dashIdx = tagStr.indexOf(" - ");
+  if (dashIdx !== -1) {
+    code = tagStr.substring(0, dashIdx).trim();
+    description = tagStr.substring(dashIdx + 3).trim();
+  }
+  return { code, description };
+};
+
+const formatDurationForExport = (ms) => {
+  if (durationMode === "hhmmssms") {
+    return formatDuration(ms);
+  } else if (durationMode === "ms") {
+    return ms.toFixed(0);
+  } else {
+    return (ms / 60000).toFixed(3);
+  }
+};
+
+const formatZeroDuration = () => {
+  if (durationMode === "hhmmssms") return "00:00:00.00";
+  if (durationMode === "ms") return "0";
+  return "0.00";
+};
+
+const escapeCSV = (val) => {
+  if (val === undefined || val === null) return "";
+  const str = String(val);
+  if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
 const exportToCSV = async () => {
   if (operations.length === 0) {
     alert("No operations or tasks to export.");
     return;
   }
-  let csvContent = "ProcessStartTime,ProcessEndTime";
-  for (let i = 0; i < operations.length; i++) {
-    csvContent += `,OpStartTime-${i}`;
-  }
-  csvContent += "\n";
-  csvContent += `${formatTimeToHHMMSSMS(processStartTime)},${formatTimeToHHMMSSMS(processEndTime)}`;
-  for (let i = 0; i < operations.length; i++) {
-    csvContent += `,${formatTimeToHHMMSSMS(operations[i].startTime || 0)}`;
-  }
-  csvContent += "\n";
-  csvContent += "Operation,Operation Parts,Task,Task Parts,Task Labour,VA,NVA,W\n";
 
+  const currentTrial = trials[activeTrialIndex] || {};
+  const trialNameVal = currentTrial.trialName || "";
+
+  let csvContent = "";
+
+  // 1. Metadata Block
+  // Row 1: Titles
+  csvContent += "Project Name,Project Trial Name,Process Start Time,Process End Time,Takt Time,Video File Name\n";
+  // Row 2: Values
+  csvContent += `${escapeCSV(projectName)},${escapeCSV(trialNameVal)},${formatTimeToHHMMSSMS(processStartTime)},${formatTimeToHHMMSSMS(processEndTime)},${formatDurationForExport(taktTime)},${escapeCSV(videoFileName)}\n`;
+  // Row 3: Blank
+  csvContent += "\n";
+
+  // 2. Operations & Tasks Loop
   for (let i = 0; i < operations.length; i += 1) {
     const op = operations[i];
-    const escapedOpName = op.name.includes(",") ? `"${op.name}"` : op.name;
-    const opPartsStr = (op.partTags || []).join("; ");
-    const escapedOpParts =
-      opPartsStr.includes(",") || opPartsStr.includes('"') ? `"${opPartsStr.replace(/"/g, '""')}"` : opPartsStr;
+    const opTotalTime = op.tasks.reduce((sum, t) => sum + t.duration, 0);
 
+    // Operation Titles
+    csvContent += "Operation Name,Operation Part Qty,Operation Part Numbers,Operation Part Description,Operation Start Time,Operation Total Time\n";
+
+    // Operation Values
+    const partTags = op.partTags || [];
+    if (partTags.length === 0) {
+      csvContent += `${escapeCSV(op.name)},,,,${formatTimeToHHMMSSMS(op.startTime)},${formatDecimalMinutes(opTotalTime)}\n`;
+    } else {
+      for (let pIdx = 0; pIdx < partTags.length; pIdx += 1) {
+        const { qty, partNumber, partDescription } = parsePartTag(partTags[pIdx]);
+        if (pIdx === 0) {
+          csvContent += `${escapeCSV(op.name)},${escapeCSV(qty)},${escapeCSV(partNumber)},${escapeCSV(partDescription)},${formatTimeToHHMMSSMS(op.startTime)},${formatDecimalMinutes(opTotalTime)}\n`;
+        } else {
+          csvContent += `,${escapeCSV(qty)},${escapeCSV(partNumber)},${escapeCSV(partDescription)},,\n`;
+        }
+      }
+    }
+
+    // Task Titles
+    csvContent += "Task Name,Task Labour Code,Task Labour Description,VA,NVA,W,Total Task Time\n";
+
+    // Task Values
     for (let j = 0; j < op.tasks.length; j += 1) {
       const task = op.tasks[j];
       const status = task.status.toUpperCase();
-      const vaDuration = status === "VA" ? task.duration : 0;
-      const nvaDuration = status === "NVA" ? task.duration : 0;
-      const wDuration = status === "W" ? task.duration : 0;
+      const laborTags = task.labourTags || [];
 
-      const escapedTaskName = task.name.includes(",") ? `"${task.name}"` : task.name;
-      const taskPartsStr = (task.partTags || []).join("; ");
-      const escapedTaskParts =
-        taskPartsStr.includes(",") || taskPartsStr.includes('"')
-          ? `"${taskPartsStr.replace(/"/g, '""')}"`
-          : taskPartsStr;
+      const valVA = status === "VA" ? formatDecimalMinutes(task.duration) : "0.00";
+      const valNVA = status === "NVA" ? formatDecimalMinutes(task.duration) : "0.00";
+      const valW = status === "W" ? formatDecimalMinutes(task.duration) : "0.00";
+      const valTotal = formatDecimalMinutes(task.duration);
 
-      const taskLabourStr = (task.labourTags || []).join("; ");
-      const escapedTaskLabour =
-        taskLabourStr.includes(",") || taskLabourStr.includes('"')
-          ? `"${taskLabourStr.replace(/"/g, '""')}"`
-          : taskLabourStr;
-
-      csvContent += `${escapedOpName},${escapedOpParts},${escapedTaskName},${escapedTaskParts},${escapedTaskLabour},${vaDuration},${nvaDuration},${wDuration}\n`;
+      if (laborTags.length === 0) {
+        csvContent += `${escapeCSV(task.name)},,,${valVA},${valNVA},${valW},${valTotal}\n`;
+      } else {
+        for (let lIdx = 0; lIdx < laborTags.length; lIdx += 1) {
+          const { code, description } = parseLabourTag(laborTags[lIdx]);
+          if (lIdx === 0) {
+            csvContent += `${escapeCSV(task.name)},${escapeCSV(code)},${escapeCSV(description)},${valVA},${valNVA},${valW},${valTotal}\n`;
+          } else {
+            csvContent += `,${escapeCSV(code)},${escapeCSV(description)},,,,\n`;
+          }
+        }
+      }
     }
+
+    // Blank row after each Operation block
+    csvContent += "\n";
   }
 
   let filename = "operation_task_durations.csv";
@@ -487,5 +567,192 @@ const exportToCSV = async () => {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     showToast("Data exported to CSV successfully.", "success");
+  }
+};
+
+const exportToXLSX = async () => {
+  if (trials.length === 0) {
+    alert("No trials to export.");
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const usedNames = new Set();
+
+  for (let tIdx = 0; tIdx < trials.length; tIdx += 1) {
+    const trial = trials[tIdx];
+    
+    // Sanitize sheet name: max 31 chars, no invalid chars, unique
+    let sheetName = (trial.trialName || `Trial ${tIdx + 1}`).trim();
+    sheetName = sheetName.replace(/[*?:/\\[\]]/g, "");
+    if (sheetName.length > 31) {
+      sheetName = sheetName.substring(0, 31);
+    }
+    if (sheetName.length === 0) {
+      sheetName = `Trial ${tIdx + 1}`;
+    }
+    let finalName = sheetName;
+    let suffix = 1;
+    while (usedNames.has(finalName.toLowerCase())) {
+      const suffixStr = `_${suffix}`;
+      finalName = sheetName.substring(0, 31 - suffixStr.length) + suffixStr;
+      suffix += 1;
+    }
+    usedNames.add(finalName.toLowerCase());
+
+    const worksheet = workbook.addWorksheet(finalName);
+
+    const trialOps = trial.appState?.operations || [];
+    const trialStartTime = trial.processStartTime || 0;
+    const trialEndTime = trial.processEndTime || 0;
+    const trialTaktTime = trial.taktTime || 60000;
+    const trialVideoFileName = trial.videoFileName || "";
+    const trialVideoFilePath = trial.videoFilePath || "";
+
+    const addRow = (values, isBold = false) => {
+      const row = worksheet.addRow(values);
+      if (isBold) {
+        row.eachCell((cell) => {
+          cell.font = { bold: true };
+        });
+      }
+      return row;
+    };
+
+    // Video File Name link logic
+    const videoCellVal = (trialVideoFileName && trialVideoFilePath) ? {
+      text: trialVideoFileName,
+      hyperlink: trialVideoFilePath.startsWith("file://") ? trialVideoFilePath : `file:///${trialVideoFilePath.replace(/\\/g, "/")}`
+    } : trialVideoFileName;
+
+    // Metadata titles & values
+    addRow(["Project Name", "Project Trial Name", "Process Start Time", "Process End Time", "Takt Time", "Video File Name"], true);
+    addRow([
+      projectName,
+      trial.trialName || "",
+      formatTimeToHHMMSSMS(trialStartTime),
+      formatTimeToHHMMSSMS(trialEndTime),
+      parseFloat(formatDurationForExport(trialTaktTime)) || 0,
+      videoCellVal
+    ]);
+    addRow([]);
+
+    // Loop through operations
+    for (let i = 0; i < trialOps.length; i += 1) {
+      const op = trialOps[i];
+      const opTotalTime = op.tasks.reduce((sum, t) => sum + t.duration, 0);
+
+      // Operation Headers
+      addRow(["Operation Name", "Operation Part Qty", "Operation Part Numbers", "Operation Part Description", "Operation Start Time", "Operation Total Time"], true);
+
+      // Operation Values
+      const partTags = op.partTags || [];
+      if (partTags.length === 0) {
+        addRow([
+          op.name,
+          "",
+          "",
+          "",
+          formatTimeToHHMMSSMS(op.startTime),
+          parseFloat(formatDecimalMinutes(opTotalTime)) || 0
+        ]);
+      } else {
+        for (let pIdx = 0; pIdx < partTags.length; pIdx += 1) {
+          const { qty, partNumber, partDescription } = parsePartTag(partTags[pIdx]);
+          if (pIdx === 0) {
+            addRow([
+              op.name,
+              qty ? parseInt(qty, 10) : "",
+              partNumber,
+              partDescription,
+              formatTimeToHHMMSSMS(op.startTime),
+              parseFloat(formatDecimalMinutes(opTotalTime)) || 0
+            ]);
+          } else {
+            addRow([
+              "",
+              qty ? parseInt(qty, 10) : "",
+              partNumber,
+              partDescription,
+              "",
+              ""
+            ]);
+          }
+        }
+      }
+
+      // Task Headers
+      addRow(["Task Name", "Task Labour Code", "Task Labour Description", "VA", "NVA", "W", "Total Task Time"], true);
+
+      // Task Values
+      for (let j = 0; j < op.tasks.length; j += 1) {
+        const task = op.tasks[j];
+        const status = task.status.toUpperCase();
+        const laborTags = task.labourTags || [];
+
+        const valVA = status === "VA" ? parseFloat(formatDecimalMinutes(task.duration)) : 0;
+        const valNVA = status === "NVA" ? parseFloat(formatDecimalMinutes(task.duration)) : 0;
+        const valW = status === "W" ? parseFloat(formatDecimalMinutes(task.duration)) : 0;
+        const valTotal = parseFloat(formatDecimalMinutes(task.duration));
+
+        if (laborTags.length === 0) {
+          addRow([task.name, "", "", valVA, valNVA, valW, valTotal]);
+        } else {
+          for (let lIdx = 0; lIdx < laborTags.length; lIdx += 1) {
+            const { code, description } = parseLabourTag(laborTags[lIdx]);
+            if (lIdx === 0) {
+              addRow([task.name, code, description, valVA, valNVA, valW, valTotal]);
+            } else {
+              addRow(["", code, description, "", "", "", ""]);
+            }
+          }
+        }
+      }
+
+      // Separating blank row
+      addRow([]);
+    }
+  }
+
+  let filename = "operation_task_durations.xlsx";
+  if (projectName) {
+    filename = `${sanitizeFilename(projectName)}.xlsx`;
+  }
+
+  const isTauri = window.__TAURI__ !== undefined;
+  if (isTauri) {
+    try {
+      const filePath = await window.__TAURI__.dialog.save({
+        filters: [{ name: "Excel Spreadsheet", extensions: ["xlsx"] }],
+        defaultPath: filename,
+      });
+      if (filePath) {
+        const actualPath = typeof filePath === "object" ? filePath.path : filePath;
+        const buffer = await workbook.xlsx.writeBuffer();
+        await window.__TAURI__.fs.writeFile(actualPath, new Uint8Array(buffer));
+        showToast("Data exported to XLSX successfully.", "success");
+      }
+    } catch (e) {
+      toConsole("Error exporting XLSX via Tauri", e, debuggin);
+      showToast("Error exporting XLSX file.", "error");
+    }
+  } else {
+    try {
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast("Data exported to XLSX successfully.", "success");
+    } catch (e) {
+      toConsole("Error exporting XLSX via Browser", e, debuggin);
+      showToast("Error exporting XLSX file.", "error");
+    }
   }
 };

@@ -3,7 +3,10 @@ let loadVideoButton;
 let addTaskButton;
 let addOpButton;
 let toggleFormatButton;
-let csvExportButton;
+let exportButton;
+let exportDropdown;
+let exportXlsxBtn;
+let exportCsvBtn;
 let projectExportButton;
 let projectSaveAsButton;
 let projectImportButton;
@@ -473,7 +476,10 @@ const initializePlayer = () => {
 
   addTaskButton = document.getElementById("addTaskButton");
   addOpButton = document.getElementById("addOpButton");
-  csvExportButton = document.getElementById("csvExportButton");
+  exportButton = document.getElementById("exportButton");
+  exportDropdown = document.getElementById("exportDropdown");
+  exportXlsxBtn = document.getElementById("exportXlsxBtn");
+  exportCsvBtn = document.getElementById("exportCsvBtn");
   projectExportButton = document.getElementById("projectExportButton");
   projectSaveAsButton = document.getElementById("projectSaveAsButton");
   projectImportButton = document.getElementById("projectImportButton");
@@ -582,7 +588,26 @@ const initializePlayer = () => {
 
   addTaskButton.addEventListener("click", addTask, false);
   addOpButton.addEventListener("click", addOp, false);
-  csvExportButton.addEventListener("click", exportToCSV, false);
+  exportButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    exportDropdown.classList.toggle("hidden");
+  }, false);
+
+  exportCsvBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    exportDropdown.classList.add("hidden");
+    exportToCSV();
+  }, false);
+
+  exportXlsxBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    exportDropdown.classList.add("hidden");
+    exportToXLSX();
+  }, false);
+
+  document.addEventListener("click", () => {
+    exportDropdown.classList.add("hidden");
+  });
   projectExportButton.addEventListener("click", () => exportToJSON(false), false);
   if (projectSaveAsButton) {
     projectSaveAsButton.addEventListener("click", () => exportToJSON(true), false);
