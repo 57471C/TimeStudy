@@ -1480,6 +1480,42 @@ const insertTask = async (opIndex, taskIndex) => {
   drawTable();
 };
 
+/* eslint-disable no-unused-vars */
+const splitOperationAt = async (opIndex, taskIndex) => {
+  if (typeof player !== "undefined" && player) player.pause();
+  const originalOp = operations[opIndex];
+  
+  const opName = await asyncPrompt(
+    "Please name the new Operation",
+    "",
+    "Split Operation",
+    operations.map((o) => o.name),
+  );
+  if (!opName) {
+    alert("Operation name cannot be empty.");
+    return;
+  }
+
+  const tasksToMove = originalOp.tasks.slice(taskIndex + 1);
+  originalOp.tasks = originalOp.tasks.slice(0, taskIndex + 1);
+
+  const remainingDurationMs = originalOp.tasks.reduce((sum, t) => sum + t.duration, 0);
+  const newOpStartTime = originalOp.startTime + (remainingDurationMs / 1000);
+
+  const newOp = {
+    name: opName.trim(),
+    startTime: newOpStartTime,
+    partTags: [],
+    tasks: tasksToMove,
+  };
+
+  operations.splice(opIndex + 1, 0, newOp);
+
+  saveLocalState();
+  updateTaskList();
+  drawTable();
+};
+
 const handleInlineNameEdit = (opIndex, taskIndex, newValue) => {
   const trimmed = newValue.trim();
   if (!trimmed) {

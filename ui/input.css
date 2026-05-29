@@ -156,4 +156,35 @@
     white-space: nowrap;
     overflow: hidden;
   }
+
+  /* Ghost Insert Row */
+  .insert-ghost-row {
+    height: 2px !important;
+    transition: all 0.2s ease-in-out;
+    background-color: transparent !important;
+    cursor: crosshair !important;
+  }
+  .insert-ghost-row:hover {
+    height: 24px !important;
+    background-color: rgba(59, 130, 246, 0.05) !important;
+  }
+  .dark .insert-ghost-row:hover {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+  }
+  .ghost-cell {
+    border: none !important;
+    padding: 0 !important;
+    font-size: 0px !important;
+    line-height: 0 !important;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+    color: #3b82f6;
+    font-weight: 600;
+  }
+  .insert-ghost-row:hover .ghost-cell {
+    font-size: 0.75rem !important;
+    line-height: 1.5 !important;
+    padding: 4px 0 !important;
+  }
 }
+

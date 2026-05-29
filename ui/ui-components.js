@@ -554,6 +554,11 @@ const buildTaskRow = (task, i, j) => {
         </div>
       </td>
     </tr>
+    <tr class="insert-ghost-row" ondblclick="splitOperationAt(${i}, ${j})">
+      <td colspan="4" class="ghost-cell">
+        + Double-click to split operation
+      </td>
+    </tr>
   `;
 };
 
