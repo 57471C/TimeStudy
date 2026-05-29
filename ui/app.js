@@ -1765,6 +1765,24 @@ const initializeTrimFeature = () => {
       await processVideo(startVal, endVal, qualityMode, isCompression);
     } catch (err) {
       toConsole("Error processing video", err, debuggin);
+      
+      // Quietly handle user cancellation
+      if (err.message === "Save location was not specified.") {
+        trimOnlyBtn.disabled = false;
+        trimCompressBtn.disabled = false;
+        cancelTrimBtn.disabled = false;
+        return;
+      }
+      
+      // Handle same path selection
+      if (err.message === "Input and output paths are identical.") {
+        trimOnlyBtn.disabled = false;
+        trimCompressBtn.disabled = false;
+        cancelTrimBtn.disabled = false;
+        alert("Error: The output file path cannot be the same as the input video path. Please choose a different name or location.");
+        return;
+      }
+
       trimModal.close();
       alert(`Video processing failed: ${err.message || err}`);
     }
@@ -1802,6 +1820,11 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
 
   const actualOutputPath = typeof outputPath === "object" ? outputPath.path : outputPath;
   toConsole("Save path selected", actualOutputPath, debuggin);
+
+  if (videoFilePath && actualOutputPath && videoFilePath.toLowerCase() === actualOutputPath.toLowerCase()) {
+    toConsole("processVideo abort: Input and output paths are identical", actualOutputPath, debuggin);
+    throw new Error("Input and output paths are identical.");
+  }
 
   // Build FFmpeg args
   const args = [
