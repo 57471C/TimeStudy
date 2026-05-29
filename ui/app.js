@@ -1881,15 +1881,15 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   //       -progress pipe:2 writes \n-terminated key=value progress to stderr fd 2.
   //       These lines ARE delivered by BufReader::lines() as reliable data events.
   //
-  // -ss BEFORE -i performs fast keyframe-accurate seeking (avoids long silent decode
-  //   phase that could otherwise trip the watchdog before any progress fires).
+  // -ss AFTER -i performs sequential seeking, which is 100% reliable and avoids
+  //   startup hangs on files with broken index structures.
   // -t specifies duration, which is more robust and standard than -to when seeking.
   const args = [
     "-y",
     "-nostdin",
     "-nostats",
-    "-ss", start.toString(),
     "-i", videoFilePath,
+    "-ss", start.toString(),
     "-t", (end - start).toString(),
     "-progress", "pipe:2"
   ];
