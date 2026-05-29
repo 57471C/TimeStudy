@@ -472,6 +472,19 @@
     }
   };
 
+  // Expose function to show normal progress screen (e.g. when clicking X button during Tetris)
+  window.showNormalProgressScreen = () => {
+    if (isProcessingComplete) return;
+
+    isBossKeyHidden = true;
+    cancelAnimationFrame(animationFrameId);
+    isPaused = true;
+
+    document.getElementById("tetrisContainer").style.display = "none";
+    document.getElementById("trimNormalContent").classList.remove("hidden");
+    document.getElementById("trimNormalFooter").classList.remove("hidden");
+  };
+
   // Overlay management
   const showOverlay = (title, buttons) => {
     const titleEl = document.getElementById("tetrisOverlayTitle");

@@ -21,6 +21,8 @@ let forward1sButton;
 let forward5sButton;
 let muteButton;
 let volumeSlider;
+let activeFFmpegChild = null;
+let isAborted = false;
 
 const renderTrialSelect = () => {
   if (!DOM.trialSelect) return;
@@ -1721,18 +1723,48 @@ const initializeTrimFeature = () => {
       }
       document.getElementById("trimStartInput").value = formatTimeToHHMMSSMS(processStartTime);
       document.getElementById("trimEndInput").value = formatTimeToHHMMSSMS(processEndTime || player.duration);
-      document.getElementById("trimProgressContainer").classList.add("hidden");
-      document.getElementById("trimProgressBar").style.width = "0%";
-      document.getElementById("trimProgressText").textContent = "0%";
-      trimOnlyBtn.disabled = false;
-      trimCompressBtn.disabled = false;
-      cancelTrimBtn.disabled = false;
+      resetTrimModalUI();
       trimModal.showModal();
     });
   }
 
-  const closeTrim = () => {
+  const resetTrimModalUI = () => {
+    trimOnlyBtn.disabled = false;
+    trimCompressBtn.disabled = false;
+    cancelTrimBtn.disabled = false;
+    cancelTrimBtn.className = "btn btn-outline-secondary";
+    cancelTrimBtn.textContent = "Cancel";
+    document.getElementById("trimProgressContainer").classList.add("hidden");
+    const spinner = document.getElementById("trimProgressSpinner");
+    if (spinner) spinner.classList.add("hidden");
+  };
+
+  const handleCancelClick = async () => {
+    if (activeFFmpegChild) {
+      isAborted = true;
+      toConsole("User clicked cancel: Aborting FFmpeg process...", null, debuggin);
+      try {
+        await activeFFmpegChild.kill();
+        showToast("Processing aborted by user.", "warning");
+      } catch (e) {
+        toConsole("Error killing FFmpeg process", e, debuggin);
+      }
+      activeFFmpegChild = null;
+    }
+    resetTrimModalUI();
     trimModal.close();
+  };
+
+  const closeTrim = () => {
+    const tetrisCont = document.getElementById("tetrisContainer");
+    if (tetrisCont && !tetrisCont.classList.contains("hidden") && tetrisCont.style.display !== "none") {
+      toConsole("X clicked in Tetris mode, returning to progress screen", null, debuggin);
+      if (typeof window.showNormalProgressScreen === "function") {
+        window.showNormalProgressScreen();
+      }
+    } else {
+      handleCancelClick();
+    }
   };
 
   if (closeTrimBtnX) closeTrimBtnX.addEventListener("click", closeTrim);
@@ -1759,7 +1791,11 @@ const initializeTrimFeature = () => {
     
     trimOnlyBtn.disabled = true;
     trimCompressBtn.disabled = true;
-    cancelTrimBtn.disabled = true;
+    
+    // Style Cancel button as red Abort button
+    cancelTrimBtn.disabled = false;
+    cancelTrimBtn.className = "btn btn-danger";
+    cancelTrimBtn.textContent = "Abort Trim";
 
     try {
       await processVideo(startVal, endVal, qualityMode, isCompression);
@@ -1771,6 +1807,12 @@ const initializeTrimFeature = () => {
         trimOnlyBtn.disabled = false;
         trimCompressBtn.disabled = false;
         cancelTrimBtn.disabled = false;
+        return;
+      }
+      
+      // Quietly handle user abort
+      if (err.message === "Aborted by user") {
+        resetTrimModalUI();
         return;
       }
       
@@ -1793,6 +1835,7 @@ const initializeTrimFeature = () => {
 };
 
 const processVideo = async (start, end, qualityMode, isCompression) => {
+  isAborted = false;
   if (!videoFilePath) {
     toConsole("processVideo abort: No active video file path found", null, debuggin);
     alert("No active video file path found.");
@@ -1853,8 +1896,10 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   const progressContainer = document.getElementById("trimProgressContainer");
   const progressBar = document.getElementById("trimProgressBar");
   const progressText = document.getElementById("trimProgressText");
+  const spinner = document.getElementById("trimProgressSpinner");
 
   progressContainer.classList.remove("hidden");
+  if (spinner) spinner.classList.remove("hidden");
   progressBar.style.width = "0%";
   progressText.textContent = "0%";
 
@@ -1872,93 +1917,110 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   const duration = end - start;
   const stderrLogs = [];
 
-  sidecarCmd.on("stderr", (line) => {
-    stderrLogs.push(line);
-    if (stderrLogs.length > 50) {
-      stderrLogs.shift();
-    }
-    const match = line.match(/time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
-    if (match) {
-      const hours = Number.parseInt(match[1], 10);
-      const minutes = Number.parseInt(match[2], 10);
-      const seconds = Number.parseInt(match[3], 10);
-      const hundredths = Number.parseInt(match[4], 10);
-      const currentSeconds = hours * 3600 + minutes * 60 + seconds + hundredths / 100;
-      if (duration > 0) {
-        const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
-        progressBar.style.width = `${pct}%`;
-        progressText.textContent = `${pct}%`;
-        if (typeof window.updateTetrisProgress === "function") {
-          window.updateTetrisProgress(pct);
-        }
-      }
-    }
-  });
-
   return new Promise((resolve, reject) => {
-    sidecarCmd.on("close", async (data) => {
-      toConsole("FFmpeg process closed", data, debuggin);
-      if (data.code === 0) {
-        try {
-          for (let i = 0; i < operations.length; i += 1) {
-            operations[i].startTime = operations[i].startTime - start;
-          }
-
-          processStartTime = 0;
-          processEndTime = end - start;
-
-          videoFilePath = actualOutputPath;
-          videoFileName = actualOutputPath.replace(/^.*[\\\/]/, "");
-          
-          const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
-          player.src = tauriAssetUrl;
-          player.preload = "auto";
-          player.load();
-          toggleVideoPlaceholder(false);
-
-          saveLocalState();
-          updateTaskList();
-          if (typeof drawTable === "function") drawTable();
-
-          showToast("Video processed successfully.", "success");
-          
-          const tetrisCont = document.getElementById("tetrisContainer");
-          if (typeof window.onVideoProcessingFinished === "function" && tetrisCont && tetrisCont.style.display !== "none") {
-            window.onVideoProcessingFinished();
-          } else {
-            document.getElementById("trimModal").close();
-          }
-          
-          setTimeout(async () => {
-            const saveConfirm = await asyncConfirm("Timestamps shifted. Save project changes now?", "Save Project");
-            if (saveConfirm) {
-              await exportToJSON(false);
-            }
-          }, 500);
-
-          resolve();
-        } catch (e) {
-          toConsole("Error in close callback handler", e, debuggin);
-          reject(e);
-        }
-      } else {
-        const fullErrLogs = stderrLogs.join("\n");
-        toConsole("FFmpeg process failed with non-zero exit code", { code: data.code, logs: fullErrLogs }, debuggin);
-        reject(new Error(`FFmpeg failed with exit code ${data.code}.\n\nFFmpeg Logs:\n${fullErrLogs || "(no stderr output)"}`));
-      }
-    });
-
-    sidecarCmd.on("error", (err) => {
-      toConsole("FFmpeg sidecarCmd error event fired", err, debuggin);
-      reject(new Error(err));
-    });
-
     toConsole("Spawning FFmpeg sidecar process...", null, debuggin);
     sidecarCmd.spawn()
       .then((child) => {
+        activeFFmpegChild = child;
         toConsole("FFmpeg sidecar spawned successfully", { pid: child.pid }, debuggin);
+
+        // Listen for stderr events on the child process to update the progress bar in real-time
+        child.stderr.on("data", (line) => {
+          stderrLogs.push(line);
+          if (stderrLogs.length > 50) {
+            stderrLogs.shift();
+          }
+          const match = line.match(/time=(\d{2}):(\d{2}):(\d{2})[.,](\d+)/);
+          if (match) {
+            const hours = Number.parseInt(match[1], 10);
+            const minutes = Number.parseInt(match[2], 10);
+            const seconds = Number.parseInt(match[3], 10);
+            const frac = Number.parseFloat("0." + match[4]);
+            const currentSeconds = hours * 3600 + minutes * 60 + seconds + frac;
+            if (duration > 0) {
+              const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
+              progressBar.style.width = `${pct}%`;
+              progressText.textContent = `${pct}%`;
+              if (typeof window.updateTetrisProgress === "function") {
+                window.updateTetrisProgress(pct);
+              }
+            }
+          }
+        });
+
+        // Listen for close event on the child process
+        child.on("close", async (data) => {
+          activeFFmpegChild = null;
+          toConsole("FFmpeg process closed", data, debuggin);
+
+          if (isAborted) {
+            reject(new Error("Aborted by user"));
+            return;
+          }
+
+          if (data.code === 0) {
+            try {
+              // Ensure progress shows 100% on success
+              progressBar.style.width = "100%";
+              progressText.textContent = "100%";
+
+              for (let i = 0; i < operations.length; i += 1) {
+                operations[i].startTime = operations[i].startTime - start;
+              }
+
+              processStartTime = 0;
+              processEndTime = end - start;
+
+              videoFilePath = actualOutputPath;
+              videoFileName = actualOutputPath.replace(/^.*[\\\/]/, "");
+              
+              const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
+              player.src = tauriAssetUrl;
+              player.preload = "auto";
+              player.load();
+              toggleVideoPlaceholder(false);
+
+              saveLocalState();
+              updateTaskList();
+              if (typeof drawTable === "function") drawTable();
+
+              showToast("Video processed successfully.", "success");
+              
+              const tetrisCont = document.getElementById("tetrisContainer");
+              if (typeof window.onVideoProcessingFinished === "function" && tetrisCont && tetrisCont.style.display !== "none") {
+                window.onVideoProcessingFinished();
+              } else {
+                document.getElementById("trimModal").close();
+              }
+              
+              setTimeout(async () => {
+                const saveConfirm = await asyncConfirm("Timestamps shifted. Save project changes now?", "Save Project");
+                if (saveConfirm) {
+                  await exportToJSON(false);
+                }
+              }, 500);
+
+              resolve();
+            } catch (e) {
+              toConsole("Error in close callback handler", e, debuggin);
+              reject(e);
+            }
+          } else {
+            const fullErrLogs = stderrLogs.join("\n");
+            toConsole("FFmpeg process failed with non-zero exit code", { code: data.code, logs: fullErrLogs }, debuggin);
+            reject(new Error(`FFmpeg failed with exit code ${data.code}.\n\nFFmpeg Logs:\n${fullErrLogs || "(no stderr output)"}`));
+          }
+        });
+
+        // Listen for error event on the child process
+        child.on("error", (err) => {
+          activeFFmpegChild = null;
+          toConsole("FFmpeg sidecarCmd error event fired", err, debuggin);
+          reject(new Error(err));
+        });
       })
       .catch((err) => {
+        activeFFmpegChild = null;
         toConsole("FFmpeg sidecar spawn failed", err, debuggin);
         reject(err);
       });
