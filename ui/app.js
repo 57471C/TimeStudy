@@ -1737,6 +1737,8 @@ const initializeTrimFeature = () => {
     document.getElementById("trimProgressContainer").classList.add("hidden");
     const spinner = document.getElementById("trimProgressSpinner");
     if (spinner) spinner.classList.add("hidden");
+    trimModal.classList.remove("opacity-0", "scale-95");
+    trimModal.classList.add("opacity-100", "scale-100");
   };
 
   const handleCancelClick = async () => {
@@ -1958,6 +1960,9 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
           progressBar.style.width = "100%";
           progressText.textContent = "100%";
 
+          // Hide spinner immediately so it stops spinning
+          if (spinner) spinner.classList.add("hidden");
+
           for (let i = 0; i < operations.length; i += 1) {
             operations[i].startTime = operations[i].startTime - start;
           }
@@ -1983,18 +1988,25 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
           const tetrisCont = document.getElementById("tetrisContainer");
           if (typeof window.onVideoProcessingFinished === "function" && tetrisCont && tetrisCont.style.display !== "none") {
             window.onVideoProcessingFinished();
+            resolve();
           } else {
-            document.getElementById("trimModal").close();
+            // Short delay to let user see 100% completed, then fade out and close
+            setTimeout(() => {
+              trimModal.classList.remove("opacity-100", "scale-100");
+              trimModal.classList.add("opacity-0", "scale-95");
+              setTimeout(async () => {
+                trimModal.close();
+                resetTrimModalUI();
+                
+                // Show confirm prompt after modal is completely gone
+                const saveConfirm = await asyncConfirm("Timestamps shifted. Save project changes now?", "Save Project");
+                if (saveConfirm) {
+                  await exportToJSON(false);
+                }
+                resolve();
+              }, 300);
+            }, 600);
           }
-          
-          setTimeout(async () => {
-            const saveConfirm = await asyncConfirm("Timestamps shifted. Save project changes now?", "Save Project");
-            if (saveConfirm) {
-              await exportToJSON(false);
-            }
-          }, 500);
-
-          resolve();
         } catch (e) {
           toConsole("Error in close callback handler", e, debuggin);
           reject(e);
