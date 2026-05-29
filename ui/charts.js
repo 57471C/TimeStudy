@@ -125,22 +125,13 @@ const openCompareDashboard = () => {
       chart: { type: "bar", height: 360, stacked: true, background: "transparent", toolbar: { show: false } },
       theme: { mode: isDark ? "dark" : "light" },
       xaxis: { categories: categories },
-      yAxis: {
+      yaxis: {
         title: { text: "Time" },
         labels: { formatter: (val) => formatDurationValue(val) },
       },
       title: { text: "Value Analysis Breakdown" },
       dataLabels: { enabled: false },
       tooltip: { y: { formatter: (val) => formatDurationValue(val) } },
-      annotations: {
-        yaxis: [
-          {
-            y: taktTime,
-            borderColor: "#0000FF",
-            label: { text: `Takt: ${formatDurationValue(taktTime)}`, style: { color: "#fff", background: "#0000FF" } },
-          },
-        ],
-      },
     });
     vaNvaChart.render();
     compareCharts.push(vaNvaChart);
@@ -247,6 +238,10 @@ const drawTable = () => {
         }
       }
 
+      const maxStackHeight = Math.max(0, ...operations.map(op =>
+        (op.tasks || []).reduce((sum, t) => sum + (t.duration || 0), 0)
+      ));
+
       columnChart = new ApexCharts(DOM.chartContainer, {
         series: series,
         chart: { type: "bar", height: 400, stacked: true, background: "transparent", toolbar: { show: false } },
@@ -271,12 +266,17 @@ const drawTable = () => {
         yaxis: {
           title: { text: "Duration" },
           labels: { formatter: (val) => formatDurationValue(val) },
+          max: maxStackHeight > 0 ? maxStackHeight * 1.05 : undefined,
         },
         title: { text: "Operation Task Durations" },
         legend: { show: false },
         dataLabels: {
           enabled: true,
           formatter: (val) => (val > 0 ? formatDurationValue(val) : ""),
+          style: {
+            fontSize: "6px",
+            fontWeight: "normal",
+          },
         },
         tooltip: {
           custom: ({ series, seriesIndex, dataPointIndex, w }) => {
