@@ -1944,6 +1944,13 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
       }
     });
 
+    // Drain stdout to prevent pipe buffer deadlock stalling FFmpeg mid-encode.
+    // FFmpeg may write muxer progress or stream mapping info to stdout, and if the
+    // pipe buffer fills without a reader the entire process blocks indefinitely.
+    sidecarCmd.stdout.on("data", (_line) => {
+      // intentionally empty — we only need to drain the pipe
+    });
+
     // Listen for close event on the command instance
     sidecarCmd.on("close", async (data) => {
       activeFFmpegChild = null;
