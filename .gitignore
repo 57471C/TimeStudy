@@ -14,3 +14,6 @@ Thumbs.db
 *.bak
 *.zip
 *.bat
+
+# don't upload FFMPEG binaries
+src-tauri/binaries/
