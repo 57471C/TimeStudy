@@ -1828,6 +1828,9 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
         const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
         progressBar.style.width = `${pct}%`;
         progressText.textContent = `${pct}%`;
+        if (typeof window.updateTetrisProgress === "function") {
+          window.updateTetrisProgress(pct);
+        }
       }
     }
   });
@@ -1857,7 +1860,13 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
           if (typeof drawTable === "function") drawTable();
 
           showToast("Video processed successfully.", "success");
-          document.getElementById("trimModal").close();
+          
+          const tetrisCont = document.getElementById("tetrisContainer");
+          if (typeof window.onVideoProcessingFinished === "function" && tetrisCont && tetrisCont.style.display !== "none") {
+            window.onVideoProcessingFinished();
+          } else {
+            document.getElementById("trimModal").close();
+          }
           
           setTimeout(async () => {
             const saveConfirm = await asyncConfirm("Timestamps shifted. Save project changes now?", "Save Project");

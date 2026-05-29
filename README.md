@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.5.3-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.5.4-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -26,6 +26,9 @@
 7. **Export**: Use "Export" to save data as CSV or XLSX formats.
 6. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 7. **Dark Mode**: Click the sun/moon icon to toggle themes.
+
+## Version 0.5.4 Updates
+- **Tetris Easter Egg**: Added a playable Tetris clone easter egg inside the video processing modal triggered by double-clicking the progress bar. Features dynamic difficulty (garbage lines on FFmpeg progress), a "Boss Key" (panic toggle via B key), high score tracking, and custom overlay actions on complete.
 
 ## Version 0.5.3 Updates
 - **Charts update**: font size changes to make it readble if there are a lot of Tasks.
