@@ -428,6 +428,7 @@ const initializePlayer = () => {
 
       const tickInterval = (tickSeconds / duration) * 100;
       seekBar.style.setProperty("--tick-interval", `${tickInterval}%`);
+    }
     if (preserveProcessTimes) {
       if (processEndTime === undefined || processEndTime === null || processEndTime <= 0 || processEndTime > duration) {
         processEndTime = duration;
@@ -1818,10 +1819,10 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   sidecarCmd.on("stderr", (line) => {
     const match = line.match(/time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
     if (match) {
-      const hours = parseInt(match[1], 10);
-      const minutes = parseInt(match[2], 10);
-      const seconds = parseInt(match[3], 10);
-      const hundredths = parseInt(match[4], 10);
+      const hours = Number.parseInt(match[1], 10);
+      const minutes = Number.parseInt(match[2], 10);
+      const seconds = Number.parseInt(match[3], 10);
+      const hundredths = Number.parseInt(match[4], 10);
       const currentSeconds = hours * 3600 + minutes * 60 + seconds + hundredths / 100;
       if (duration > 0) {
         const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
