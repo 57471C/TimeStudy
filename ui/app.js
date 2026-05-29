@@ -1883,14 +1883,14 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   //
   // -ss BEFORE -i performs fast keyframe-accurate seeking (avoids long silent decode
   //   phase that could otherwise trip the watchdog before any progress fires).
-  // -to becomes relative to the OUTPUT start when -ss precedes -i, so use end-start.
+  // -t specifies duration, which is more robust and standard than -to when seeking.
   const args = [
     "-y",
     "-nostdin",
     "-nostats",
     "-ss", start.toString(),
     "-i", videoFilePath,
-    "-to", (end - start).toString(),
+    "-t", (end - start).toString(),
     "-progress", "pipe:2"
   ];
 
@@ -1938,18 +1938,22 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
     // -progress writes \n-terminated key=value pairs (e.g. "out_time_ms=5000000").
     // These ARE delivered by the Tauri BufReader::lines() data events, unlike the
     // human-readable stats which use \r and are never flushed to the JS listener.
-    // The watchdog resets on every out_time_ms event.
+    // The watchdog resets on every out_time_us/out_time_ms progress event.
     sidecarCmd.stderr.on("data", (line) => {
+      // Add raw logging to console to help diagnose any sidecar issues
+      toConsole("FFmpeg stderr raw output", line, debuggin);
+
       stderrLogs.push(line);
       if (stderrLogs.length > 50) {
         stderrLogs.shift();
       }
-      // out_time_ms is the output timestamp in microseconds (name is misleading).
-      // Divide by 1,000,000 to get seconds. With pre-input -ss, output time starts at 0.
-      const match = line.match(/^out_time_ms=(\d+)/);
+      // Match out_time_us (standard FFmpeg microsecond progress) or out_time_ms anywhere in the chunk.
+      const match = line.match(/out_time_(ms|us)=(\d+)/);
       if (match) {
         resetWatchdog(); // reset 30s timer on every progress tick
-        const currentSeconds = Number.parseInt(match[1], 10) / 1_000_000;
+        const unit = match[1];
+        const val = Number.parseInt(match[2], 10);
+        const currentSeconds = unit === "us" ? val / 1_000_000 : val / 1_000;
         if (duration > 0) {
           const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
           progressBar.style.width = `${pct}%`;
