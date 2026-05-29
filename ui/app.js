@@ -1872,16 +1872,26 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   }
 
   // Build FFmpeg args.
-  // We deliberately omit -progress pipe:1: on Windows, FFmpeg block-buffers stdout
-  // when it is connected to a pipe (not a tty), so no data arrives until the buffer
-  // fills — which effectively stalls progress reporting. Stderr is line-buffered by
-  // FFmpeg's stats writer and delivers time= updates in near-real-time.
+  //
+  // Key insight: The Tauri plugin-shell Rust backend reads stderr via BufReader::lines()
+  // which only yields data events on \n. FFmpeg's human-readable stats use \r (no \n)
+  // so they NEVER trigger data events — they accumulate in Tokio's buffer silently.
+  //
+  // Fix: -nostats suppresses the \r-only stats entirely.
+  //       -progress pipe:2 writes \n-terminated key=value progress to stderr fd 2.
+  //       These lines ARE delivered by BufReader::lines() as reliable data events.
+  //
+  // -ss BEFORE -i performs fast keyframe-accurate seeking (avoids long silent decode
+  //   phase that could otherwise trip the watchdog before any progress fires).
+  // -to becomes relative to the OUTPUT start when -ss precedes -i, so use end-start.
   const args = [
     "-y",
     "-nostdin",
-    "-i", videoFilePath,
+    "-nostats",
     "-ss", start.toString(),
-    "-to", end.toString()
+    "-i", videoFilePath,
+    "-to", (end - start).toString(),
+    "-progress", "pipe:2"
   ];
 
   if (!isCompression) {
@@ -1924,23 +1934,22 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   const stderrLogs = [];
 
   return new Promise((resolve, reject) => {
-    // Parse FFmpeg stderr for real-time progress.
-    // FFmpeg writes stats to stderr using \r to overwrite a terminal line, but the
-    // Tauri IPC bridge delivers data events per-chunk so we still receive them.
-    // The watchdog resets on every time= event, auto-aborting if progress stalls.
+    // Parse FFmpeg -progress pipe:2 output from stderr.
+    // -progress writes \n-terminated key=value pairs (e.g. "out_time_ms=5000000").
+    // These ARE delivered by the Tauri BufReader::lines() data events, unlike the
+    // human-readable stats which use \r and are never flushed to the JS listener.
+    // The watchdog resets on every out_time_ms event.
     sidecarCmd.stderr.on("data", (line) => {
       stderrLogs.push(line);
       if (stderrLogs.length > 50) {
         stderrLogs.shift();
       }
-      const match = line.match(/time=(\d{2}):(\d{2}):(\d{2})[.,](\d+)/);
+      // out_time_ms is the output timestamp in microseconds (name is misleading).
+      // Divide by 1,000,000 to get seconds. With pre-input -ss, output time starts at 0.
+      const match = line.match(/^out_time_ms=(\d+)/);
       if (match) {
         resetWatchdog(); // reset 30s timer on every progress tick
-        const hours = Number.parseInt(match[1], 10);
-        const minutes = Number.parseInt(match[2], 10);
-        const seconds = Number.parseInt(match[3], 10);
-        const frac = Number.parseFloat("0." + match[4]);
-        const currentSeconds = hours * 3600 + minutes * 60 + seconds + frac;
+        const currentSeconds = Number.parseInt(match[1], 10) / 1_000_000;
         if (duration > 0) {
           const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
           progressBar.style.width = `${pct}%`;
