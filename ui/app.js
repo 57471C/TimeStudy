@@ -1872,11 +1872,15 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   }
 
   // Build FFmpeg args.
-  // -progress pipe:1 routes machine-readable progress (key=value, newline-delimited)
-  // to stdout, avoiding the carriage-return buffering issue with stderr stats on Windows.
+  // -progress pipe:1  → machine-readable progress (key=value, newline-delimited) on stdout.
+  // -nostats          → suppresses the \r-overwritten stat lines on stderr entirely.
+  // -loglevel error   → only genuine errors reach stderr, keeping that pipe nearly empty.
+  // These three together eliminate the Windows pipe-buffer-deadlock that caused stalls.
   const args = [
     "-y",
     "-nostdin",
+    "-nostats",
+    "-loglevel", "error",
     "-progress", "pipe:1",
     "-i", videoFilePath,
     "-ss", start.toString(),
