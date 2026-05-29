@@ -15,8 +15,6 @@
       "ui/ui-components.js",
       "ui/utils.js",
       "ui/index.html",
-      "ui/input.css",
-      "ui/styles.css",
       "package.json",
       "biome.json"
     ]

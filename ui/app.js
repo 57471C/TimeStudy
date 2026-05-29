@@ -214,9 +214,8 @@ const initializePlayer = () => {
   const activeLoggingPanel = document.getElementById("activeLoggingPanel");
   if (activeLoggingPanel) {
     new ResizeObserver(() => {
-      const thead = document.querySelector("#taskList thead");
-      if (thead) {
-        thead.style.top = `${activeLoggingPanel.offsetHeight}px`;
+      if (typeof updateStickyOffsets === "function") {
+        updateStickyOffsets();
       }
     }).observe(activeLoggingPanel);
   }

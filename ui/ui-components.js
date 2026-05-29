@@ -479,8 +479,8 @@ const buildOpRow = (op, i) => {
         : formatDecimalMinutes(totalMs);
 
   return `
-    <tr>
-      <td colspan="4">
+    <tr class="operation-row">
+      <td colspan="4" class="sticky z-10 bg-zinc-50 dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-700 shadow-sm">
         <div class="flex items-center justify-between w-full">
           <div class="flex-1 mr-4">
             <div class="flex items-center gap-2 flex-wrap">
@@ -557,6 +557,60 @@ const buildTaskRow = (task, i, j) => {
   `;
 };
 
+const updateStickyOffsets = () => {
+  const activeLoggingPanel = document.getElementById("activeLoggingPanel");
+  const taskList = document.getElementById("taskList");
+  if (!activeLoggingPanel || !taskList) return;
+
+  const tableHeader = taskList.querySelector("thead");
+  if (!tableHeader) return;
+
+  const table = taskList.querySelector("table");
+  if (!table) return;
+
+  const scrollContainer = taskList.closest(".overflow-y-auto");
+  if (!scrollContainer) return;
+
+  const scrollContainerRect = scrollContainer.getBoundingClientRect();
+  const tableRect = table.getBoundingClientRect();
+
+  const trs = table.querySelectorAll("tr");
+  const lastRow = trs.length > 0 ? trs[trs.length - 1] : null;
+  const lastRowBottom = lastRow ? lastRow.getBoundingClientRect().bottom : tableRect.bottom;
+  const tableBottom = lastRowBottom - scrollContainerRect.top;
+
+  const headerTop = activeLoggingPanel.offsetHeight;
+  const opRows = taskList.querySelectorAll(".operation-row");
+  const opRowTop = headerTop + tableHeader.offsetHeight;
+
+  const firstOpRow = taskList.querySelector(".operation-row");
+  const opRowHeight = firstOpRow ? firstOpRow.offsetHeight : 0;
+
+  const footer = taskList.querySelector("#taskTableFoot");
+  const footerTop = opRowTop + opRowHeight;
+
+  // The shift starts when the table bottom is pushed past the top of the stuck footer
+  const stackHeightWithoutFooter = tableHeader.offsetHeight + opRowHeight;
+  let shift = 0;
+  if (tableBottom < headerTop + stackHeightWithoutFooter) {
+    shift = (headerTop + stackHeightWithoutFooter) - tableBottom;
+  }
+
+  tableHeader.style.top = `${headerTop - shift}px`;
+
+  opRows.forEach((row) => {
+    const td = row.querySelector("td");
+    if (td) {
+      td.style.top = `${opRowTop - 1 - shift}px`;
+      td.style.zIndex = "10";
+    }
+  });
+
+  if (footer) {
+    footer.style.top = `${footerTop - 1 - shift}px`;
+  }
+};
+
 const updateTaskList = () => {
   try {
     if (!DOM.taskList) throw new Error("Task list element not found");
@@ -579,19 +633,19 @@ const updateTaskList = () => {
              <th scope="col" class="text-center w-24 sm:w-28 whitespace-nowrap px-1">Status</th>
              <th scope="col" class="text-center w-20 sm:w-24 whitespace-nowrap pr-1 sm:pr-2">Actions</th>
            </tr>
-         </thead>
-         <tbody>`,
+         </thead>`,
     ];
     for (let i = 0; i < operations.length; i += 1) {
+      rows.push(`<tbody class="operation-group">`);
       rows.push(buildOpRow(operations[i], i));
       for (let j = 0; j < operations[i].tasks.length; j += 1) {
         rows.push(buildTaskRow(operations[i].tasks[j], i, j));
       }
+      rows.push(`</tbody>`);
     }
     rows.push(`
-        </tbody>
-        <tfoot id="taskTableFoot"></tfoot>
       </table>
+      <div id="taskTableFoot" class="sticky z-20 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_-2px_4px_rgba(0,0,0,0.05)] mt-[-1px] rounded-b-md"></div>
     `);
     DOM.taskList.innerHTML = rows.join("");
 
@@ -608,11 +662,7 @@ const updateTaskList = () => {
       addTaskButton.disabled = true;
     }
 
-    const activeLoggingPanel = document.getElementById("activeLoggingPanel");
-    const tableHeader = DOM.taskList.querySelector("thead");
-    if (activeLoggingPanel && tableHeader) {
-      tableHeader.style.top = `${activeLoggingPanel.offsetHeight}px`;
-    }
+    requestAnimationFrame(updateStickyOffsets);
 
     for (let i = 0; i < operations.length; i += 1) {
       const opTimeInput = document.getElementById(`opTimeInput-${i}`);
@@ -662,24 +712,20 @@ const updateProcessTimes = () => {
     }
 
     DOM.taskTableFoot.innerHTML = `
-      <tr>
-        <td colspan="4" class="table-foot">
-          <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 w-full py-1">
-            <span class="inline-flex items-center gap-1.5">
-              <label for="processStartTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Process start time:</label>
-              <input type="text" id="processStartTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${formattedStartTime}">
-            </span>
-            <span class="inline-flex items-center gap-1.5">
-              <label for="processEndTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Process end time:</label>
-              <input type="text" id="processEndTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${formattedEndTime}">
-            </span>
-            <span class="inline-flex items-center gap-1.5">
-              <label for="totalProcessTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Total Process time:</label>
-              <input type="text" id="totalProcessTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${totalProcessTime}" disabled>
-            </span>
-          </div>
-        </td>
-      </tr>
+      <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 w-full py-1">
+        <span class="inline-flex items-center gap-1.5">
+          <label for="processStartTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Process start time:</label>
+          <input type="text" id="processStartTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${formattedStartTime}">
+        </span>
+        <span class="inline-flex items-center gap-1.5">
+          <label for="processEndTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Process end time:</label>
+          <input type="text" id="processEndTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${formattedEndTime}">
+        </span>
+        <span class="inline-flex items-center gap-1.5">
+          <label for="totalProcessTimeInput" class="form-label font-mono text-sm mb-0" style="width: auto;">Total Process time:</label>
+          <input type="text" id="totalProcessTimeInput" class="form-control w-27.5 px-1 text-center font-mono tabular-nums text-sm" value="${totalProcessTime}" disabled>
+        </span>
+      </div>
     `;
 
     const processStartTimeInput = document.getElementById("processStartTimeInput");
