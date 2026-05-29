@@ -57,10 +57,13 @@
 
   let canvas;
   let ctx;
+  let nextCanvas;
+  let nextCtx;
   let board;
   let score;
   let highScore;
   let activePiece;
+  let nextPiece;
   let isGameOver;
   let isPaused;
   let isBossKeyHidden;
@@ -137,34 +140,51 @@
     canvas = document.getElementById("tetrisCanvas");
     ctx = canvas.getContext("2d");
 
+    nextCanvas = document.getElementById("tetrisNextCanvas");
+    nextCtx = nextCanvas.getContext("2d");
+
     // Start game state
-    resetGame();
     window.addEventListener("keydown", handleInput);
-    lastTime = performance.now();
     isPaused = false;
     isBossKeyHidden = false;
     isProcessingComplete = false;
     triggeredMilestones.clear();
 
-    runGame();
+    resetGame();
   };
 
   const resetGame = () => {
+    cancelAnimationFrame(animationFrameId);
     board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     score = 0;
     isGameOver = false;
+    isPaused = false;
+    isBossKeyHidden = false;
     dropCounter = 0;
     dropInterval = 1000;
+    nextPiece = null;
     updateScoreUI();
     spawnPiece();
     hideOverlay();
+    lastTime = performance.now();
+    runGame();
   };
 
   const spawnPiece = () => {
     const pieces = ["I", "J", "L", "O", "S", "T", "Z"];
-    const type = pieces[Math.floor(Math.random() * pieces.length)];
-    const matrix = TETROMINOES[type];
     
+    if (!nextPiece) {
+      const type = pieces[Math.floor(Math.random() * pieces.length)];
+      const matrix = TETROMINOES[type];
+      nextPiece = {
+        matrix,
+        color: type,
+      };
+    }
+
+    // Active piece becomes the next piece
+    const type = nextPiece.color;
+    const matrix = nextPiece.matrix;
     activePiece = {
       matrix,
       pos: {
@@ -174,10 +194,49 @@
       color: type,
     };
 
+    // Generate new next piece
+    const nextType = pieces[Math.floor(Math.random() * pieces.length)];
+    const nextMatrix = TETROMINOES[nextType];
+    nextPiece = {
+      matrix: nextMatrix,
+      color: nextType,
+    };
+
+    // Draw next piece
+    drawNextPiece();
+
     if (checkCollision(activePiece.pos.x, activePiece.pos.y, activePiece.matrix)) {
       isGameOver = true;
       saveHighScore();
       showOverlay("Game Over", [{ text: "Restart", action: resetGame }]);
+    }
+  };
+
+  const drawNextPiece = () => {
+    if (!nextCtx || !nextPiece) return;
+
+    nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+
+    const matrix = nextPiece.matrix;
+    const blockSize = 10;
+    const matrixSize = matrix.length;
+    
+    // Calculate start X and Y to center it
+    const startX = (nextCanvas.width - matrixSize * blockSize) / 2;
+    const startY = (nextCanvas.height - matrixSize * blockSize) / 2;
+
+    for (let y = 0; y < matrixSize; y += 1) {
+      for (let x = 0; x < matrix[y].length; x += 1) {
+        const val = matrix[y][x];
+        if (val !== 0) {
+          nextCtx.fillStyle = COLORS[val];
+          nextCtx.fillRect(startX + x * blockSize, startY + y * blockSize, blockSize, blockSize);
+          
+          nextCtx.strokeStyle = "rgba(0,0,0,0.3)";
+          nextCtx.lineWidth = 1;
+          nextCtx.strokeRect(startX + x * blockSize, startY + y * blockSize, blockSize, blockSize);
+        }
+      }
     }
   };
 
