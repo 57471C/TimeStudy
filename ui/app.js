@@ -1963,6 +1963,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
 
   const duration = end - start;
   const stderrLogs = [];
+  let lastPct = -1;
 
   return new Promise((resolve, reject) => {
     // Parse FFmpeg -progress pipe:2 output from stderr.
@@ -1971,8 +1972,22 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
     // human-readable stats which use \r and are never flushed to the JS listener.
     // The watchdog resets on every out_time_us/out_time_ms progress event.
     sidecarCmd.stderr.on("data", (line) => {
-      // Add raw logging to console to help diagnose any sidecar issues
-      toConsole("FFmpeg stderr raw output", line, debuggin);
+      // Filter out progress key=value spam from console logging to prevent IPC backpressure/deadlock.
+      const isProgressSpam = line.includes("=") && (
+        line.startsWith("frame=") ||
+        line.startsWith("fps=") ||
+        line.startsWith("stream_") ||
+        line.startsWith("bitrate=") ||
+        line.startsWith("total_size=") ||
+        line.startsWith("out_time") ||
+        line.startsWith("dup_frames=") ||
+        line.startsWith("drop_frames=") ||
+        line.startsWith("speed=") ||
+        line.startsWith("progress=")
+      );
+      if (!isProgressSpam) {
+        toConsole("FFmpeg stderr raw output", line, debuggin);
+      }
 
       stderrLogs.push(line);
       if (stderrLogs.length > 50) {
@@ -1987,10 +2002,13 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
         const currentSeconds = unit === "us" ? val / 1_000_000 : val / 1_000;
         if (duration > 0) {
           const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
-          progressBar.style.width = `${pct}%`;
-          progressText.textContent = `${pct}%`;
-          if (typeof window.updateTetrisProgress === "function") {
-            window.updateTetrisProgress(pct);
+          if (pct !== lastPct) {
+            lastPct = pct;
+            progressBar.style.width = `${pct}%`;
+            progressText.textContent = `${pct}%`;
+            if (typeof window.updateTetrisProgress === "function") {
+              window.updateTetrisProgress(pct);
+            }
           }
         }
       }
