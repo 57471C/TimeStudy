@@ -588,12 +588,13 @@ const updateStickyOffsets = () => {
 
   const footer = taskList.querySelector("#taskTableFoot");
   const footerTop = opRowTop + opRowHeight;
+  const footerHeight = footer ? footer.offsetHeight : 0;
 
-  // The shift starts when the table bottom is pushed past the top of the stuck footer
-  const stackHeightWithoutFooter = tableHeader.offsetHeight + opRowHeight;
+  // Shift only triggers once the full stack (header + opRow + footer) is compressed against the top
+  const fullStackHeight = tableHeader.offsetHeight + opRowHeight + footerHeight;
   let shift = 0;
-  if (tableBottom < headerTop + stackHeightWithoutFooter) {
-    shift = (headerTop + stackHeightWithoutFooter) - tableBottom;
+  if (tableBottom < headerTop + fullStackHeight) {
+    shift = (headerTop + fullStackHeight) - tableBottom;
   }
 
   tableHeader.style.top = `${headerTop - shift}px`;
