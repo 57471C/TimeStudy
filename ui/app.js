@@ -1897,14 +1897,44 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   if (!isCompression) {
     args.push("-c", "copy");
   } else {
-    // Limit CPU threads to 4 to prevent thread/CPU starvation of the Tauri host IPC.
+    const inputHeight = player.videoHeight || 0;
+    let targetHeight = 1080;
     if (qualityMode === "low") {
-      args.push("-vf", "scale=-2:720", "-c:v", "libx264", "-crf", "32", "-preset", "veryfast", "-threads", "4");
-    } else if (qualityMode === "high") {
-      args.push("-vf", "scale=-2:1080", "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-threads", "4");
-    } else {
-      args.push("-vf", "scale=-2:1080", "-c:v", "libx264", "-crf", "26", "-preset", "fast", "-threads", "4");
+      targetHeight = 720;
     }
+    // Avoid upscaling: if input height is smaller, use it
+    if (inputHeight > 0 && inputHeight < targetHeight) {
+      targetHeight = inputHeight;
+    }
+
+    // Limit CPU threads to 4 to prevent thread/CPU starvation of the Tauri host IPC.
+    // Use -max_muxing_queue_size 4096 and -c:a copy to prevent audio/video muxing deadlocks.
+    if (qualityMode === "low") {
+      args.push(
+        "-vf", `scale=-2:${targetHeight}`,
+        "-c:v", "libx264",
+        "-crf", "32",
+        "-preset", "veryfast",
+        "-threads", "4"
+      );
+    } else if (qualityMode === "high") {
+      args.push(
+        "-vf", `scale=-2:${targetHeight}`,
+        "-c:v", "libx264",
+        "-crf", "18",
+        "-preset", "medium",
+        "-threads", "4"
+      );
+    } else {
+      args.push(
+        "-vf", `scale=-2:${targetHeight}`,
+        "-c:v", "libx264",
+        "-crf", "26",
+        "-preset", "fast",
+        "-threads", "4"
+      );
+    }
+    args.push("-c:a", "copy", "-max_muxing_queue_size", "4096");
   }
 
   args.push(actualOutputPath);
