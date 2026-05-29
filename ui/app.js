@@ -1793,11 +1793,11 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
     args.push("-c", "copy");
   } else {
     if (qualityMode === "low") {
-      args.push("-vf", "scale=-1:720", "-c:v", "libx264", "-crf", "32", "-preset", "veryfast");
+      args.push("-vf", "scale=-2:720", "-c:v", "libx264", "-crf", "32", "-preset", "veryfast");
     } else if (qualityMode === "high") {
-      args.push("-vf", "scale=-1:1080", "-c:v", "libx264", "-crf", "18", "-preset", "medium");
+      args.push("-vf", "scale=-2:1080", "-c:v", "libx264", "-crf", "18", "-preset", "medium");
     } else {
-      args.push("-vf", "scale=-1:1080", "-c:v", "libx264", "-crf", "26", "-preset", "fast");
+      args.push("-vf", "scale=-2:1080", "-c:v", "libx264", "-crf", "26", "-preset", "fast");
     }
   }
 
