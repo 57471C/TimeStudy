@@ -486,18 +486,29 @@
 
       <!-- Tetris Easter Egg Screen -->
       <div id="tetrisContainer" class="hidden p-5 flex flex-col items-center justify-center relative">
-        <div class="relative">
+        <div class="flex items-start gap-4">
+          <!-- Main Canvas -->
           <canvas id="tetrisCanvas" width="200" height="400" class="rounded shadow bg-zinc-950"></canvas>
-          <div class="absolute top-2 right-2 bg-black/60 border border-zinc-700 rounded p-1.5 flex flex-col items-center z-10">
-            <span class="text-[9px] text-zinc-400 font-bold uppercase mb-0.5">Next</span>
-            <canvas id="tetrisNextCanvas" width="50" height="50" class="bg-black/40 rounded-sm"></canvas>
+          
+          <!-- Sidebar for stats and next block -->
+          <div class="flex flex-col gap-3">
+            <div class="bg-zinc-900/80 border border-zinc-700 rounded p-2 flex flex-col items-center shadow">
+              <span class="text-[10px] text-zinc-400 font-bold uppercase mb-1.5">Next</span>
+              <canvas id="tetrisNextCanvas" width="50" height="50" class="bg-black/40 rounded-sm"></canvas>
+            </div>
+            <div class="bg-zinc-900/80 border border-zinc-700 rounded p-2 flex flex-col gap-1.5 min-w-[70px] shadow text-xs">
+              <div class="flex flex-col">
+                <span class="text-[9px] text-zinc-500 font-bold uppercase">Score</span>
+                <span id="tetrisScore" class="font-mono font-bold text-sm text-zinc-200">00000</span>
+              </div>
+              <div class="flex flex-col border-t border-zinc-800 pt-1.5">
+                <span class="text-[9px] text-zinc-500 font-bold uppercase">High</span>
+                <span id="tetrisHighScore" class="font-mono font-bold text-sm text-zinc-200">00000</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="flex justify-between w-full max-w-[200px] mt-3 text-sm font-bold">
-          <span>Score: <span id="tetrisScore">00000</span></span>
-          <span>High: <span id="tetrisHighScore">00000</span></span>
-        </div>
-        <p class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-2 font-medium">Tip: Press "B" to hide/show the game screen.</p>
+        <p class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-4 font-medium">Tip: Press "B" to hide/show the game screen.</p>
         
         <!-- Overlay for Game Over / 100% Completion -->
         <div id="tetrisOverlay" class="absolute inset-0 bg-black/85 flex flex-col items-center justify-center text-center p-4 hidden z-20">

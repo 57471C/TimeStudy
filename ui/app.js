@@ -909,6 +909,12 @@ const initializePlayer = () => {
   marqueeOverlay.addEventListener("mouseup", endMarquee);
 
   document.addEventListener("keydown", (e) => {
+    // Disable shortcuts while Tetris is active to prevent key conflicts (e.g. arrows/spacebar seeking video)
+    const tetrisCont = document.getElementById("tetrisContainer");
+    if (tetrisCont && !tetrisCont.classList.contains("hidden") && tetrisCont.style.display !== "none") {
+      return;
+    }
+
     // Global shortcuts (can trigger anywhere)
     if (e.ctrlKey && e.key.toLowerCase() === "s") {
       e.preventDefault();
@@ -1709,7 +1715,7 @@ const initializeTrimFeature = () => {
   if (trimVideoBtn) {
     trimVideoBtn.classList.remove("hidden");
     trimVideoBtn.addEventListener("click", () => {
-      if (!player || !player.src) {
+      if (!player?.src) {
         alert("Please load a video first.");
         return;
       }
@@ -1733,19 +1739,23 @@ const initializeTrimFeature = () => {
   if (cancelTrimBtn) cancelTrimBtn.addEventListener("click", closeTrim);
 
   const handleTrimAction = async (isCompression) => {
+    toConsole("Trim action button clicked", { isCompression }, debuggin);
     const startVal = parseTimeFromHHMMSSMS(document.getElementById("trimStartInput").value);
     const endVal = parseTimeFromHHMMSSMS(document.getElementById("trimEndInput").value);
 
     if (startVal === null || endVal === null) {
+      toConsole("Trim validation failed: Invalid time format", { startVal, endVal }, debuggin);
       alert("Invalid start or end time format.");
       return;
     }
     if (startVal >= endVal) {
+      toConsole("Trim validation failed: Start >= End", { startVal, endVal }, debuggin);
       alert("Start time must be less than end time.");
       return;
     }
 
     const qualityMode = document.querySelector('input[name="trimQuality"]:checked').value;
+    toConsole("Trim parameters validation success", { startVal, endVal, qualityMode }, debuggin);
     
     trimOnlyBtn.disabled = true;
     trimCompressBtn.disabled = true;
@@ -1766,24 +1776,37 @@ const initializeTrimFeature = () => {
 
 const processVideo = async (start, end, qualityMode, isCompression) => {
   if (!videoFilePath) {
+    toConsole("processVideo abort: No active video file path found", null, debuggin);
     alert("No active video file path found.");
     return;
   }
 
   const defaultPath = `trimmed_${videoFileName || "video.mp4"}`;
-  const outputPath = await window.__TAURI__.dialog.save({
-    filters: [{ name: "Video", extensions: ["mp4", "webm", "mov", "avi"] }],
-    defaultPath: defaultPath,
-  });
+  toConsole("Opening Tauri save dialog...", { defaultPath }, debuggin);
+  
+  let outputPath;
+  try {
+    outputPath = await window.__TAURI__.dialog.save({
+      filters: [{ name: "Video", extensions: ["mp4", "webm", "mov", "avi"] }],
+      defaultPath: defaultPath,
+    });
+  } catch (err) {
+    toConsole("Tauri save dialog error", err, debuggin);
+    throw err;
+  }
 
   if (!outputPath) {
+    toConsole("Tauri save dialog cancelled by user", null, debuggin);
     throw new Error("Save location was not specified.");
   }
 
   const actualOutputPath = typeof outputPath === "object" ? outputPath.path : outputPath;
+  toConsole("Save path selected", actualOutputPath, debuggin);
 
   // Build FFmpeg args
   const args = [
+    "-y",
+    "-nostdin",
     "-i", videoFilePath,
     "-ss", start.toString(),
     "-to", end.toString()
@@ -1802,6 +1825,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   }
 
   args.push(actualOutputPath);
+  toConsole("Spawning FFmpeg with args", args, debuggin);
 
   const progressContainer = document.getElementById("trimProgressContainer");
   const progressBar = document.getElementById("trimProgressBar");
@@ -1812,11 +1836,24 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   progressText.textContent = "0%";
 
   const { Command } = window.__TAURI__.shell;
-  const sidecarCmd = Command.sidecar("binaries/ffmpeg", args);
+  
+  let sidecarCmd;
+  try {
+    sidecarCmd = Command.sidecar("binaries/ffmpeg", args);
+    toConsole("Tauri Command.sidecar instance created", sidecarCmd, debuggin);
+  } catch (err) {
+    toConsole("Tauri Command.sidecar creation failed", err, debuggin);
+    throw err;
+  }
 
   const duration = end - start;
+  const stderrLogs = [];
 
   sidecarCmd.on("stderr", (line) => {
+    stderrLogs.push(line);
+    if (stderrLogs.length > 50) {
+      stderrLogs.shift();
+    }
     const match = line.match(/time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
     if (match) {
       const hours = Number.parseInt(match[1], 10);
@@ -1837,6 +1874,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
 
   return new Promise((resolve, reject) => {
     sidecarCmd.on("close", async (data) => {
+      toConsole("FFmpeg process closed", data, debuggin);
       if (data.code === 0) {
         try {
           for (let i = 0; i < operations.length; i += 1) {
@@ -1877,20 +1915,29 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
 
           resolve();
         } catch (e) {
+          toConsole("Error in close callback handler", e, debuggin);
           reject(e);
         }
       } else {
-        reject(new Error(`FFmpeg failed with exit code ${data.code}`));
+        const fullErrLogs = stderrLogs.join("\n");
+        toConsole("FFmpeg process failed with non-zero exit code", { code: data.code, logs: fullErrLogs }, debuggin);
+        reject(new Error(`FFmpeg failed with exit code ${data.code}.\n\nFFmpeg Logs:\n${fullErrLogs || "(no stderr output)"}`));
       }
     });
 
     sidecarCmd.on("error", (err) => {
+      toConsole("FFmpeg sidecarCmd error event fired", err, debuggin);
       reject(new Error(err));
     });
 
-    sidecarCmd.spawn().catch((err) => {
-      reject(err);
-    });
+    toConsole("Spawning FFmpeg sidecar process...", null, debuggin);
+    sidecarCmd.spawn()
+      .then((child) => {
+        toConsole("FFmpeg sidecar spawned successfully", { pid: child.pid }, debuggin);
+      })
+      .catch((err) => {
+        toConsole("FFmpeg sidecar spawn failed", err, debuggin);
+        reject(err);
+      });
   });
 };
-
