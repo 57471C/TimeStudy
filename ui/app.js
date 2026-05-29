@@ -1934,7 +1934,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
         "-threads", "4"
       );
     }
-    args.push("-c:a", "copy", "-max_muxing_queue_size", "4096");
+    args.push("-c:a", "aac", "-max_muxing_queue_size", "4096");
   }
 
   args.push(actualOutputPath);
