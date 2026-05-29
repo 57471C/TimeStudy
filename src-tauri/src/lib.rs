@@ -1,15 +1,10 @@
 
 #[tauri::command]
 fn get_startup_file() -> Option<String> {
-    // std::env::args().nth(1) grabs the first argument passed to the executable
-    let arg = std::env::args().nth(1)?;
-    
-    // Only return the file path if it's a TimeStudy Project
-    if arg.ends_with(".tsp") {
-        Some(arg)
-    } else {
-        None
-    }
+    std::env::args()
+        .skip(1)
+        .map(|arg| arg.trim_matches('"').to_string())
+        .find(|arg| arg.to_lowercase().ends_with(".tsp"))
 }
 
 // Triggering a recompile to pick up new icons

@@ -741,7 +741,8 @@ const exportToXLSX = async () => {
       if (filePath) {
         const actualPath = typeof filePath === "object" ? filePath.path : filePath;
         const buffer = await workbook.xlsx.writeBuffer();
-        await window.__TAURI__.fs.writeFile(actualPath, new Uint8Array(buffer));
+        const uint8Array = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+        await window.__TAURI__.fs.writeFile(actualPath, uint8Array);
         showToast("Data exported to XLSX successfully.", "success");
       }
     } catch (e) {
