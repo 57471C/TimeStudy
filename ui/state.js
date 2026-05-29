@@ -12,6 +12,7 @@ let activeTrialIndex = 0;
 const videoBlobCache = {};
 let operations = [];
 let taktTime = 60000;
+let preserveProcessTimes = false;
 // biome-ignore lint/style/useConst: Global state modified in other scripts
 let durationMode = "hhmmssms";
 // biome-ignore lint/style/useConst: Global state modified in other scripts
@@ -309,6 +310,7 @@ const exportToJSON = async (isSaveAs = false) => {
 
 const importFromJSON = (jsonText) => {
   try {
+    preserveProcessTimes = true;
     const data = JSON.parse(jsonText);
 
     if (data.trials) {

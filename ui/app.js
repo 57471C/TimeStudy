@@ -40,6 +40,7 @@ const renderTrialSelect = () => {
 const switchTrial = async (index) => {
   if (index === activeTrialIndex) return;
 
+  preserveProcessTimes = true;
   saveLocalState();
 
   activeTrialIndex = index;
@@ -427,9 +428,15 @@ const initializePlayer = () => {
 
       const tickInterval = (tickSeconds / duration) * 100;
       seekBar.style.setProperty("--tick-interval", `${tickInterval}%`);
+    if (preserveProcessTimes) {
+      if (processEndTime === undefined || processEndTime === null || processEndTime <= 0 || processEndTime > duration) {
+        processEndTime = duration;
+      }
+      preserveProcessTimes = false;
+    } else {
+      processStartTime = 0;
+      processEndTime = duration;
     }
-    processStartTime = 0;
-    processEndTime = duration;
     if (duration > 0 && duration < 60 && operations.length === 0) {
       taktTime = Math.max(1000, Math.round(duration * 0.9) * 1000);
       saveLocalState();
