@@ -1872,16 +1872,13 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   }
 
   // Build FFmpeg args.
-  // -progress pipe:1  → machine-readable progress (key=value, newline-delimited) on stdout.
-  // -nostats          → suppresses the \r-overwritten stat lines on stderr entirely.
-  // -loglevel error   → only genuine errors reach stderr, keeping that pipe nearly empty.
-  // These three together eliminate the Windows pipe-buffer-deadlock that caused stalls.
+  // We deliberately omit -progress pipe:1: on Windows, FFmpeg block-buffers stdout
+  // when it is connected to a pipe (not a tty), so no data arrives until the buffer
+  // fills — which effectively stalls progress reporting. Stderr is line-buffered by
+  // FFmpeg's stats writer and delivers time= updates in near-real-time.
   const args = [
     "-y",
     "-nostdin",
-    "-nostats",
-    "-loglevel", "error",
-    "-progress", "pipe:1",
     "-i", videoFilePath,
     "-ss", start.toString(),
     "-to", end.toString()
@@ -1927,45 +1924,66 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   const stderrLogs = [];
 
   return new Promise((resolve, reject) => {
-    // Collect stderr for error reporting only — no progress parsing here.
-    // Progress now comes via -progress pipe:1 on stdout (newline-delimited key=value).
+    // Parse FFmpeg stderr for real-time progress.
+    // FFmpeg writes stats to stderr using \r to overwrite a terminal line, but the
+    // Tauri IPC bridge delivers data events per-chunk so we still receive them.
+    // The watchdog resets on every time= event, auto-aborting if progress stalls.
     sidecarCmd.stderr.on("data", (line) => {
       stderrLogs.push(line);
       if (stderrLogs.length > 50) {
         stderrLogs.shift();
       }
-    });
-
-    // Parse FFmpeg -progress pipe:1 output from stdout.
-    // Format: one key=value pair per line, e.g. "out_time_ms=5000000".
-    // This is newline-terminated so the Tauri IPC bridge flushes on every
-    // field — no carriage-return buffering that would stall the process.
-    let progressBuffer = "";
-    sidecarCmd.stdout.on("data", (chunk) => {
-      progressBuffer += chunk;
-      const lines = progressBuffer.split("\n");
-      // Keep the last (potentially incomplete) line in the buffer
-      progressBuffer = lines.pop() ?? "";
-      for (const line of lines) {
-        const trimmed = line.trim();
-        // out_time_ms is in microseconds despite the name — divide by 1e6 for seconds
-        const match = trimmed.match(/^out_time_ms=(\d+)$/);
-        if (match) {
-          const currentSeconds = Number.parseInt(match[1], 10) / 1_000_000;
-          if (duration > 0) {
-            const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
-            progressBar.style.width = `${pct}%`;
-            progressText.textContent = `${pct}%`;
-            if (typeof window.updateTetrisProgress === "function") {
-              window.updateTetrisProgress(pct);
-            }
+      const match = line.match(/time=(\d{2}):(\d{2}):(\d{2})[.,](\d+)/);
+      if (match) {
+        resetWatchdog(); // reset 30s timer on every progress tick
+        const hours = Number.parseInt(match[1], 10);
+        const minutes = Number.parseInt(match[2], 10);
+        const seconds = Number.parseInt(match[3], 10);
+        const frac = Number.parseFloat("0." + match[4]);
+        const currentSeconds = hours * 3600 + minutes * 60 + seconds + frac;
+        if (duration > 0) {
+          const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
+          progressBar.style.width = `${pct}%`;
+          progressText.textContent = `${pct}%`;
+          if (typeof window.updateTetrisProgress === "function") {
+            window.updateTetrisProgress(pct);
           }
         }
       }
     });
 
+    // Watchdog: auto-abort if no stderr progress is received for 30 seconds.
+    // This protects against hangs from file locks, codec issues, or I/O errors.
+    let watchdogTimer = null;
+    const WATCHDOG_MS = 30_000;
+    const resetWatchdog = () => {
+      clearTimeout(watchdogTimer);
+      watchdogTimer = setTimeout(async () => {
+        toConsole("FFmpeg watchdog: no progress for 30s — aborting", null, debuggin);
+        isAborted = true;
+        if (activeFFmpegChild) {
+          try {
+            await activeFFmpegChild.kill();
+            toConsole("FFmpeg watchdog kill: success", null, debuggin);
+          } catch (killErr) {
+            toConsole("FFmpeg watchdog kill: failed", killErr, debuggin);
+          }
+        }
+        reject(new Error("FFmpeg stalled: no progress for 30 seconds. If using the same output filename, choose a new name and try again."));
+      }, WATCHDOG_MS);
+    };
+    // Start watchdog immediately — resets on first progress event from stderr
+    resetWatchdog();
+
+    // Drain stdout to prevent pipe buffer back-pressure blocking FFmpeg.
+    // We do not parse stdout — progress comes from stderr.
+    sidecarCmd.stdout.on("data", (_chunk) => {
+      // intentionally empty — drain only
+    });
+
     // Listen for close event on the command instance
     sidecarCmd.on("close", async (data) => {
+      clearTimeout(watchdogTimer); // cancel watchdog on clean close
       activeFFmpegChild = null;
       toConsole("FFmpeg process closed", data, debuggin);
 
@@ -2040,6 +2058,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
 
     // Listen for error event on the command instance
     sidecarCmd.on("error", (err) => {
+      clearTimeout(watchdogTimer);
       activeFFmpegChild = null;
       toConsole("FFmpeg sidecarCmd error event fired", err, debuggin);
       reject(new Error(err));
