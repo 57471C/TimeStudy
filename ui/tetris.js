@@ -569,10 +569,6 @@
             const progressText = document.getElementById("trimProgressText");
             if (progressBar) progressBar.style.width = "0%";
             if (progressText) progressText.textContent = "0%";
-
-            // Reset modal classes for next load
-            modal.classList.remove("opacity-0", "scale-95");
-            modal.classList.add("opacity-100", "scale-100");
           }, 300);
         },
       },

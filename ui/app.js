@@ -1724,6 +1724,8 @@ const initializeTrimFeature = () => {
       document.getElementById("trimStartInput").value = formatTimeToHHMMSSMS(processStartTime);
       document.getElementById("trimEndInput").value = formatTimeToHHMMSSMS(processEndTime || player.duration);
       resetTrimModalUI();
+      trimModal.classList.remove("opacity-0", "scale-95");
+      trimModal.classList.add("opacity-100", "scale-100");
       trimModal.showModal();
     });
   }
@@ -1737,8 +1739,6 @@ const initializeTrimFeature = () => {
     document.getElementById("trimProgressContainer").classList.add("hidden");
     const spinner = document.getElementById("trimProgressSpinner");
     if (spinner) spinner.classList.add("hidden");
-    trimModal.classList.remove("opacity-0", "scale-95");
-    trimModal.classList.add("opacity-100", "scale-100");
   };
   window.resetTrimModalUI = resetTrimModalUI;
 
@@ -1754,8 +1754,11 @@ const initializeTrimFeature = () => {
       }
       activeFFmpegChild = null;
     }
-    resetTrimModalUI();
+    trimModal.classList.remove("opacity-100", "scale-100");
+    trimModal.classList.add("opacity-0", "scale-95");
+    await new Promise((r) => setTimeout(r, 300));
     trimModal.close();
+    resetTrimModalUI();
   };
 
   const closeTrim = () => {
@@ -1828,7 +1831,12 @@ const initializeTrimFeature = () => {
         return;
       }
 
-      trimModal.close();
+      trimModal.classList.remove("opacity-100", "scale-100");
+      trimModal.classList.add("opacity-0", "scale-95");
+      setTimeout(() => {
+        trimModal.close();
+        resetTrimModalUI();
+      }, 300);
       alert(`Video processing failed: ${err.message || err}`);
     }
   };
@@ -2068,7 +2076,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
     if (
       typeof window.onVideoProcessingFinished === "function" &&
       tetrisCont &&
-      tetrisCont.style.display !== "none"
+      !tetrisCont.classList.contains("hidden")
     ) {
       // In Tetris mode, we can show the toast immediately since the game is visible, 
       // but wait, it might still be behind the backdrop if the dialog top layer is active.
