@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.5.7-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.6.0-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -27,11 +27,11 @@
 6. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 7. **Dark Mode**: Click the sun/moon icon to toggle themes.
 
-## Version 0.5.7 Updates
+## Version 0.6.0 Updates
 - **Rust-Side FFmpeg Execution**: Shifted FFmpeg process spawning and standard stream consumption from guest JavaScript to Rust host backend. This completely bypasses the WebView IPC stream buffer limitations, eliminating Windows-specific deadlocks during high-framerate processing.
 - **Event-Driven Progress Listening**: Modified frontend to listen for `ffmpeg-stderr` events emitted from the Rust backend for progress percentage calculations, ensuring responsive updates to the UI and Tetris difficulty tracking.
-- **Improved Abort / Watchdog integration**: Coordinated frontend UI triggers (abort button and progress watchdog) with backend-managed process termination (`abort_ffmpeg`) to guarantee clean sidecar cleanup and avoid resource lockups.
-- **Sidecar Name Resolution Fix**: Corrected Rust sidecar name parameter from `"binaries/ffmpeg"` to `"ffmpeg"`. This resolves the path resolution failure (`os error 3`) on Windows, as the sidecar binaries directory hierarchy is flattened in the runtime output directory.
+- **Improved Abort / Watchdog Integration**: Coordinated frontend UI triggers (abort button and progress watchdog) with backend-managed process termination (`abort_ffmpeg`) to guarantee clean sidecar cleanup and avoid resource lockups.
+- **Sidecar Name Resolution Fix**: Corrected Rust sidecar name parameter from `"binaries/ffmpeg"` to `"ffmpeg"`. This resolves the path resolution failure (`os error 3`) on Windows.
 - **Progress Estimation Fix**: Switched to parsing only `out_time_us` for progress calculations. This prevents the progress bar from immediately jumping to 100% due to a known FFmpeg bug where `out_time_ms` outputs microsecond values instead of millisecond values, causing incorrect scale factor division.
 - **UX & Modal Polish**: Switched the success toast notification message to "Video completed." and shortened the post-trim modal close delay from 600ms to 200ms for a snappier, more responsive workflow.
 
