@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.6.0-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.6.1-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -24,8 +24,14 @@
 5. **Compare Trials**: Click "Compare Trials" to view the full-screen Kaizen dashboard.
 6. **Save/Load**: Use “Save Project” to `.tsp` file (JSON).
 7. **Export**: Use "Export" to save data as CSV or XLSX formats.
-6. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
-7. **Dark Mode**: Click the sun/moon icon to toggle themes.
+8. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
+9. **Dark Mode**: Click the sun/moon icon to toggle themes.
+
+## Version 0.6.1 Updates
+- **Trim Modal Transition Fix**: Restructured the modal closing and UI reset sequence to prevent WebView2 rendering race conditions on close. Opacity and scale transition classes are now only reapplied when the modal is opened.
+- **Cancel and Error Close Animations**: Standardized close transition animations across all closing actions (success, cancel, and error blocks) for a premium, consistent user experience.
+- **Tetris Control Input Propagation Blocking**: Added event blocking (`preventDefault()` and `stopPropagation()`) for Tetris game keys (arrow keys and spacebar). This resolves the issue where pressing the spacebar (hard drop) clicked focused elements like the close/cancel button and closed the modal.
+- **Secret Game Exit Handling**: Implemented a global `window.cleanupTetris` hook that successfully stops the game loop and removes window keydown listeners. Updated the boss key (`"B"`) and game over screen in the secret game to close the modal directly and return to the main app, instead of falling back to the video trimming layout.
 
 ## Version 0.6.0 Updates
 - **Rust-Side FFmpeg Execution**: Shifted FFmpeg process spawning and standard stream consumption from guest JavaScript to Rust host backend. This completely bypasses the WebView IPC stream buffer limitations, eliminating Windows-specific deadlocks during high-framerate processing.
@@ -33,7 +39,7 @@
 - **Improved Abort / Watchdog Integration**: Coordinated frontend UI triggers (abort button and progress watchdog) with backend-managed process termination (`abort_ffmpeg`) to guarantee clean sidecar cleanup and avoid resource lockups.
 - **Sidecar Name Resolution Fix**: Corrected Rust sidecar name parameter from `"binaries/ffmpeg"` to `"ffmpeg"`. This resolves the path resolution failure (`os error 3`) on Windows.
 - **Progress Estimation Fix**: Switched to parsing only `out_time_us` for progress calculations. This prevents the progress bar from immediately jumping to 100% due to a known FFmpeg bug where `out_time_ms` outputs microsecond values instead of millisecond values, causing incorrect scale factor division.
-- **UX & Modal Polish**: Switched the success toast notification message to "Video completed." and shortened the post-trim modal close delay from 600ms to 200ms for a snappier, more responsive workflow.
+- **UX & Modal Polish**: Switched the success toast notification message to "Video completed.", shortened the post-trim modal close delay from 600ms to 200ms, and corrected the Tetris active check from `style.display` to `!classList.contains("hidden")` to ensure the modal closes properly in normal mode.
 
 ## Version 0.5.6 Updates
 - **FFmpeg Kill Permission**: Added `shell:allow-kill` to Tauri capabilities. Previously, clicking Cancel left zombie FFmpeg processes running that held a file lock on the output file — causing every subsequent encode to stall at ~10–12% with an I/O error. Cancel now properly terminates the process.
