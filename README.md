@@ -33,6 +33,7 @@
 - **Improved Abort / Watchdog integration**: Coordinated frontend UI triggers (abort button and progress watchdog) with backend-managed process termination (`abort_ffmpeg`) to guarantee clean sidecar cleanup and avoid resource lockups.
 - **Sidecar Name Resolution Fix**: Corrected Rust sidecar name parameter from `"binaries/ffmpeg"` to `"ffmpeg"`. This resolves the path resolution failure (`os error 3`) on Windows, as the sidecar binaries directory hierarchy is flattened in the runtime output directory.
 - **Progress Estimation Fix**: Switched to parsing only `out_time_us` for progress calculations. This prevents the progress bar from immediately jumping to 100% due to a known FFmpeg bug where `out_time_ms` outputs microsecond values instead of millisecond values, causing incorrect scale factor division.
+- **UX & Modal Polish**: Switched the success toast notification message to "Video completed." and shortened the post-trim modal close delay from 600ms to 200ms for a snappier, more responsive workflow.
 
 ## Version 0.5.6 Updates
 - **FFmpeg Kill Permission**: Added `shell:allow-kill` to Tauri capabilities. Previously, clicking Cancel left zombie FFmpeg processes running that held a file lock on the output file — causing every subsequent encode to stall at ~10–12% with an I/O error. Cancel now properly terminates the process.
