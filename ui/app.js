@@ -2022,6 +2022,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
           const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
           if (pct !== lastPct) {
             lastPct = pct;
+            toConsole("FFmpeg progress percentage updated", { pct, currentSeconds, duration }, debuggin);
             progressBar.style.width = `${pct}%`;
             progressText.textContent = `${pct}%`;
             if (typeof window.updateTetrisProgress === "function") {
