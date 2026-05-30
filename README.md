@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.5.5-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.5.7-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -26,6 +26,15 @@
 7. **Export**: Use "Export" to save data as CSV or XLSX formats.
 6. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 7. **Dark Mode**: Click the sun/moon icon to toggle themes.
+
+## Version 0.5.7 Updates
+- **Rust-Side FFmpeg Execution**: Shifted FFmpeg process spawning and standard stream consumption from guest JavaScript to Rust host backend. This completely bypasses the WebView IPC stream buffer limitations, eliminating Windows-specific deadlocks during high-framerate processing.
+- **Event-Driven Progress Listening**: Modified frontend to listen for `ffmpeg-stderr` events emitted from the Rust backend for progress percentage calculations, ensuring responsive updates to the UI and Tetris difficulty tracking.
+- **Improved Abort / Watchdog integration**: Coordinated frontend UI triggers (abort button and progress watchdog) with backend-managed process termination (`abort_ffmpeg`) to guarantee clean sidecar cleanup and avoid resource lockups.
+
+## Version 0.5.6 Updates
+- **FFmpeg Kill Permission**: Added `shell:allow-kill` to Tauri capabilities. Previously, clicking Cancel left zombie FFmpeg processes running that held a file lock on the output file — causing every subsequent encode to stall at ~10–12% with an I/O error. Cancel now properly terminates the process.
+- **Progress Watchdog**: Added a 30-second watchdog timer that auto-aborts and kills FFmpeg if no progress is received. The watchdog resets on every `out_time_ms` tick and fires with a user-friendly error message if the encode stalls for any reason (file lock, codec hang, I/O error, etc.).
 
 ## Version 0.5.5 Updates
 - **FFmpeg Progress Pipeline Rewrite**: Switched from parsing FFmpeg's human-readable `stderr` stats (which use `\r` carriage-return overwriting and intermittently stalled on Windows due to pipe buffer deadlock) to the machine-readable `-progress pipe:1` flag. Progress data is now emitted to `stdout` as newline-delimited `key=value` pairs (`out_time_ms`), which the Tauri IPC bridge flushes reliably on every line. Eliminates the intermittent freeze at ~10–12% during compressed encodes.

@@ -1950,41 +1950,58 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   progressBar.style.width = "0%";
   progressText.textContent = "0%";
 
-  const { Command } = window.__TAURI__.shell;
-  
-  let sidecarCmd;
-  try {
-    sidecarCmd = Command.sidecar("binaries/ffmpeg", args);
-    toConsole("Tauri Command.sidecar instance created", sidecarCmd, debuggin);
-  } catch (err) {
-    toConsole("Tauri Command.sidecar creation failed", err, debuggin);
-    throw err;
-  }
-
   const duration = end - start;
   const stderrLogs = [];
   let lastPct = -1;
 
-  return new Promise((resolve, reject) => {
-    // Parse FFmpeg -progress pipe:2 output from stderr.
-    // -progress writes \n-terminated key=value pairs (e.g. "out_time_ms=5000000").
-    // These ARE delivered by the Tauri BufReader::lines() data events, unlike the
-    // human-readable stats which use \r and are never flushed to the JS listener.
-    // The watchdog resets on every out_time_us/out_time_ms progress event.
-    sidecarCmd.stderr.on("data", (line) => {
+  let watchdogTimer = null;
+  const WATCHDOG_MS = 30_000;
+  const resetWatchdog = () => {
+    clearTimeout(watchdogTimer);
+    watchdogTimer = setTimeout(async () => {
+      toConsole("FFmpeg watchdog: no progress for 30s — aborting", null, debuggin);
+      isAborted = true;
+      try {
+        await window.__TAURI__.core.invoke("abort_ffmpeg");
+        toConsole("FFmpeg watchdog kill: success", null, debuggin);
+      } catch (killErr) {
+        toConsole("FFmpeg watchdog kill: failed", killErr, debuggin);
+      }
+    }, WATCHDOG_MS);
+  };
+
+  // Start watchdog immediately
+  resetWatchdog();
+
+  // Create activeFFmpegChild wrapper compatibility layer
+  activeFFmpegChild = {
+    kill: async () => {
+      try {
+        await window.__TAURI__.core.invoke("abort_ffmpeg");
+      } catch (e) {
+        toConsole("Error aborting ffmpeg via invoke", e, debuggin);
+      }
+    },
+  };
+
+  let unlistenStderr = null;
+  try {
+    // Listen for progress events emitted from the Rust backend
+    unlistenStderr = await window.__TAURI__.event.listen("ffmpeg-stderr", (event) => {
+      const line = event.payload || "";
       // Filter out progress key=value spam from console logging to prevent IPC backpressure/deadlock.
-      const isProgressSpam = line.includes("=") && (
-        line.startsWith("frame=") ||
-        line.startsWith("fps=") ||
-        line.startsWith("stream_") ||
-        line.startsWith("bitrate=") ||
-        line.startsWith("total_size=") ||
-        line.startsWith("out_time") ||
-        line.startsWith("dup_frames=") ||
-        line.startsWith("drop_frames=") ||
-        line.startsWith("speed=") ||
-        line.startsWith("progress=")
-      );
+      const isProgressSpam =
+        line.includes("=") &&
+        (line.startsWith("frame=") ||
+          line.startsWith("fps=") ||
+          line.startsWith("stream_") ||
+          line.startsWith("bitrate=") ||
+          line.startsWith("total_size=") ||
+          line.startsWith("out_time") ||
+          line.startsWith("dup_frames=") ||
+          line.startsWith("drop_frames=") ||
+          line.startsWith("speed=") ||
+          line.startsWith("progress="));
       if (!isProgressSpam) {
         toConsole("FFmpeg stderr raw output", line, debuggin);
       }
@@ -1993,6 +2010,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
       if (stderrLogs.length > 50) {
         stderrLogs.shift();
       }
+
       // Match out_time_us (standard FFmpeg microsecond progress) or out_time_ms anywhere in the chunk.
       const match = line.match(/out_time_(ms|us)=(\d+)/);
       if (match) {
@@ -2014,128 +2032,74 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
       }
     });
 
-    // Watchdog: auto-abort if no stderr progress is received for 30 seconds.
-    // This protects against hangs from file locks, codec issues, or I/O errors.
-    let watchdogTimer = null;
-    const WATCHDOG_MS = 30_000;
-    const resetWatchdog = () => {
-      clearTimeout(watchdogTimer);
-      watchdogTimer = setTimeout(async () => {
-        toConsole("FFmpeg watchdog: no progress for 30s — aborting", null, debuggin);
-        isAborted = true;
-        if (activeFFmpegChild) {
-          try {
-            await activeFFmpegChild.kill();
-            toConsole("FFmpeg watchdog kill: success", null, debuggin);
-          } catch (killErr) {
-            toConsole("FFmpeg watchdog kill: failed", killErr, debuggin);
-          }
-        }
-        reject(new Error("FFmpeg stalled: no progress for 30 seconds. If using the same output filename, choose a new name and try again."));
-      }, WATCHDOG_MS);
-    };
-    // Start watchdog immediately — resets on first progress event from stderr
-    resetWatchdog();
+    toConsole("Spawning FFmpeg sidecar process via Rust backend...", null, debuggin);
+    await window.__TAURI__.core.invoke("run_ffmpeg", { args });
 
-    // Drain stdout to prevent pipe buffer back-pressure blocking FFmpeg.
-    // We do not parse stdout — progress comes from stderr.
-    sidecarCmd.stdout.on("data", (_chunk) => {
-      // intentionally empty — drain only
-    });
+    // Ensure progress shows 100% on success
+    progressBar.style.width = "100%";
+    progressText.textContent = "100%";
 
-    // Listen for close event on the command instance
-    sidecarCmd.on("close", async (data) => {
-      clearTimeout(watchdogTimer); // cancel watchdog on clean close
-      activeFFmpegChild = null;
-      toConsole("FFmpeg process closed", data, debuggin);
+    // Hide spinner immediately so it stops spinning
+    if (spinner) spinner.classList.add("hidden");
 
-      if (isAborted) {
-        reject(new Error("Aborted by user"));
-        return;
+    for (let i = 0; i < operations.length; i += 1) {
+      operations[i].startTime = operations[i].startTime - start;
+    }
+
+    processStartTime = 0;
+    processEndTime = end - start;
+
+    videoFilePath = actualOutputPath;
+    videoFileName = actualOutputPath.replace(/^.*[\\\/]/, "");
+
+    const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
+    player.src = tauriAssetUrl;
+    player.preload = "auto";
+    player.load();
+    toggleVideoPlaceholder(false);
+
+    saveLocalState();
+    updateTaskList();
+    if (typeof drawTable === "function") drawTable();
+
+    showToast("Video processed successfully.", "success");
+
+    const tetrisCont = document.getElementById("tetrisContainer");
+    if (
+      typeof window.onVideoProcessingFinished === "function" &&
+      tetrisCont &&
+      tetrisCont.style.display !== "none"
+    ) {
+      window.onVideoProcessingFinished();
+    } else {
+      // Short delay to let user see 100% completed, then fade out and close
+      await new Promise((r) => setTimeout(r, 600));
+      trimModal.classList.remove("opacity-100", "scale-100");
+      trimModal.classList.add("opacity-0", "scale-95");
+      await new Promise((r) => setTimeout(r, 300));
+      trimModal.close();
+      resetTrimModalUI();
+
+      // Show confirm prompt after modal is completely gone
+      const saveConfirm = await asyncConfirm("Timestamps shifted. Save project changes now?", "Save Project");
+      if (saveConfirm) {
+        await exportToJSON(false);
       }
-
-      if (data.code === 0) {
-        try {
-          // Ensure progress shows 100% on success
-          progressBar.style.width = "100%";
-          progressText.textContent = "100%";
-
-          // Hide spinner immediately so it stops spinning
-          if (spinner) spinner.classList.add("hidden");
-
-          for (let i = 0; i < operations.length; i += 1) {
-            operations[i].startTime = operations[i].startTime - start;
-          }
-
-          processStartTime = 0;
-          processEndTime = end - start;
-
-          videoFilePath = actualOutputPath;
-          videoFileName = actualOutputPath.replace(/^.*[\\\/]/, "");
-          
-          const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
-          player.src = tauriAssetUrl;
-          player.preload = "auto";
-          player.load();
-          toggleVideoPlaceholder(false);
-
-          saveLocalState();
-          updateTaskList();
-          if (typeof drawTable === "function") drawTable();
-
-          showToast("Video processed successfully.", "success");
-          
-          const tetrisCont = document.getElementById("tetrisContainer");
-          if (typeof window.onVideoProcessingFinished === "function" && tetrisCont && tetrisCont.style.display !== "none") {
-            window.onVideoProcessingFinished();
-            resolve();
-          } else {
-            // Short delay to let user see 100% completed, then fade out and close
-            setTimeout(() => {
-              trimModal.classList.remove("opacity-100", "scale-100");
-              trimModal.classList.add("opacity-0", "scale-95");
-              setTimeout(async () => {
-                trimModal.close();
-                resetTrimModalUI();
-                
-                // Show confirm prompt after modal is completely gone
-                const saveConfirm = await asyncConfirm("Timestamps shifted. Save project changes now?", "Save Project");
-                if (saveConfirm) {
-                  await exportToJSON(false);
-                }
-                resolve();
-              }, 300);
-            }, 600);
-          }
-        } catch (e) {
-          toConsole("Error in close callback handler", e, debuggin);
-          reject(e);
-        }
-      } else {
-        const fullErrLogs = stderrLogs.join("\n");
-        toConsole("FFmpeg process failed with non-zero exit code", { code: data.code, logs: fullErrLogs }, debuggin);
-        reject(new Error(`FFmpeg failed with exit code ${data.code}.\n\nFFmpeg Logs:\n${fullErrLogs || "(no stderr output)"}`));
-      }
-    });
-
-    // Listen for error event on the command instance
-    sidecarCmd.on("error", (err) => {
-      clearTimeout(watchdogTimer);
-      activeFFmpegChild = null;
-      toConsole("FFmpeg sidecarCmd error event fired", err, debuggin);
-      reject(new Error(err));
-    });
-
-    toConsole("Spawning FFmpeg sidecar process...", null, debuggin);
-    sidecarCmd.spawn()
-      .then((child) => {
-        activeFFmpegChild = child;
-        toConsole("FFmpeg sidecar spawned successfully", { pid: child.pid }, debuggin);
-      })
-      .catch((err) => {
-        activeFFmpegChild = null;
-        toConsole("FFmpeg sidecar spawn failed", err, debuggin);
-        reject(err);
-      });
-  });
+    }
+  } catch (err) {
+    toConsole("FFmpeg process failed or aborted", err, debuggin);
+    if (isAborted) {
+      throw new Error("Aborted by user");
+    }
+    const fullErrLogs = stderrLogs.join("\n");
+    throw new Error(
+      `${err.message || err}\n\nFFmpeg Logs:\n${fullErrLogs || "(no stderr output)"}`
+    );
+  } finally {
+    clearTimeout(watchdogTimer);
+    activeFFmpegChild = null;
+    if (unlistenStderr) {
+      unlistenStderr();
+    }
+  }
 };

@@ -96,7 +96,7 @@
   const updateHeaderScore = () => {
     const header = document.getElementById("appHeaderTitle");
     if (header) {
-      header.textContent = `TimeStudy v0.5.4 HS:${padScore(highScore)}`;
+      header.textContent = `TimeStudy v0.5.7 HS:${padScore(highScore)}`;
     }
     const scoreLabel = document.getElementById("tetrisHighScore");
     if (scoreLabel) {
