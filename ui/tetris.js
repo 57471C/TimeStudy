@@ -144,6 +144,7 @@
     nextCtx = nextCanvas.getContext("2d");
 
     // Start game state
+    document.activeElement?.blur();
     window.addEventListener("keydown", handleInput);
     isPaused = false;
     isBossKeyHidden = false;
@@ -350,6 +351,11 @@
 
   const handleInput = (e) => {
     if (isGameOver || isPaused || isBossKeyHidden || isProcessingComplete) return;
+
+    if (["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp", " "].includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
     switch (e.key) {
       case "ArrowLeft":

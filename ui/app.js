@@ -1383,6 +1383,7 @@ const addOp = async () => {
 
   const lowerName = opName.trim().toLowerCase();
   if (lowerName === "terry" || lowerName === "tetris") {
+    window.isSecretGame = true;
     const trimModal = document.getElementById("trimModal");
     if (trimModal) {
       if (typeof window.resetTrimModalUI === "function") {
