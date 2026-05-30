@@ -24,7 +24,7 @@ async fn run_ffmpeg(
 ) -> Result<String, String> {
     // 1. Check if there is already a running process
     {
-        let mut guard = state.0.lock().unwrap();
+        let guard = state.0.lock().unwrap();
         if guard.is_some() {
             return Err("FFmpeg process is already running.".to_string());
         }
