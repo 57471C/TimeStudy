@@ -2011,13 +2011,12 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
         stderrLogs.shift();
       }
 
-      // Match out_time_us (standard FFmpeg microsecond progress) or out_time_ms anywhere in the chunk.
-      const match = line.match(/out_time_(ms|us)=(\d+)/);
+      // Match out_time_us (standard FFmpeg microsecond progress) anywhere in the chunk.
+      const match = line.match(/out_time_us=(\d+)/);
       if (match) {
         resetWatchdog(); // reset 30s timer on every progress tick
-        const unit = match[1];
-        const val = Number.parseInt(match[2], 10);
-        const currentSeconds = unit === "us" ? val / 1_000_000 : val / 1_000;
+        const val = Number.parseInt(match[1], 10);
+        const currentSeconds = val / 1_000_000;
         if (duration > 0) {
           const pct = Math.min(100, Math.max(0, Math.round((currentSeconds / duration) * 100)));
           if (pct !== lastPct) {
