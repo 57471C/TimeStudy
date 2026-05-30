@@ -209,7 +209,26 @@
     if (checkCollision(activePiece.pos.x, activePiece.pos.y, activePiece.matrix)) {
       isGameOver = true;
       saveHighScore();
-      showOverlay("Game Over", [{ text: "Restart", action: resetGame }]);
+      const gameOverButtons = [{ text: "Restart", action: resetGame }];
+      if (window.isSecretGame) {
+        gameOverButtons.push({
+          text: "Quit",
+          action: () => {
+            const modal = document.getElementById("trimModal");
+            if (modal) {
+              modal.classList.remove("opacity-100", "scale-100");
+              modal.classList.add("opacity-0", "scale-95");
+              setTimeout(() => {
+                modal.close();
+                if (typeof window.resetTrimModalUI === "function") {
+                  window.resetTrimModalUI();
+                }
+              }, 300);
+            }
+          },
+        });
+      }
+      showOverlay("Game Over", gameOverButtons);
     }
   };
 
@@ -437,7 +456,26 @@
       if (checkCollision(activePiece.pos.x, activePiece.pos.y, activePiece.matrix)) {
         isGameOver = true;
         saveHighScore();
-        showOverlay("Game Over", [{ text: "Restart", action: resetGame }]);
+        const gameOverButtons = [{ text: "Restart", action: resetGame }];
+        if (window.isSecretGame) {
+          gameOverButtons.push({
+            text: "Quit",
+            action: () => {
+              const modal = document.getElementById("trimModal");
+              if (modal) {
+                modal.classList.remove("opacity-100", "scale-100");
+                modal.classList.add("opacity-0", "scale-95");
+                setTimeout(() => {
+                  modal.close();
+                  if (typeof window.resetTrimModalUI === "function") {
+                    window.resetTrimModalUI();
+                  }
+                }, 300);
+              }
+            },
+          });
+        }
+        showOverlay("Game Over", gameOverButtons);
       }
     }
     
@@ -447,6 +485,21 @@
   // Boss Key logic
   const toggleBossKey = () => {
     if (isProcessingComplete) return;
+
+    if (window.isSecretGame) {
+      const modal = document.getElementById("trimModal");
+      if (modal) {
+        modal.classList.remove("opacity-100", "scale-100");
+        modal.classList.add("opacity-0", "scale-95");
+        setTimeout(() => {
+          modal.close();
+          if (typeof window.resetTrimModalUI === "function") {
+            window.resetTrimModalUI();
+          }
+        }, 300);
+      }
+      return;
+    }
 
     isBossKeyHidden = !isBossKeyHidden;
     if (isBossKeyHidden) {
@@ -574,5 +627,11 @@
         },
       },
     ]);
+  };
+  window.cleanupTetris = () => {
+    cancelAnimationFrame(animationFrameId);
+    window.removeEventListener("keydown", handleInput);
+    isPaused = true;
+    isGameOver = false;
   };
 })();

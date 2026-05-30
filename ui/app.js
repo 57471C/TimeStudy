@@ -1757,6 +1757,19 @@ const initializeTrimFeature = () => {
     document.getElementById("trimProgressContainer").classList.add("hidden");
     const spinner = document.getElementById("trimProgressSpinner");
     if (spinner) spinner.classList.add("hidden");
+
+    if (typeof window.cleanupTetris === "function") {
+      window.cleanupTetris();
+    }
+    const tetrisCont = document.getElementById("tetrisContainer");
+    if (tetrisCont) {
+      tetrisCont.style.display = "none";
+      tetrisCont.classList.add("hidden");
+    }
+    const normalContent = document.getElementById("trimNormalContent");
+    if (normalContent) normalContent.classList.remove("hidden");
+    const normalFooter = document.getElementById("trimNormalFooter");
+    if (normalFooter) normalFooter.classList.remove("hidden");
   };
   window.resetTrimModalUI = resetTrimModalUI;
 
@@ -1781,7 +1794,10 @@ const initializeTrimFeature = () => {
 
   const closeTrim = () => {
     const tetrisCont = document.getElementById("tetrisContainer");
-    if (tetrisCont && !tetrisCont.classList.contains("hidden") && tetrisCont.style.display !== "none") {
+    if (window.isSecretGame) {
+      window.isSecretGame = false;
+      handleCancelClick();
+    } else if (tetrisCont && !tetrisCont.classList.contains("hidden") && tetrisCont.style.display !== "none") {
       toConsole("X clicked in Tetris mode, returning to progress screen", null, debuggin);
       if (typeof window.showNormalProgressScreen === "function") {
         window.showNormalProgressScreen();
