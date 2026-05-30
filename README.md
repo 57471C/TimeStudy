@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.6.1-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.6.2-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -26,6 +26,12 @@
 7. **Export**: Use "Export" to save data as CSV or XLSX formats.
 8. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 9. **Dark Mode**: Click the sun/moon icon to toggle themes.
+
+## Version 0.6.2 Updates
+- **Tetris Input Event and Focus Blurring**: Implemented blurring of active button focus on Tetris game start and blocked keyboard propagation on game controls (arrows/spacebar). This prevents spacebar inputs (hard drops) from triggering close/cancel buttons in the HTML `<dialog>` modal.
+- **Secret Game Flags and Flow Controls**: Added standard `isSecretGame` flag routing in the add operation routines to properly close the modal, cleanup event listeners, and stop game loops without dropping back into standard video editing controls.
+- **Kaizen Dashboard and Layout Polish**: Standardized close transitions for the trim video modal on both error and abort paths. Added dark-mode `color-scheme` support and custom rounded scrollbars for premium UX.
+- **Media Row Actions Update**: Reverted the video editing action button from custom overlays to a clean, standard video camera icon to maximize interface simplicity.
 
 ## Version 0.6.1 Updates
 - **Trim Modal Transition Fix**: Restructured the modal closing and UI reset sequence to prevent WebView2 rendering race conditions on close. Opacity and scale transition classes are now only reapplied when the modal is opened.
