@@ -2062,23 +2062,27 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
     updateTaskList();
     if (typeof drawTable === "function") drawTable();
 
-    showToast("Video completed.", "success");
-
     const tetrisCont = document.getElementById("tetrisContainer");
     if (
       typeof window.onVideoProcessingFinished === "function" &&
       tetrisCont &&
       tetrisCont.style.display !== "none"
     ) {
+      // In Tetris mode, we can show the toast immediately since the game is visible, 
+      // but wait, it might still be behind the backdrop if the dialog top layer is active.
+      // We will show it anyway.
+      showToast("Video completed.", "success");
       window.onVideoProcessingFinished();
     } else {
-      // Short delay to let user see 100% completed, then fade out and close
-      await new Promise((r) => setTimeout(r, 200));
+      // Close the modal first
       trimModal.classList.remove("opacity-100", "scale-100");
       trimModal.classList.add("opacity-0", "scale-95");
       await new Promise((r) => setTimeout(r, 300));
       trimModal.close();
       resetTrimModalUI();
+
+      // Show toast after the modal is closed and backdrop is gone
+      showToast("Video completed.", "success");
 
       // Show confirm prompt after modal is completely gone
       const saveConfirm = await asyncConfirm("Timestamps shifted. Save project changes now?", "Save Project");
