@@ -1740,6 +1740,7 @@ const initializeTrimFeature = () => {
     trimModal.classList.remove("opacity-0", "scale-95");
     trimModal.classList.add("opacity-100", "scale-100");
   };
+  window.resetTrimModalUI = resetTrimModalUI;
 
   const handleCancelClick = async () => {
     if (activeFFmpegChild) {
@@ -2079,7 +2080,9 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
       trimModal.classList.add("opacity-0", "scale-95");
       await new Promise((r) => setTimeout(r, 300));
       trimModal.close();
-      resetTrimModalUI();
+      if (typeof window.resetTrimModalUI === "function") {
+        window.resetTrimModalUI();
+      }
 
       // Show toast after the modal is closed and backdrop is gone
       showToast("Video completed.", "success");
