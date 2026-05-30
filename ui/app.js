@@ -1941,6 +1941,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   args.push(actualOutputPath);
   toConsole("Spawning FFmpeg with args", args, debuggin);
 
+  const trimModal = document.getElementById("trimModal");
   const progressContainer = document.getElementById("trimProgressContainer");
   const progressBar = document.getElementById("trimProgressBar");
   const progressText = document.getElementById("trimProgressText");
