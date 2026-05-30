@@ -94,9 +94,14 @@
   };
 
   const updateHeaderScore = () => {
-    const header = document.getElementById("appHeaderTitle");
-    if (header) {
-      header.textContent = `TimeStudy v0.6.1 HS:${padScore(highScore)}`;
+    const display = document.getElementById("tetrisHighScoreDisplay");
+    if (display) {
+      display.textContent = `HS:${padScore(highScore)}`;
+      if (highScore > 0) {
+        display.classList.remove("hidden");
+      } else {
+        display.classList.add("hidden");
+      }
     }
     const scoreLabel = document.getElementById("tetrisHighScore");
     if (scoreLabel) {
