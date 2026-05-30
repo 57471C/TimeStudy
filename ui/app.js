@@ -1380,6 +1380,24 @@ const addOp = async () => {
     alert("Operation name cannot be empty.");
     return;
   }
+
+  const lowerName = opName.trim().toLowerCase();
+  if (lowerName === "terry" || lowerName === "tetris") {
+    const trimModal = document.getElementById("trimModal");
+    if (trimModal) {
+      if (typeof window.resetTrimModalUI === "function") {
+        window.resetTrimModalUI();
+      }
+      trimModal.classList.remove("opacity-0", "scale-95");
+      trimModal.classList.add("opacity-100", "scale-100");
+      trimModal.showModal();
+      if (typeof window.activateTetris === "function") {
+        window.activateTetris();
+      }
+    }
+    return;
+  }
+
   const startTime = player.currentTime;
   toConsole("Operation start time", startTime, debuggin);
 

@@ -152,6 +152,7 @@
 
     resetGame();
   };
+  window.activateTetris = activateTetris;
 
   const resetGame = () => {
     cancelAnimationFrame(animationFrameId);
