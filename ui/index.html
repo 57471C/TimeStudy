@@ -79,10 +79,10 @@
     </header>
 
     <div class="flex-1 px-4 lg:px-6 pb-4 lg:pb-6 overflow-x-hidden overflow-y-auto relative">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div id="mainGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Left Column: Video and Controls -->
         <div class="flex flex-col gap-4 lg:sticky lg:top-0 pt-4 lg:pt-6 lg:z-20 self-start">
-          <div class="w-full h-125 relative group">
+          <div id="videoContainer" class="w-full h-125 relative group">
             <div id="videoPlaceholder" class="w-full h-full min-h-125 bg-zinc-900 text-zinc-400 flex items-center justify-center text-lg p-5 absolute top-0 left-0 z-10 cursor-pointer border border-transparent dark:border-zinc-700 transition-colors duration-200">Load a video to get started</div>
             <div id="videoWrapper" class="w-full h-full absolute top-0 left-0 overflow-hidden bg-black z-10" style="display: none;">
               <div id="marqueeOverlay" class="absolute inset-0 z-12 cursor-crosshair">
@@ -101,6 +101,11 @@
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
                   </svg>
                 </button>
+              <button id="cinemaModeBtn" class="btn btn-sm btn-dark-gray" title="Toggle Cinema Mode (\)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+              </button>
               </div>
             </div>
           </div>
@@ -209,7 +214,7 @@
         </div>
 
         <!-- Right Column: Controls and Task Table -->
-        <div class="flex flex-col">
+        <div id="rightColumn" class="flex flex-col">
           <div id="activeLoggingPanel" class="sticky top-0 z-30 pt-4 lg:pt-6 pb-5 bg-zinc-50 dark:bg-zinc-900 transition-colors duration-200">
           <div class="w-full p-2.5 lg:p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm flex flex-col gap-3 z-0 transition-colors duration-200">
             <div class="flex justify-between items-center w-full flex-wrap gap-3">
@@ -552,6 +557,7 @@
               <tr><td><strong>t</strong></td><td>Add Task</td></tr>
               <tr><td><strong>s</strong></td><td>Take Snapshot</td></tr>
               <tr><td><strong>l</strong></td><td>Load Video</td></tr>
+              <tr><td><strong>\</strong></td><td>Toggle Cinema Mode</td></tr>
               <tr><td><strong>m</strong></td><td>Toggle Mute</td></tr>
               <tr><td><strong>` (Backtick)</strong></td><td>0.5x Speed</td></tr>
               <tr><td><strong>1 - 8</strong></td><td>1x to 8x Speed</td></tr>

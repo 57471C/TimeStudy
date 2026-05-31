@@ -24,6 +24,8 @@ let takeSnapshotBtn;
 let volumeSlider;
 let activeFFmpegChild = null;
 let isAborted = false;
+let cinemaModeBtn;
+let isCinemaMode = false;
 
 const renderTrialSelect = () => {
   if (!DOM.trialSelect) return;
@@ -489,6 +491,10 @@ const initializePlayer = () => {
   takeSnapshotBtn = document.getElementById("takeSnapshotBtn");
   if (takeSnapshotBtn) {
     takeSnapshotBtn.addEventListener("click", takeSnapshot);
+  }
+  cinemaModeBtn = document.getElementById("cinemaModeBtn");
+  if (cinemaModeBtn) {
+    cinemaModeBtn.addEventListener("click", toggleCinemaMode);
   }
   addTaskButton = document.getElementById("addTaskButton");
   addOpButton = document.getElementById("addOpButton");
@@ -971,6 +977,10 @@ const initializePlayer = () => {
           player.pause();
         }
         break;
+      case "\\":
+        e.preventDefault();
+        toggleCinemaMode();
+        break;
       case "ArrowLeft":
         e.preventDefault();
         if (!player.src) return;
@@ -1132,6 +1142,52 @@ const takeSnapshot = () => {
   document.body.removeChild(a);
   showToast("Snapshot taken!", "success");
   toConsole("Snapshot taken", filename, debuggin);
+};
+
+const toggleCinemaMode = async () => {
+  isCinemaMode = !isCinemaMode;
+  const isTauri = window.__TAURI__ !== undefined;
+
+  if (isTauri) {
+    try {
+      const { appWindow } = window.__TAURI__.window;
+      await appWindow.setFullscreen(isCinemaMode);
+    } catch (err) {
+      toConsole("Error toggling fullscreen", err, debuggin);
+    }
+  }
+
+  const rightColumn = document.getElementById("rightColumn");
+  const mainGrid = document.getElementById("mainGrid");
+  const header = document.querySelector("header");
+  const videoContainer = document.getElementById("videoContainer");
+
+  if (isCinemaMode) {
+    if (rightColumn) rightColumn.classList.add("hidden");
+    if (header) header.classList.add("hidden");
+    if (mainGrid) {
+      mainGrid.classList.remove("lg:grid-cols-2");
+      mainGrid.classList.add("lg:grid-cols-1");
+    }
+    if (videoContainer) {
+      videoContainer.classList.remove("h-125");
+      videoContainer.classList.add("h-[calc(100vh-120px)]");
+    }
+  } else {
+    if (rightColumn) rightColumn.classList.remove("hidden");
+    if (header) header.classList.remove("hidden");
+    if (mainGrid) {
+      mainGrid.classList.remove("lg:grid-cols-1");
+      mainGrid.classList.add("lg:grid-cols-2");
+    }
+    if (videoContainer) {
+      videoContainer.classList.remove("h-[calc(100vh-120px)]");
+      videoContainer.classList.add("h-125");
+    }
+  }
+
+  // Trigger a resize event to ensure charts/canvases fix themselves
+  setTimeout(() => window.dispatchEvent(new Event("resize")), 100);
 };
 
 const startMarquee = (e) => {
