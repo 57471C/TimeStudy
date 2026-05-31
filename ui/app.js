@@ -211,6 +211,7 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
 const initializePlayer = () => {
   player = DOM.video;
   playerReady = true;
+  player.preservesPitch = true; // Add pitch correction
   toConsole("Video element initialized", "Success", debuggin);
   toConsole("App Version", APP_VERSION, debuggin);
 
@@ -598,22 +599,34 @@ const initializePlayer = () => {
 
   addTaskButton.addEventListener("click", addTask, false);
   addOpButton.addEventListener("click", addOp, false);
-  exportButton.addEventListener("click", (e) => {
-    e.stopPropagation();
-    exportDropdown.classList.toggle("hidden");
-  }, false);
+  exportButton.addEventListener(
+    "click",
+    (e) => {
+      e.stopPropagation();
+      exportDropdown.classList.toggle("hidden");
+    },
+    false,
+  );
 
-  exportCsvBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    exportDropdown.classList.add("hidden");
-    exportToCSV();
-  }, false);
+  exportCsvBtn.addEventListener(
+    "click",
+    (e) => {
+      e.stopPropagation();
+      exportDropdown.classList.add("hidden");
+      exportToCSV();
+    },
+    false,
+  );
 
-  exportXlsxBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    exportDropdown.classList.add("hidden");
-    exportToXLSX();
-  }, false);
+  exportXlsxBtn.addEventListener(
+    "click",
+    (e) => {
+      e.stopPropagation();
+      exportDropdown.classList.add("hidden");
+      exportToXLSX();
+    },
+    false,
+  );
 
   document.addEventListener("click", () => {
     exportDropdown.classList.add("hidden");
@@ -1071,6 +1084,38 @@ window.onload = () => {
       .catch((e) => toConsole("Failed to check startup file", e, debuggin));
   }
   initializeTrimFeature();
+};
+
+const takeSnapshot = () => {
+  if (!player || !player.src || player.readyState < 2) {
+    showToast("No video loaded or video not ready.", "error");
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = player.videoWidth;
+  canvas.height = player.videoHeight;
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    showToast("Failed to get canvas context.", "error");
+    return;
+  }
+
+  context.drawImage(player, 0, 0, canvas.width, canvas.height);
+
+  const dataURL = canvas.toDataURL("image/jpeg");
+  const currentTime = player.currentTime;
+  const filename = `snapshot_${formatTimeToHHMMSSMS(currentTime).replace(/:/g, "-").replace(/\./g, "_")}.jpg`;
+
+  const a = document.createElement("a");
+  a.href = dataURL;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast("Snapshot taken!", "success");
+  toConsole("Snapshot taken", filename, debuggin);
 };
 
 const startMarquee = (e) => {
@@ -1545,7 +1590,7 @@ const insertTask = async (opIndex, taskIndex) => {
 const splitOperationAt = async (opIndex, taskIndex) => {
   if (typeof player !== "undefined" && player) player.pause();
   const originalOp = operations[opIndex];
-  
+
   const opName = await asyncPrompt(
     "Please name the new Operation",
     "",
@@ -1561,7 +1606,7 @@ const splitOperationAt = async (opIndex, taskIndex) => {
   originalOp.tasks = originalOp.tasks.slice(0, taskIndex + 1);
 
   const remainingDurationMs = originalOp.tasks.reduce((sum, t) => sum + t.duration, 0);
-  const newOpStartTime = originalOp.startTime + (remainingDurationMs / 1000);
+  const newOpStartTime = originalOp.startTime + remainingDurationMs / 1000;
 
   const newOp = {
     name: opName.trim(),
@@ -1829,10 +1874,10 @@ const initializeTrimFeature = () => {
 
     const qualityMode = document.querySelector('input[name="trimQuality"]:checked').value;
     toConsole("Trim parameters validation success", { startVal, endVal, qualityMode }, debuggin);
-    
+
     trimOnlyBtn.disabled = true;
     trimCompressBtn.disabled = true;
-    
+
     // Style Cancel button as red Abort button
     cancelTrimBtn.disabled = false;
     cancelTrimBtn.className = "btn btn-danger";
@@ -1842,7 +1887,7 @@ const initializeTrimFeature = () => {
       await processVideo(startVal, endVal, qualityMode, isCompression);
     } catch (err) {
       toConsole("Error processing video", err, debuggin);
-      
+
       // Quietly handle user cancellation
       if (err.message === "Save location was not specified.") {
         trimOnlyBtn.disabled = false;
@@ -1850,19 +1895,21 @@ const initializeTrimFeature = () => {
         cancelTrimBtn.disabled = false;
         return;
       }
-      
+
       // Quietly handle user abort
       if (err.message === "Aborted by user") {
         resetTrimModalUI();
         return;
       }
-      
+
       // Handle same path selection
       if (err.message === "Input and output paths are identical.") {
         trimOnlyBtn.disabled = false;
         trimCompressBtn.disabled = false;
         cancelTrimBtn.disabled = false;
-        alert("Error: The output file path cannot be the same as the input video path. Please choose a different name or location.");
+        alert(
+          "Error: The output file path cannot be the same as the input video path. Please choose a different name or location.",
+        );
         return;
       }
 
@@ -1890,7 +1937,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
 
   const defaultPath = `trimmed_${videoFileName || "video.mp4"}`;
   toConsole("Opening Tauri save dialog...", { defaultPath }, debuggin);
-  
+
   let outputPath;
   try {
     outputPath = await window.__TAURI__.dialog.save({
@@ -1932,10 +1979,14 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
     "-y",
     "-nostdin",
     "-nostats",
-    "-i", videoFilePath,
-    "-ss", start.toString(),
-    "-t", (end - start).toString(),
-    "-progress", "pipe:2"
+    "-i",
+    videoFilePath,
+    "-ss",
+    start.toString(),
+    "-t",
+    (end - start).toString(),
+    "-progress",
+    "pipe:2",
   ];
 
   if (!isCompression) {
@@ -1955,28 +2006,32 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
     // Use -max_muxing_queue_size 4096 and -c:a copy to prevent audio/video muxing deadlocks.
     if (qualityMode === "low") {
       args.push(
-        "-vf", `scale=-2:${targetHeight}`,
-        "-c:v", "libx264",
-        "-crf", "32",
-        "-preset", "veryfast",
-        "-threads", "4"
+        "-vf",
+        `scale=-2:${targetHeight}`,
+        "-c:v",
+        "libx264",
+        "-crf",
+        "32",
+        "-preset",
+        "veryfast",
+        "-threads",
+        "4",
       );
     } else if (qualityMode === "high") {
       args.push(
-        "-vf", `scale=-2:${targetHeight}`,
-        "-c:v", "libx264",
-        "-crf", "18",
-        "-preset", "medium",
-        "-threads", "4"
+        "-vf",
+        `scale=-2:${targetHeight}`,
+        "-c:v",
+        "libx264",
+        "-crf",
+        "18",
+        "-preset",
+        "medium",
+        "-threads",
+        "4",
       );
     } else {
-      args.push(
-        "-vf", `scale=-2:${targetHeight}`,
-        "-c:v", "libx264",
-        "-crf", "26",
-        "-preset", "fast",
-        "-threads", "4"
-      );
+      args.push("-vf", `scale=-2:${targetHeight}`, "-c:v", "libx264", "-crf", "26", "-preset", "fast", "-threads", "4");
     }
     args.push("-c:a", "copy", "-max_muxing_queue_size", "4096");
   }
@@ -2113,7 +2168,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
       tetrisCont &&
       !tetrisCont.classList.contains("hidden")
     ) {
-      // In Tetris mode, we can show the toast immediately since the game is visible, 
+      // In Tetris mode, we can show the toast immediately since the game is visible,
       // but wait, it might still be behind the backdrop if the dialog top layer is active.
       // We will show it anyway.
       showToast("Video completed.", "success");
@@ -2143,9 +2198,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
       throw new Error("Aborted by user");
     }
     const fullErrLogs = stderrLogs.join("\n");
-    throw new Error(
-      `${err.message || err}\n\nFFmpeg Logs:\n${fullErrLogs || "(no stderr output)"}`
-    );
+    throw new Error(`${err.message || err}\n\nFFmpeg Logs:\n${fullErrLogs || "(no stderr output)"}`);
   } finally {
     clearTimeout(watchdogTimer);
     activeFFmpegChild = null;
