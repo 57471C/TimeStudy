@@ -169,20 +169,20 @@ body.cinema-active #videoContainer + div {
 }
 
 body.cinema-active #videoContainer + div,
-body.cinema-active #videoContainer > .z-15 {
+body.cinema-active #videoContainer .z-15 {
   transition: opacity 0.4s ease;
   opacity: 0;
   pointer-events: none;
 }
 
-body.cinema-active #videoContainer > .z-15 {
+body.cinema-active #videoContainer .z-15 {
   display: block !important;
 }
 
 body.cinema-active.cinema-controls-visible #videoContainer + div,
-body.cinema-active.cinema-controls-visible #videoContainer > .z-15,
+body.cinema-active.cinema-controls-visible #videoContainer .z-15,
 body.cinema-active #videoContainer + div:hover,
-body.cinema-active #videoContainer > .z-15:hover {
+body.cinema-active #videoContainer .z-15:hover {
   opacity: 1 !important;
   pointer-events: auto !important;
 }

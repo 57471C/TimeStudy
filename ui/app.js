@@ -423,9 +423,13 @@ const initializePlayer = () => {
     if (!document.fullscreenElement && isCinemaMode) {
       isCinemaMode = false;
       document.body.classList.remove("cinema-active");
+      document.body.classList.remove("cinema-controls-visible");
+      clearTimeout(cinemaMouseTimer);
       setTimeout(() => window.dispatchEvent(new Event("resize")), 100);
     }
   });
+
+  document.addEventListener("mousemove", handleCinemaMouseMove);
 
   player.addEventListener("timeupdate", seektimeupdate);
   player.addEventListener("loadedmetadata", () => {
