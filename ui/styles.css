@@ -166,10 +166,23 @@ body.cinema-active #videoContainer + div {
   border-radius: 1rem !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  transition: opacity 0.3s ease;
-  opacity: 0;
 }
 
-body.cinema-active #videoContainer + div:hover {
+body.cinema-active #videoContainer + div,
+body.cinema-active #videoContainer > .z-15 {
+  transition: opacity 0.4s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.cinema-active #videoContainer > .z-15 {
+  display: block !important;
+}
+
+body.cinema-active.cinema-controls-visible #videoContainer + div,
+body.cinema-active.cinema-controls-visible #videoContainer > .z-15,
+body.cinema-active #videoContainer + div:hover,
+body.cinema-active #videoContainer > .z-15:hover {
   opacity: 1 !important;
+  pointer-events: auto !important;
 }

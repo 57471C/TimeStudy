@@ -26,6 +26,7 @@ let activeFFmpegChild = null;
 let isAborted = false;
 let cinemaModeBtn;
 let isCinemaMode = false;
+let cinemaMouseTimer;
 const getAppWindow = () => {
   try {
     if (window.__TAURI__ && window.__TAURI__.window) {
@@ -488,10 +489,12 @@ const initializePlayer = () => {
   player.addEventListener("play", () => {
     DOM.playIcon.classList.add("hidden");
     DOM.pauseIcon.classList.remove("hidden");
+    handleCinemaMouseMove();
   });
   player.addEventListener("pause", () => {
     DOM.playIcon.classList.remove("hidden");
     DOM.pauseIcon.classList.add("hidden");
+    handleCinemaMouseMove();
   });
   player.addEventListener("error", () => {
     toConsole("Video load error", "Failed to load video from URL", debuggin);
@@ -1160,11 +1163,28 @@ const takeSnapshot = () => {
   toConsole("Snapshot taken", filename, debuggin);
 };
 
+const handleCinemaMouseMove = () => {
+  if (!isCinemaMode) return;
+  document.body.classList.add("cinema-controls-visible");
+  clearTimeout(cinemaMouseTimer);
+  cinemaMouseTimer = setTimeout(() => {
+    if (isCinemaMode && player && !player.paused) {
+      document.body.classList.remove("cinema-controls-visible");
+    }
+  }, 2500);
+};
+
 const toggleCinemaMode = async () => {
   isCinemaMode = !isCinemaMode;
 
   // 1. Toggle DOM classes for layout shift
   document.body.classList.toggle("cinema-active", isCinemaMode);
+  if (isCinemaMode) {
+    handleCinemaMouseMove();
+  } else {
+    document.body.classList.remove("cinema-controls-visible");
+    clearTimeout(cinemaMouseTimer);
+  }
 
   // 2. Handle Monitor Fullscreen
   const appWindow = getAppWindow();
