@@ -951,6 +951,11 @@ const initializePlayer = () => {
     if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
 
     switch (e.key) {
+      case "l":
+      case "L":
+        e.preventDefault();
+        if (loadVideoButton) loadVideoButton.click();
+        break;
       case "s":
       case "S":
         e.preventDefault();
