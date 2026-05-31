@@ -20,6 +20,7 @@ let rewind1sButton;
 let forward1sButton;
 let forward5sButton;
 let muteButton;
+let takeSnapshotBtn;
 let volumeSlider;
 let activeFFmpegChild = null;
 let isAborted = false;
@@ -485,6 +486,10 @@ const initializePlayer = () => {
     updateLoadButtonColor();
   });
 
+  takeSnapshotBtn = document.getElementById("takeSnapshotBtn");
+  if (takeSnapshotBtn) {
+    takeSnapshotBtn.addEventListener("click", takeSnapshot);
+  }
   addTaskButton = document.getElementById("addTaskButton");
   addOpButton = document.getElementById("addOpButton");
   exportButton = document.getElementById("exportButton");
@@ -946,6 +951,12 @@ const initializePlayer = () => {
     if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
 
     switch (e.key) {
+      case "s":
+      case "S":
+        e.preventDefault();
+        if (!player.src) return;
+        takeSnapshot();
+        break;
       case " ":
         e.preventDefault();
         if (!player.src) return;
