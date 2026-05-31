@@ -1148,6 +1148,10 @@ const takeSnapshot = () => {
 const toggleCinemaMode = async () => {
   isCinemaMode = !isCinemaMode;
 
+  // 1. Toggle DOM classes for layout shift
+  document.body.classList.toggle("cinema-active", isCinemaMode);
+
+  // 2. Handle Monitor Fullscreen
   if (appWindow) {
     try {
       await appWindow.setFullscreen(isCinemaMode);
@@ -1155,35 +1159,10 @@ const toggleCinemaMode = async () => {
       toConsole("Error toggling fullscreen", err, debuggin);
     }
   } else {
-    console.log("Standard browser detected: Skipping OS fullscreen. CSS layout applied.");
-  }
-
-  const rightColumn = document.getElementById("rightColumn");
-  const mainGrid = document.getElementById("mainGrid");
-  const header = document.querySelector("header");
-  const videoContainer = document.getElementById("videoContainer");
-
-  if (isCinemaMode) {
-    if (rightColumn) rightColumn.classList.add("hidden");
-    if (header) header.classList.add("hidden");
-    if (mainGrid) {
-      mainGrid.classList.remove("lg:grid-cols-2");
-      mainGrid.classList.add("lg:grid-cols-1");
-    }
-    if (videoContainer) {
-      videoContainer.classList.remove("h-125");
-      videoContainer.classList.add("h-[calc(100vh-120px)]");
-    }
-  } else {
-    if (rightColumn) rightColumn.classList.remove("hidden");
-    if (header) header.classList.remove("hidden");
-    if (mainGrid) {
-      mainGrid.classList.remove("lg:grid-cols-1");
-      mainGrid.classList.add("lg:grid-cols-2");
-    }
-    if (videoContainer) {
-      videoContainer.classList.remove("h-[calc(100vh-120px)]");
-      videoContainer.classList.add("h-125");
+    if (isCinemaMode && document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen().catch((e) => console.warn(e));
+    } else if (!isCinemaMode && document.exitFullscreen) {
+      await document.exitFullscreen().catch((e) => console.warn(e));
     }
   }
 
