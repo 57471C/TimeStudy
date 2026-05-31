@@ -26,6 +26,7 @@ let activeFFmpegChild = null;
 let isAborted = false;
 let cinemaModeBtn;
 let isCinemaMode = false;
+const appWindow = window.__TAURI__ ? window.__TAURI__.window.appWindow : null;
 
 const renderTrialSelect = () => {
   if (!DOM.trialSelect) return;
@@ -1146,15 +1147,15 @@ const takeSnapshot = () => {
 
 const toggleCinemaMode = async () => {
   isCinemaMode = !isCinemaMode;
-  const isTauri = window.__TAURI__ !== undefined;
 
-  if (isTauri) {
+  if (appWindow) {
     try {
-      const { appWindow } = window.__TAURI__.window;
       await appWindow.setFullscreen(isCinemaMode);
     } catch (err) {
       toConsole("Error toggling fullscreen", err, debuggin);
     }
+  } else {
+    console.log("Standard browser detected: Skipping OS fullscreen. CSS layout applied.");
   }
 
   const rightColumn = document.getElementById("rightColumn");
