@@ -29,9 +29,7 @@ let isCinemaMode = false;
 let cinemaMouseTimer;
 const getAppWindow = () => {
   try {
-    if (window.__TAURI__ && window.__TAURI__.window) {
-      return window.__TAURI__.window.getCurrentWindow?.() || window.__TAURI__.window.appWindow || null;
-    }
+    return window.__TAURI__?.window?.getCurrentWindow?.() ?? window.__TAURI__?.window?.appWindow ?? null;
   } catch (e) {}
   return null;
 };
@@ -1136,7 +1134,7 @@ window.onload = () => {
 };
 
 const takeSnapshot = () => {
-  if (!player || !player.src || player.readyState < 2) {
+  if (!player?.src || player.readyState < 2) {
     showToast("No video loaded or video not ready.", "error");
     return;
   }
@@ -1900,9 +1898,7 @@ const initializeTrimFeature = () => {
     const spinner = document.getElementById("trimProgressSpinner");
     if (spinner) spinner.classList.add("hidden");
 
-    if (typeof window.cleanupTetris === "function") {
-      window.cleanupTetris();
-    }
+    window.cleanupTetris?.();
     const tetrisCont = document.getElementById("tetrisContainer");
     if (tetrisCont) {
       tetrisCont.style.display = "none";
@@ -1941,9 +1937,7 @@ const initializeTrimFeature = () => {
       handleCancelClick();
     } else if (tetrisCont && !tetrisCont.classList.contains("hidden") && tetrisCont.style.display !== "none") {
       toConsole("X clicked in Tetris mode, returning to progress screen", null, debuggin);
-      if (typeof window.showNormalProgressScreen === "function") {
-        window.showNormalProgressScreen();
-      }
+      window.showNormalProgressScreen?.();
     } else {
       handleCancelClick();
     }
@@ -2246,6 +2240,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
     processEndTime = end - start;
 
     videoFilePath = actualOutputPath;
+    // biome-ignore lint/complexity/noUselessEscapeInRegex: might break Tarui
     videoFileName = actualOutputPath.replace(/^.*[\\\/]/, "");
 
     const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
@@ -2275,9 +2270,7 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
       trimModal.classList.add("opacity-0", "scale-95");
       await new Promise((r) => setTimeout(r, 300));
       trimModal.close();
-      if (typeof window.resetTrimModalUI === "function") {
-        window.resetTrimModalUI();
-      }
+      window.resetTrimModalUI?.();
 
       // Show toast after the modal is closed and backdrop is gone
       showToast("Video completed.", "success");
@@ -2298,8 +2291,6 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
   } finally {
     clearTimeout(watchdogTimer);
     activeFFmpegChild = null;
-    if (unlistenStderr) {
-      unlistenStderr();
-    }
+    unlistenStderr?.();
   }
 };

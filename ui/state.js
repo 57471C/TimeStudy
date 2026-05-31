@@ -34,7 +34,7 @@ let volumeLevel = 1;
 // biome-ignore lint/style/useConst: Global state modified in other scripts
 let groupingMode = "lean";
 
-const APP_VERSION = "0.6.2";
+const APP_VERSION = "0.6.3";
 
 // biome-ignore lint/style/useConst: Global state modified in other scripts
 let isDrawing = false;

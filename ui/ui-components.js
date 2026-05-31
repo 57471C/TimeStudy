@@ -129,7 +129,7 @@ const openOpPartDropdown = (e, opIndex) => {
   dropdown.classList.remove("hidden");
 
   const renderList = (filter = "") => {
-    const currentParts = (operations[opIndex].partTags || []).map((t) => {
+    const currentParts = (operations[opIndex].partTags ?? []).map((t) => {
       const idx = t.indexOf(" x ");
       return idx !== -1 ? t.substring(idx + 3) : t;
     });
@@ -249,7 +249,7 @@ const openTaskLabourDropdown = (e, opIndex, taskIndex) => {
   dropdown.classList.remove("hidden");
 
   const renderList = (filter = "") => {
-    const currentTags = operations[opIndex].tasks[taskIndex].labourTags || [];
+    const currentTags = operations[opIndex].tasks[taskIndex].labourTags ?? [];
     const filtered = masterLabour.filter(
       (p) => p.toLowerCase().includes(filter.toLowerCase()) && !currentTags.includes(p),
     );
@@ -350,9 +350,9 @@ const openOpBulkLabourDropdown = (e, opIndex) => {
   dropdown.classList.remove("hidden");
 
   const renderList = (filter = "") => {
-    const tasks = operations[opIndex]?.tasks || [];
+    const tasks = operations[opIndex]?.tasks ?? [];
     const commonTags = masterLabour.filter(
-      (tag) => tasks.length > 0 && tasks.every((task) => (task.labourTags || []).includes(tag)),
+      (tag) => tasks.length > 0 && tasks.every((task) => (task.labourTags ?? []).includes(tag)),
     );
 
     const filtered = masterLabour.filter(
@@ -400,7 +400,7 @@ const openOpBulkLabourDropdown = (e, opIndex) => {
       addedNewMaster = true;
     }
 
-    const tasks = operations[opIndex]?.tasks || [];
+    const tasks = operations[opIndex]?.tasks ?? [];
     let tasksUpdated = false;
 
     for (const task of tasks) {
@@ -467,14 +467,15 @@ const buildOpRow = (op, i) => {
   const formattedTime = formatTimeToHHMMSSMS(op.startTime);
   const safeOpName = escapeHTML(op.name);
   const isNegative = op.startTime < 0;
-  const isInvalid = isNegative || op.startTime < processStartTime || (processEndTime > 0 && op.startTime > processEndTime);
+  const isInvalid =
+    isNegative || op.startTime < processStartTime || (processEndTime > 0 && op.startTime > processEndTime);
   const inputClass = isInvalid ? "text-red-500 dark:text-red-400" : "";
   const tdBgClass = isNegative
     ? "bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400"
     : "bg-zinc-50 dark:bg-zinc-900";
 
   // Sum sub-task durations
-  const totalMs = (op.tasks || []).reduce((sum, task) => sum + (task.duration || 0), 0);
+  const totalMs = (op.tasks ?? []).reduce((sum, task) => sum + (task.duration ?? 0), 0);
   const formattedTotalTime =
     durationMode === "hhmmssms"
       ? formatDuration(totalMs)
@@ -503,7 +504,7 @@ const buildOpRow = (op, i) => {
               <button onclick="openOpPartDropdown(event, ${i})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Assign Part Numbers">
                 ${ICONS.part}
               </button>
-              ${renderTags(op.partTags || [], "part", "op", i, -1, "xs")}
+          ${renderTags(op.partTags ?? [], "part", "op", i, -1, "xs")}
               <button onclick="openOpBulkLabourDropdown(event, ${i})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0 ml-1" title="Assign Labour to All Tasks">
                 ${ICONS.labour}
               </button>
@@ -540,7 +541,7 @@ const buildTaskRow = (task, i, j) => {
           <button onclick="openTaskLabourDropdown(event, ${i}, ${j})" class="p-1 bg-transparent border-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-zinc-600 dark:text-zinc-400 focus:outline-none flex items-center justify-center cursor-pointer shrink-0" title="Assign Labour Codes">
             ${ICONS.labour}
           </button>
-          ${renderTags(task.labourTags || [], "labour", "task", i, j, "xs")}
+          ${renderTags(task.labourTags ?? [], "labour", "task", i, j, "xs")}
         </div>
       </td>
       <td class="text-center whitespace-nowrap align-top pt-1.5">
@@ -603,7 +604,7 @@ const updateStickyOffsets = () => {
   const fullStackHeight = tableHeader.offsetHeight + opRowHeight + footerHeight;
   let shift = 0;
   if (tableBottom < headerTop + fullStackHeight) {
-    shift = (headerTop + fullStackHeight) - tableBottom;
+    shift = headerTop + fullStackHeight - tableBottom;
   }
 
   tableHeader.style.top = `${headerTop - shift}px`;

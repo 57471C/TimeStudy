@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.6.2-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.6.3-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -27,9 +27,13 @@
 8. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 9. **Dark Mode**: Click the sun/moon icon to toggle themes.
 
+## Version 0.6.3 Updates
+- **Full screen mode**: Full scrren can be triggered via icon on video overlay or pressing the '\' key.
+- **Snapshot**: Image snapshot of the current video frame can be triggered via icon on video overlay or pressing the 's' key.
+
 ## Version 0.6.2 Updates
-- **Tetris Input Event and Focus Blurring**: Implemented blurring of active button focus on Tetris game start and blocked keyboard propagation on game controls (arrows/spacebar). This prevents spacebar inputs (hard drops) from triggering close/cancel buttons in the HTML `<dialog>` modal.
-- **Secret Game Flags and Flow Controls**: Added standard `isSecretGame` flag routing in the add operation routines to properly close the modal, cleanup event listeners, and stop game loops without dropping back into standard video editing controls.
+- **Eegg Input Event and Focus Blurring**: Implemented blurring of active button focus on start and blocked keyboard propagation on controls (arrows/spacebar). This prevents spacebar inputs (hard drops) from triggering close/cancel buttons in the HTML `<dialog>` modal.
+- **Secret Eegg Flags and Flow Controls**: Added standard flag routing in the add operation routines to properly close the modal, cleanup event listeners, and stop game loops without dropping back into standard video editing controls.
 - **Kaizen Dashboard and Layout Polish**: Standardized close transitions for the trim video modal on both error and abort paths. Added dark-mode `color-scheme` support and custom rounded scrollbars for premium UX.
 - **Media Row Actions Update**: Reverted the video editing action button from custom overlays to a clean, standard video camera icon to maximize interface simplicity.
 
