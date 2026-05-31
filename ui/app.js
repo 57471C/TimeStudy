@@ -26,7 +26,14 @@ let activeFFmpegChild = null;
 let isAborted = false;
 let cinemaModeBtn;
 let isCinemaMode = false;
-const appWindow = window.__TAURI__ ? window.__TAURI__.window.appWindow : null;
+const getAppWindow = () => {
+  try {
+    if (window.__TAURI__ && window.__TAURI__.window) {
+      return window.__TAURI__.window.getCurrentWindow?.() || window.__TAURI__.window.appWindow || null;
+    }
+  } catch (e) {}
+  return null;
+};
 
 const renderTrialSelect = () => {
   if (!DOM.trialSelect) return;
@@ -410,6 +417,14 @@ const initializePlayer = () => {
       }
     });
   }
+
+  document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement && isCinemaMode) {
+      isCinemaMode = false;
+      document.body.classList.remove("cinema-active");
+      setTimeout(() => window.dispatchEvent(new Event("resize")), 100);
+    }
+  });
 
   player.addEventListener("timeupdate", seektimeupdate);
   player.addEventListener("loadedmetadata", () => {
@@ -1152,16 +1167,21 @@ const toggleCinemaMode = async () => {
   document.body.classList.toggle("cinema-active", isCinemaMode);
 
   // 2. Handle Monitor Fullscreen
+  const appWindow = getAppWindow();
+  let nativeSuccess = false;
   if (appWindow) {
     try {
       await appWindow.setFullscreen(isCinemaMode);
+      nativeSuccess = true;
     } catch (err) {
-      toConsole("Error toggling fullscreen", err, debuggin);
+      toConsole("Error toggling native fullscreen", err, debuggin);
     }
-  } else {
+  }
+
+  if (!nativeSuccess) {
     if (isCinemaMode && document.documentElement.requestFullscreen) {
       await document.documentElement.requestFullscreen().catch((e) => console.warn(e));
-    } else if (!isCinemaMode && document.exitFullscreen) {
+    } else if (!isCinemaMode && document.exitFullscreen && document.fullscreenElement) {
       await document.exitFullscreen().catch((e) => console.warn(e));
     }
   }
