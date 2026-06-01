@@ -743,9 +743,9 @@ const initializePlayer = () => {
           }
 
           if (totalSize > 500 * 1024 * 1024) {
-            const proceed = await window.__TAURI__.dialog.confirm(
+            const proceed = await asyncConfirm(
               "Warning: Your video files are very large. Packaging may take a long time and result in a massive file. It is highly recommended to Trim your videos first. Do you want to continue?",
-              { title: "Large Files Detected", kind: "warning" },
+              "Large Files Detected",
             );
             if (!proceed) return;
           }
