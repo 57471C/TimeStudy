@@ -9,6 +9,7 @@ let exportXlsxBtn;
 let exportCsvBtn;
 let projectExportButton;
 let projectSaveAsButton;
+let projectPackageButton;
 let projectImportButton;
 let newProjectButton;
 let speedSlider;
@@ -549,6 +550,7 @@ const initializePlayer = () => {
   exportCsvBtn = document.getElementById("exportCsvBtn");
   projectExportButton = document.getElementById("projectExportButton");
   projectSaveAsButton = document.getElementById("projectSaveAsButton");
+  projectPackageButton = document.getElementById("projectPackageButton");
   projectImportButton = document.getElementById("projectImportButton");
   newProjectButton = document.getElementById("newProjectButton");
   loadVideoButton = document.getElementById("loadVideoButton");
@@ -688,8 +690,71 @@ const initializePlayer = () => {
     exportDropdown.classList.add("hidden");
   });
   projectExportButton.addEventListener("click", () => exportToJSON(false), false);
+
+  const handleProjectSave = async (isPackage) => {
+    const isTauri = window.__TAURI__ !== undefined;
+    if (isTauri) {
+      try {
+        const filters = isPackage
+          ? [
+              { name: "TimeStudy Archive", extensions: ["tspz"] },
+              { name: "TimeStudy Project", extensions: ["tsp"] },
+            ]
+          : [
+              { name: "TimeStudy Project", extensions: ["tsp"] },
+              { name: "TimeStudy Archive", extensions: ["tspz"] },
+            ];
+
+        const selected = await window.__TAURI__.dialog.save({ filters });
+
+        if (selected) {
+          const path = typeof selected === "object" ? selected.path : selected;
+
+          // Serialize state (adjust if exportToJSON generates a different structure)
+          const jsonState = JSON.stringify({
+            version: APP_VERSION,
+            projectName,
+            projectComments,
+            taktTime,
+            hourlyRate,
+            shiftLength,
+            targetEfficiency,
+            unitsPerCycle,
+            durationMode,
+            partsList,
+            labourList,
+            trials,
+          });
+
+          if (path.endsWith(".tspz")) {
+            const videoPaths = [...new Set(trials.map((t) => t.videoFilePath).filter((p) => p && p.trim() !== ""))];
+            await window.__TAURI__.core.invoke("save_tspz_bundle", {
+              jsonState,
+              videoPaths,
+              savePath: path,
+            });
+            showToast("Package saved successfully.", "success");
+          } else {
+            await window.__TAURI__.fs.writeTextFile(path, jsonState);
+            showToast("Project saved successfully.", "success");
+          }
+          projectFilePath = path;
+          localStorage.setItem("projectFilePath", projectFilePath);
+        }
+      } catch (e) {
+        toConsole("Error saving project via Tauri", e, debuggin);
+        alert(`Tauri Error (Project Save): ${e.message || JSON.stringify(e)}`);
+      }
+    } else {
+      exportToJSON(true);
+    }
+  };
+
   if (projectSaveAsButton) {
-    projectSaveAsButton.addEventListener("click", () => exportToJSON(true), false);
+    projectSaveAsButton.addEventListener("click", () => handleProjectSave(false), false);
+  }
+  if (projectPackageButton) {
+    projectPackageButton.addEventListener("click", () => handleProjectSave(true), false);
   }
 
   projectImportButton.addEventListener("click", async () => {
@@ -698,13 +763,34 @@ const initializePlayer = () => {
       try {
         const selected = await window.__TAURI__.dialog.open({
           multiple: false,
-          filters: [{ name: "TimeStudy Project", extensions: ["tsp"] }],
+          filters: [{ name: "TimeStudy files", extensions: ["tsp", "tspz"] }],
         });
         if (selected) {
           projectFilePath = typeof selected === "object" ? selected.path : selected;
           localStorage.setItem("projectFilePath", projectFilePath);
-          const jsonText = await window.__TAURI__.fs.readTextFile(projectFilePath);
-          importFromJSON(jsonText);
+
+          if (projectFilePath.endsWith(".tspz")) {
+            const response = await window.__TAURI__.core.invoke("load_tspz_bundle", { archivePath: projectFilePath });
+            importFromJSON(response.json_state);
+
+            if (response.video_paths && response.video_paths.length > 0) {
+              response.video_paths.forEach((vPath) => {
+                const filename = vPath.split(/[/\\]/).pop();
+                trials.forEach((trial) => {
+                  if (trial.videoFileName === filename) trial.videoFilePath = vPath;
+                });
+              });
+              const currentTrial = trials[activeTrialIndex];
+              if (currentTrial && currentTrial.videoFilePath) {
+                player.src = window.__TAURI__.core.convertFileSrc(currentTrial.videoFilePath);
+                player.load();
+              }
+            }
+            showToast("Archive loaded successfully.", "success");
+          } else {
+            const jsonText = await window.__TAURI__.fs.readTextFile(projectFilePath);
+            importFromJSON(jsonText);
+          }
         }
       } catch (e) {
         toConsole("Error loading project via Tauri", e, debuggin);
@@ -1147,8 +1233,27 @@ window.onload = () => {
           try {
             projectFilePath = startupFile;
             localStorage.setItem("projectFilePath", projectFilePath);
-            const jsonText = await window.__TAURI__.fs.readTextFile(startupFile);
-            importFromJSON(jsonText);
+
+            if (startupFile.endsWith(".tspz")) {
+              const response = await window.__TAURI__.core.invoke("load_tspz_bundle", { archivePath: startupFile });
+              importFromJSON(response.json_state);
+              if (response.video_paths && response.video_paths.length > 0) {
+                response.video_paths.forEach((vPath) => {
+                  const filename = vPath.split(/[/\\]/).pop();
+                  trials.forEach((trial) => {
+                    if (trial.videoFileName === filename) trial.videoFilePath = vPath;
+                  });
+                });
+                const currentTrial = trials[activeTrialIndex];
+                if (currentTrial && currentTrial.videoFilePath) {
+                  player.src = window.__TAURI__.core.convertFileSrc(currentTrial.videoFilePath);
+                  player.load();
+                }
+              }
+            } else {
+              const jsonText = await window.__TAURI__.fs.readTextFile(startupFile);
+              importFromJSON(jsonText);
+            }
             toConsole("Auto-loaded project from file association", startupFile, debuggin);
           } catch (e) {
             toConsole("Error auto-loading startup file", e, debuggin);

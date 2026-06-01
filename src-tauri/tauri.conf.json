@@ -40,6 +40,12 @@
         "ext": ["tsp"],
         "description": "TimeStudy Project File",
         "role": "Editor"
+      },
+      {
+        "name": "TimeStudy Project Archive",
+        "ext": ["tspz"],
+        "description": "TimeStudy Project Archive",
+        "role": "Editor"
       }
     ],
     "externalBin": [
