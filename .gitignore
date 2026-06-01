@@ -17,3 +17,4 @@ Thumbs.db
 
 # don't upload FFMPEG binaries
 src-tauri/binaries/
+tests/
