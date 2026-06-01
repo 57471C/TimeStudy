@@ -125,6 +125,35 @@ async fn abort_ffmpeg(state: tauri::State<'_, FfmpegState>) -> Result<(), String
     Ok(())
 }
 
+#[tauri::command]
+async fn extract_temp_workspace(
+    temp_video_paths: Vec<String>,
+    destination_folder: String,
+) -> Result<Vec<String>, String> {
+    use std::path::Path;
+
+    let dest_dir = Path::new(&destination_folder);
+    let mut new_paths = Vec::new();
+
+    for temp_path in temp_video_paths {
+        let path = Path::new(&temp_path);
+        
+        if let Some(file_name) = path.file_name() {
+            let dest_path = dest_dir.join(file_name);
+            
+            // Execute the standard fs copy
+            std::fs::copy(&path, &dest_path)
+                .map_err(|e| format!("Failed to copy file {:?}: {}", path, e))?;
+            
+            new_paths.push(dest_path.to_string_lossy().to_string());
+        } else {
+            return Err(format!("Invalid file path: {}", temp_path));
+        }
+    }
+
+    Ok(new_paths)
+}
+
 #[derive(Serialize)]
 struct TspzPayload {
     json_state: String,
@@ -271,7 +300,8 @@ pub fn run() {
         run_ffmpeg,
         abort_ffmpeg,
         load_tspz_bundle,
-        save_tspz_bundle
+        save_tspz_bundle,
+        extract_temp_workspace,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

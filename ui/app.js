@@ -552,6 +552,12 @@ const initializePlayer = () => {
   projectSaveAsButton = document.getElementById("projectSaveAsButton");
   projectPackageButton = document.getElementById("projectPackageButton");
   projectImportButton = document.getElementById("projectImportButton");
+
+  if (window.__TAURI__ !== undefined && projectPackageButton) {
+    projectPackageButton.classList.remove("hidden");
+    projectPackageButton.classList.add("flex");
+  }
+
   newProjectButton = document.getElementById("newProjectButton");
   loadVideoButton = document.getElementById("loadVideoButton");
   toggleFormatButton = document.getElementById("toggleFormatButton");
@@ -689,7 +695,6 @@ const initializePlayer = () => {
   document.addEventListener("click", () => {
     exportDropdown.classList.add("hidden");
   });
-  projectExportButton.addEventListener("click", () => exportToJSON(false), false);
 
   const executePackageSave = async (path, jsonState, videoPaths) => {
     const packageModal = document.getElementById("packageProgressModal");
@@ -797,11 +802,138 @@ const initializePlayer = () => {
     }
   };
 
+  const performStandardSave = async () => {
+    const isTauri = window.__TAURI__ !== undefined;
+    if (!isTauri) {
+      exportToJSON(false);
+      return;
+    }
+
+    if (projectFilePath && projectFilePath.endsWith(".tspz")) {
+      await window.__TAURI__.dialog.message(
+        "You are currently viewing a packaged archive. To save your edits, you must extract this project to a permanent folder.",
+        { title: "Archive Opened", kind: "info" },
+      );
+
+      const destFolder = await window.__TAURI__.dialog.open({ directory: true });
+      if (!destFolder) return;
+      const destPath = typeof destFolder === "object" ? destFolder.path : destFolder;
+
+      const packageModal = document.getElementById("packageProgressModal");
+      const packageText = document.getElementById("packageProgressFilename");
+      const packageBar = document.getElementById("packageProgressBar");
+      const packagePct = document.getElementById("packageProgressPercentage");
+
+      if (packageModal) {
+        if (packageText) packageText.textContent = "Extracting Workspace...";
+        if (packageBar) packageBar.style.width = "100%";
+        if (packagePct) packagePct.textContent = "";
+        packageModal.showModal();
+      }
+
+      try {
+        const tempVideoPaths = [...new Set(trials.map((t) => t.videoFilePath).filter((p) => p && p.trim() !== ""))];
+
+        const newVideoPaths = await window.__TAURI__.core.invoke("extract_temp_workspace", {
+          tempVideoPaths,
+          destinationFolder: destPath,
+        });
+
+        const pathMap = {};
+        tempVideoPaths.forEach((oldPath, idx) => {
+          pathMap[oldPath] = newVideoPaths[idx];
+        });
+
+        trials.forEach((trial) => {
+          if (trial.videoFilePath && pathMap[trial.videoFilePath]) {
+            trial.videoFilePath = pathMap[trial.videoFilePath];
+            trial.videoFileName = trial.videoFilePath.split(/[/\\]/).pop();
+          }
+        });
+
+        const currentTrial = trials[activeTrialIndex];
+        if (currentTrial?.videoFilePath) {
+          videoFilePath = currentTrial.videoFilePath;
+          videoFileName = currentTrial.videoFileName;
+          player.src = window.__TAURI__.core.convertFileSrc(videoFilePath);
+          player.load();
+        }
+
+        const safeProjectName = sanitizeFilename(projectName || "Untitled_Project");
+        const separator = destPath.includes("\\") ? "\\" : "/";
+        const cleanDest = destPath.endsWith(separator) ? destPath : destPath + separator;
+        const newProjectPath = `${cleanDest}${safeProjectName}.tsp`;
+
+        const jsonState = JSON.stringify({
+          version: APP_VERSION,
+          projectName,
+          projectComments,
+          taktTime,
+          hourlyRate,
+          shiftLength,
+          targetEfficiency,
+          unitsPerCycle,
+          durationMode,
+          partsList,
+          labourList,
+          trials,
+        });
+
+        await window.__TAURI__.fs.writeTextFile(newProjectPath, jsonState);
+
+        projectFilePath = newProjectPath;
+        localStorage.setItem("projectFilePath", projectFilePath);
+        showToast("Project extracted and saved successfully.", "success");
+      } catch (err) {
+        toConsole("Error extracting workspace", err, debuggin);
+        alert(`Extraction Error: ${err.message || JSON.stringify(err)}`);
+      } finally {
+        if (packageModal) {
+          packageModal.close();
+          if (packageBar) packageBar.style.width = "0%";
+          if (packagePct) packagePct.textContent = "0%";
+          if (packageText) packageText.textContent = "Preparing...";
+        }
+      }
+      return;
+    }
+
+    if (projectFilePath && projectFilePath.endsWith(".tsp")) {
+      try {
+        const jsonState = JSON.stringify({
+          version: APP_VERSION,
+          projectName,
+          projectComments,
+          taktTime,
+          hourlyRate,
+          shiftLength,
+          targetEfficiency,
+          unitsPerCycle,
+          durationMode,
+          partsList,
+          labourList,
+          trials,
+        });
+        await window.__TAURI__.fs.writeTextFile(projectFilePath, jsonState);
+        showToast("Project saved successfully.", "success");
+      } catch (e) {
+        toConsole("Error saving project via Tauri", e, debuggin);
+        alert(`Tauri Error (Project Save): ${e.message || JSON.stringify(e)}`);
+      }
+      return;
+    }
+
+    await handleProjectSave(false);
+  };
+
   if (projectSaveAsButton) {
     projectSaveAsButton.addEventListener("click", () => handleProjectSave(false), false);
   }
   if (projectPackageButton) {
     projectPackageButton.addEventListener("click", () => handleProjectSave(true), false);
+  }
+  if (projectExportButton) {
+    projectExportButton.addEventListener("click", () => performStandardSave(), false);
   }
 
   projectImportButton.addEventListener("click", async () => {
@@ -828,7 +960,7 @@ const initializePlayer = () => {
                 });
               });
               const currentTrial = trials[activeTrialIndex];
-              if (currentTrial && currentTrial.videoFilePath) {
+              if (currentTrial?.videoFilePath) {
                 player.src = window.__TAURI__.core.convertFileSrc(currentTrial.videoFilePath);
                 player.load();
               }
@@ -1127,10 +1259,12 @@ const initializePlayer = () => {
     if (e.ctrlKey && e.key.toLowerCase() === "s") {
       e.preventDefault();
       if (e.shiftKey) {
-        exportToJSON(true);
+        const isTauri = window.__TAURI__ !== undefined;
+        if (isTauri) handleProjectSave(false);
+        else exportToJSON(true);
         toConsole("Shortcut triggered", "Save As", debuggin);
       } else {
-        exportToJSON(false);
+        performStandardSave();
         toConsole("Shortcut triggered", "Save", debuggin);
       }
       return;
@@ -1292,7 +1426,7 @@ window.onload = () => {
                   });
                 });
                 const currentTrial = trials[activeTrialIndex];
-                if (currentTrial && currentTrial.videoFilePath) {
+                if (currentTrial?.videoFilePath) {
                   player.src = window.__TAURI__.core.convertFileSrc(currentTrial.videoFilePath);
                   player.load();
                 }
