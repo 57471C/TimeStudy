@@ -912,6 +912,8 @@ const initializePlayer = () => {
         }
       }, 100),
     );
+    seekBar.addEventListener("mouseup", (e) => e.target.blur());
+    seekBar.addEventListener("touchend", (e) => e.target.blur());
   }
 
   DOM.videoFileInput.addEventListener("change", async (event) => {
