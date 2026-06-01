@@ -4,6 +4,12 @@ use tauri::Manager;
 use tauri::Emitter;
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::CommandEvent;
+use std::fs::{self, File};
+use std::io::{Read, Write};
+use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
+use zip::{ZipArchive, ZipWriter, write::FileOptions};
+use serde::Serialize;
 
 #[derive(Default)]
 pub struct FfmpegState(pub Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
@@ -118,6 +124,89 @@ async fn abort_ffmpeg(state: tauri::State<'_, FfmpegState>) -> Result<(), String
     Ok(())
 }
 
+#[derive(Serialize)]
+struct TspzPayload {
+    json_state: String,
+    video_paths: Vec<String>,
+}
+
+#[tauri::command]
+fn load_tspz_bundle(archive_path: String) -> Result<TspzPayload, String> {
+    let archive_file = File::open(&archive_path).map_err(|e| e.to_string())?;
+    let mut archive = ZipArchive::new(archive_file).map_err(|e| e.to_string())?;
+
+    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+    let temp_dir = std::env::temp_dir().join(format!("tspz_{}", timestamp));
+    fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
+
+    let mut json_state = String::new();
+    let mut video_paths = Vec::new();
+
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
+        let outpath = match file.enclosed_name() {
+            Some(path) => temp_dir.join(path),
+            None => continue,
+        };
+
+        if (*file.name()).ends_with('/') {
+            fs::create_dir_all(&outpath).map_err(|e| e.to_string())?;
+        } else {
+            if let Some(p) = outpath.parent() {
+                fs::create_dir_all(p).map_err(|e| e.to_string())?;
+            }
+            let mut outfile = File::create(&outpath).map_err(|e| e.to_string())?;
+            std::io::copy(&mut file, &mut outfile).map_err(|e| e.to_string())?;
+
+            if file.name() == "project.tsp" {
+                let mut f = File::open(&outpath).map_err(|e| e.to_string())?;
+                f.read_to_string(&mut json_state).map_err(|e| e.to_string())?;
+            } else if let Some(ext) = outpath.extension() {
+                let ext_str = ext.to_string_lossy().to_lowercase();
+                if ["mp4", "mov", "webm", "avi", "ogg"].contains(&ext_str.as_str()) {
+                    video_paths.push(outpath.to_string_lossy().to_string());
+                }
+            }
+        }
+    }
+
+    if json_state.is_empty() {
+        return Err("No project.tsp found in the archive".into());
+    }
+
+    Ok(TspzPayload {
+        json_state,
+        video_paths,
+    })
+}
+
+#[tauri::command]
+fn save_tspz_bundle(json_state: String, video_paths: Vec<String>, save_path: String) -> Result<(), String> {
+    let file = File::create(&save_path).map_err(|e| e.to_string())?;
+    let mut zip = ZipWriter::new(file);
+    let options = FileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated)
+        .unix_permissions(0o755);
+
+    zip.start_file("project.tsp", options).map_err(|e| e.to_string())?;
+    zip.write_all(json_state.as_bytes()).map_err(|e| e.to_string())?;
+
+    for video_path in video_paths {
+        let path = Path::new(&video_path);
+        if let Some(filename) = path.file_name() {
+            let mut f = File::open(path).map_err(|e| e.to_string())?;
+            let mut buffer = Vec::new();
+            f.read_to_end(&mut buffer).map_err(|e| e.to_string())?;
+
+            zip.start_file(filename.to_string_lossy(), options).map_err(|e| e.to_string())?;
+            zip.write_all(&buffer).map_err(|e| e.to_string())?;
+        }
+    }
+
+    zip.finish().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // Triggering a recompile to pick up new icons
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -138,7 +227,13 @@ pub fn run() {
       Ok(())
     })
      // Add this line to register your new commands:
-    .invoke_handler(tauri::generate_handler![get_startup_file, run_ffmpeg, abort_ffmpeg]) 
+    .invoke_handler(tauri::generate_handler![
+        get_startup_file,
+        run_ffmpeg,
+        abort_ffmpeg,
+        load_tspz_bundle,
+        save_tspz_bundle
+    ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

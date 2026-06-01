@@ -1,6 +1,6 @@
 [package]
 name = "TimeStudy"
-version = "0.6.4"
+version = "0.6.5"
 description = "TimeStudy"
 authors = ["you"]
 license = ""
@@ -26,3 +26,4 @@ tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-shell = "2"
+zip = "0.6"
