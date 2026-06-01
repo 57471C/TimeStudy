@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.6.3-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.6.4-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -26,6 +26,10 @@
 7. **Export**: Use "Export" to save data as CSV or XLSX formats.
 8. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 9. **Dark Mode**: Click the sun/moon icon to toggle themes.
+
+## Version 0.6.4 Updates
+- **Added Part and Labour table under video**: Part numbers/descriptions and Labour codes/descriptions are now in a table under the media panel
+- **Fixed keyboard shortcuts after moving slider**: Keyboard shortcut can now be triggered after moving the play head slider.
 
 ## Version 0.6.3 Updates
 - **Full screen mode**: Full scrren can be triggered via icon on video overlay or pressing the '\' key.
