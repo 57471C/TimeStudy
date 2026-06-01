@@ -214,7 +214,7 @@
           <!-- Parts & Labour Grid -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm p-2.5 lg:p-3 z-0 transition-colors duration-200">
             <!-- Parts List -->
-            <div class="flex flex-col gap-2 h-40">
+            <div class="flex flex-col gap-2 h-48">
               <div class="flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Part Numbers</h3>
                 <button type="button" id="inlinePartsUploadBtn" class="btn btn-sm btn-outline-secondary flex items-center gap-1.5" title="Import Parts CSV">
@@ -223,10 +223,14 @@
                 </button>
                 <input type="file" id="inlinePartsFileInput" accept=".csv" class="hidden" />
               </div>
+              <form id="inlinePartsForm" class="flex gap-1.5 m-0">
+                <input type="text" id="inlinePartsInput" class="form-control text-xs flex-1 px-2 py-1" placeholder="[Part Number] - [Part Description]" autocomplete="off" />
+                <button type="submit" class="btn btn-sm btn-outline-primary shrink-0 px-2 leading-none" title="Add Part">+</button>
+              </form>
               <ul id="inlinePartsList" class="flex-1 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-md p-1 space-y-0.5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full"></ul>
             </div>
             <!-- Labour List -->
-            <div class="flex flex-col gap-2 h-40">
+            <div class="flex flex-col gap-2 h-48">
               <div class="flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Labour Codes</h3>
                 <button type="button" id="inlineLabourUploadBtn" class="btn btn-sm btn-outline-secondary flex items-center gap-1.5" title="Import Labour CSV">
@@ -235,6 +239,10 @@
                 </button>
                 <input type="file" id="inlineLabourFileInput" accept=".csv" class="hidden" />
               </div>
+              <form id="inlineLabourForm" class="flex gap-1.5 m-0">
+                <input type="text" id="inlineLabourInput" class="form-control text-xs flex-1 px-2 py-1" placeholder="[Labour Code] - [Labour Description]" autocomplete="off" />
+                <button type="submit" class="btn btn-sm btn-outline-primary shrink-0 px-2 leading-none" title="Add Labour Code">+</button>
+              </form>
               <ul id="inlineLabourList" class="flex-1 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-md p-1 space-y-0.5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full"></ul>
             </div>
           </div>

@@ -343,11 +343,15 @@ const initializePlayer = () => {
     });
   }
 
-  const setupInlineCSVImports = () => {
+  const setupInlineDataManagement = () => {
     const partsBtn = document.getElementById("inlinePartsUploadBtn");
     const partsInput = document.getElementById("inlinePartsFileInput");
+    const partsForm = document.getElementById("inlinePartsForm");
+    const partsTextInput = document.getElementById("inlinePartsInput");
     const labourBtn = document.getElementById("inlineLabourUploadBtn");
     const labourInput = document.getElementById("inlineLabourFileInput");
+    const labourForm = document.getElementById("inlineLabourForm");
+    const labourTextInput = document.getElementById("inlineLabourInput");
 
     if (partsBtn && partsInput) {
       partsBtn.addEventListener("click", () => partsInput.click());
@@ -364,6 +368,20 @@ const initializePlayer = () => {
         };
         reader.readAsText(file);
         e.target.value = "";
+      });
+    }
+
+    if (partsForm && partsTextInput) {
+      partsForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const val = partsTextInput.value.trim();
+        if (val && !partsList.includes(val)) {
+          partsList.push(val);
+          showToast("New part number added to project.", "success");
+          saveLocalState();
+          if (typeof renderPartsList === "function") renderPartsList();
+        }
+        partsTextInput.value = "";
       });
     }
 
@@ -384,8 +402,22 @@ const initializePlayer = () => {
         e.target.value = "";
       });
     }
+
+    if (labourForm && labourTextInput) {
+      labourForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const val = labourTextInput.value.trim();
+        if (val && !labourList.includes(val)) {
+          labourList.push(val);
+          showToast("New labour code added to project.", "success");
+          saveLocalState();
+          if (typeof renderLabourList === "function") renderLabourList();
+        }
+        labourTextInput.value = "";
+      });
+    }
   };
-  setupInlineCSVImports();
+  setupInlineDataManagement();
 
   if (DOM.statusModal) {
     for (const btn of DOM.statusModal.querySelectorAll(".status-btn")) {
