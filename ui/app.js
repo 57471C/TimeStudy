@@ -1133,11 +1133,53 @@ const initializePlayer = () => {
   const openHelpBtn = document.getElementById("openHelpBtn");
   const closeHelpBtn = document.getElementById("closeHelpBtn");
   const closeHelpBtnX = document.getElementById("closeHelpBtnX");
+  const btnLoadExample = document.getElementById("btn-load-example");
 
   if (openHelpBtn) openHelpBtn.addEventListener("click", () => helpModal.showModal());
   const closeModal = () => helpModal.close();
   if (closeHelpBtn) closeHelpBtn.addEventListener("click", closeModal);
   if (closeHelpBtnX) closeHelpBtnX.addEventListener("click", closeModal);
+
+  if (btnLoadExample) {
+    btnLoadExample.addEventListener("click", async () => {
+      const isTauri = window.__TAURI__ !== undefined;
+      if (!isTauri) {
+        alert("Example project is only available in the native desktop app.");
+        return;
+      }
+      try {
+        // Resolve the absolute path to the bundled resource
+        const resourcePath = await window.__TAURI__.path.resolveResource("demo/Example.tspz");
+
+        projectFilePath = resourcePath;
+        localStorage.setItem("projectFilePath", projectFilePath);
+
+        // Load and parse the bundle
+        const response = await window.__TAURI__.core.invoke("load_tspz_bundle", { archivePath: resourcePath });
+        importFromJSON(response.json_state);
+
+        if (response.video_paths && response.video_paths.length > 0) {
+          response.video_paths.forEach((vPath) => {
+            const filename = vPath.split(/[/\\]/).pop();
+            trials.forEach((trial) => {
+              if (trial.videoFileName === filename) trial.videoFilePath = vPath;
+            });
+          });
+          const currentTrial = trials[activeTrialIndex];
+          if (currentTrial?.videoFilePath) {
+            player.src = window.__TAURI__.core.convertFileSrc(currentTrial.videoFilePath);
+            player.load();
+          }
+        }
+
+        closeModal();
+        showToast("Example project loaded", "success");
+      } catch (err) {
+        toConsole("Error resolving/loading example project", err, debuggin);
+        alert(`Failed to load example project: ${err.message || JSON.stringify(err)}`);
+      }
+    });
+  }
 
   muteButton.addEventListener("click", () => {
     player.muted = !player.muted;
