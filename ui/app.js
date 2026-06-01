@@ -341,59 +341,51 @@ const initializePlayer = () => {
         showToast("Project variables saved successfully.", "success");
       }
     });
-
-    // Basic CSV parser for 2 columns: [ID], [Description]
-    const parseTwoColumnCSV = (csvText) => {
-      const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !== "");
-      const results = [];
-      for (const line of lines) {
-        const firstComma = line.indexOf(",");
-        if (firstComma > -1) {
-          const col1 = line.substring(0, firstComma).replace(/^"|"$/g, "").trim();
-          const col2 = line
-            .substring(firstComma + 1)
-            .replace(/^"|"$/g, "")
-            .trim();
-          results.push(`${col1} - ${col2}`);
-        } else {
-          results.push(line.replace(/^"|"$/g, "").trim());
-        }
-      }
-      return results;
-    };
-
-    DOM.partsUploadBtn.addEventListener("click", () => DOM.partsFileInput.click());
-    DOM.partsFileInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        masterParts = parseTwoColumnCSV(evt.target.result);
-        showToast(`Loaded ${masterParts.length} Part Numbers`, "success");
-        saveLocalState();
-      };
-      reader.readAsText(file);
-    });
-
-    DOM.labourUploadBtn.addEventListener("click", () => DOM.labourFileInput.click());
-    DOM.labourFileInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        masterLabour = parseTwoColumnCSV(evt.target.result);
-        showToast(`Loaded ${masterLabour.length} Labour Codes`, "success");
-        saveLocalState();
-      };
-      reader.readAsText(file);
-    });
-
-    DOM.partsViewBtn.addEventListener("click", () => showMasterDataModal("Part Numbers", masterParts, "part"));
-    DOM.labourViewBtn.addEventListener("click", () => showMasterDataModal("Labour Codes", masterLabour, "labour"));
-    const closeMasterModal = () => DOM.masterDataModal.close();
-    DOM.closeMasterDataBtnX.addEventListener("click", closeMasterModal);
-    DOM.closeMasterDataBtn.addEventListener("click", closeMasterModal);
   }
+
+  const setupInlineCSVImports = () => {
+    const partsBtn = document.getElementById("inlinePartsUploadBtn");
+    const partsInput = document.getElementById("inlinePartsFileInput");
+    const labourBtn = document.getElementById("inlineLabourUploadBtn");
+    const labourInput = document.getElementById("inlineLabourFileInput");
+
+    if (partsBtn && partsInput) {
+      partsBtn.addEventListener("click", () => partsInput.click());
+      partsInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const newItems = parseTwoColumnCSV(evt.target.result);
+          partsList = [...new Set([...partsList, ...newItems])];
+          showToast(`Loaded ${newItems.length} Part Numbers`, "success");
+          saveLocalState();
+          if (typeof renderPartsList === "function") renderPartsList();
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+      });
+    }
+
+    if (labourBtn && labourInput) {
+      labourBtn.addEventListener("click", () => labourInput.click());
+      labourInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const newItems = parseTwoColumnCSV(evt.target.result);
+          labourList = [...new Set([...labourList, ...newItems])];
+          showToast(`Loaded ${newItems.length} Labour Codes`, "success");
+          saveLocalState();
+          if (typeof renderLabourList === "function") renderLabourList();
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+      });
+    }
+  };
+  setupInlineCSVImports();
 
   if (DOM.statusModal) {
     for (const btn of DOM.statusModal.querySelectorAll(".status-btn")) {
@@ -719,8 +711,8 @@ const initializePlayer = () => {
     localStorage.removeItem("projectFilePath");
     projectName = "";
     projectComments = "";
-    masterParts = [];
-    masterLabour = [];
+    partsList = [];
+    labourList = [];
     processStartTime = 0;
     processEndTime = 0;
 
@@ -749,6 +741,8 @@ const initializePlayer = () => {
     if (typeof drawTable === "function") drawTable();
     saveLocalState();
     updateSliderTicks();
+    if (typeof renderPartsList === "function") renderPartsList();
+    if (typeof renderLabourList === "function") renderLabourList();
 
     showToast("New project started.", "success");
   });

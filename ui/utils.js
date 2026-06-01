@@ -97,3 +97,22 @@ const formatDurationValue = (val) => {
   if (durationMode === "ms") return `${val.toFixed(0)} ms`;
   return `${formatDecimalMinutes(val)} min`;
 };
+
+const parseTwoColumnCSV = (csvText) => {
+  const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !== "");
+  const results = [];
+  for (const line of lines) {
+    const firstComma = line.indexOf(",");
+    if (firstComma > -1) {
+      const col1 = line.substring(0, firstComma).replace(/^"|"$/g, "").trim();
+      const col2 = line
+        .substring(firstComma + 1)
+        .replace(/^"|"$/g, "")
+        .trim();
+      results.push(`${col1} - ${col2}`);
+    } else {
+      results.push(line.replace(/^"|"$/g, "").trim());
+    }
+  }
+  return results;
+};

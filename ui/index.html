@@ -210,6 +210,35 @@
               </div>
             </div>
           </div>
+          
+          <!-- Parts & Labour Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm p-2.5 lg:p-3 z-0 transition-colors duration-200">
+            <!-- Parts List -->
+            <div class="flex flex-col gap-2 h-40">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Part Numbers</h3>
+                <button type="button" id="inlinePartsUploadBtn" class="btn btn-sm btn-outline-secondary flex items-center gap-1.5" title="Import Parts CSV">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Import
+                </button>
+                <input type="file" id="inlinePartsFileInput" accept=".csv" class="hidden" />
+              </div>
+              <ul id="inlinePartsList" class="flex-1 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-md p-1 space-y-0.5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full"></ul>
+            </div>
+            <!-- Labour List -->
+            <div class="flex flex-col gap-2 h-40">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Labour Codes</h3>
+                <button type="button" id="inlineLabourUploadBtn" class="btn btn-sm btn-outline-secondary flex items-center gap-1.5" title="Import Labour CSV">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Import
+                </button>
+                <input type="file" id="inlineLabourFileInput" accept=".csv" class="hidden" />
+              </div>
+              <ul id="inlineLabourList" class="flex-1 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-md p-1 space-y-0.5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full"></ul>
+            </div>
+          </div>
+
           <input type="file" id="videoFileInput" accept="video/*" style="display: none" />
         </div>
 
@@ -320,33 +349,6 @@
           <label for="unitsPerCycleInput" class="form-label">Units per Cycle</label>
           <input type="number" id="unitsPerCycleInput" class="form-control w-full no-spinners" placeholder="1" min="1" step="1">
           <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Number of units produced in a single process cycle.</p>
-        </div>
-        <hr class="border-zinc-200 dark:border-zinc-700 my-2">
-        <div>
-          <label class="form-label font-semibold">Master Data Imports</label>
-          <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Upload 2-column CSV files to populate dropdowns for tagging.</p>
-          <div class="flex flex-col gap-3">
-            <div class="flex gap-2">
-              <button type="button" id="partsUploadBtn" class="btn btn-sm btn-outline-secondary flex-1 flex justify-center items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                Upload Parts CSV
-              </button>
-              <button type="button" id="partsViewBtn" class="btn btn-sm btn-outline-secondary px-3" title="View Parts Data">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-              <input type="file" id="partsFileInput" accept=".csv" style="display: none" />
-            </div>
-            <div class="flex gap-2">
-              <button type="button" id="labourUploadBtn" class="btn btn-sm btn-outline-secondary flex-1 flex justify-center items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                Upload Labour CSV
-              </button>
-              <button type="button" id="labourViewBtn" class="btn btn-sm btn-outline-secondary px-3" title="View Labour Data">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-              <input type="file" id="labourFileInput" accept=".csv" style="display: none" />
-            </div>
-          </div>
         </div>
       </div>
       <div class="p-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
@@ -576,21 +578,6 @@
       </div>
       <div class="p-4 border-t border-zinc-200 dark:border-zinc-700 flex justify-end">
         <button type="button" id="closeHelpBtn" class="btn btn-secondary">Close</button>
-      </div>
-    </dialog>
-
-    <!-- Master Data Viewer Modal -->
-    <dialog id="masterDataModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-lg fixed inset-0 m-auto">
-      <div class="flex justify-between items-center p-4 border-b border-zinc-200 dark:border-zinc-700">
-        <h5 class="text-lg font-semibold" id="masterDataModalTitle">Master Data</h5>
-        <button type="button" id="closeMasterDataBtnX" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl font-bold px-2 leading-none">&times;</button>
-      </div>
-      <div class="p-0 overflow-y-auto max-h-[60vh] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-        <ul id="masterDataList" class="divide-y divide-zinc-200 dark:divide-zinc-700"></ul>
-      </div>
-      <div class="p-4 border-t border-zinc-200 dark:border-zinc-700 flex justify-between items-center">
-        <button type="button" id="clearMasterDataBtn" class="btn btn-sm btn-outline-danger">Clear All</button>
-        <button type="button" id="closeMasterDataBtn" class="btn btn-secondary">Close</button>
       </div>
     </dialog>
 

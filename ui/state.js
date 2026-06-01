@@ -3,8 +3,8 @@ let videoFileName = "";
 let videoFilePath = "";
 let projectName = "";
 let projectComments = "";
-let masterParts = [];
-let masterLabour = [];
+let partsList = [];
+let labourList = [];
 let projectFilePath = "";
 let projectFileHandle = null;
 let trials = [];
@@ -98,18 +98,6 @@ const DOM = {
   targetEfficiencyInput: document.getElementById("targetEfficiencyInput"),
   unitsPerCycleInput: document.getElementById("unitsPerCycleInput"),
   taktTimeInput: document.getElementById("taktTimeInput"),
-  partsFileInput: document.getElementById("partsFileInput"),
-  labourFileInput: document.getElementById("labourFileInput"),
-  partsUploadBtn: document.getElementById("partsUploadBtn"),
-  labourUploadBtn: document.getElementById("labourUploadBtn"),
-  partsViewBtn: document.getElementById("partsViewBtn"),
-  labourViewBtn: document.getElementById("labourViewBtn"),
-  masterDataModal: document.getElementById("masterDataModal"),
-  masterDataModalTitle: document.getElementById("masterDataModalTitle"),
-  masterDataList: document.getElementById("masterDataList"),
-  clearMasterDataBtn: document.getElementById("clearMasterDataBtn"),
-  closeMasterDataBtn: document.getElementById("closeMasterDataBtn"),
-  closeMasterDataBtnX: document.getElementById("closeMasterDataBtnX"),
   statusModal: document.getElementById("statusModal"),
   timeContextMenu: document.getElementById("timeContextMenu"),
   setStartBtn: document.getElementById("setStartBtn"),
@@ -142,8 +130,8 @@ const saveLocalState = () => {
     projectMeta: {
       projectName,
       projectComments,
-      masterParts,
-      masterLabour,
+      partsList,
+      labourList,
       lastSaved: new Date().toISOString(),
       appVersion: APP_VERSION,
     },
@@ -165,11 +153,11 @@ const loadLocalState = () => {
       const state = JSON.parse(data);
 
       if (state.projectMeta) {
-        masterParts = state.projectMeta.masterParts || [];
-        masterLabour = state.projectMeta.masterLabour || [];
+        partsList = state.projectMeta.partsList || state.projectMeta.masterParts || [];
+        labourList = state.projectMeta.labourList || state.projectMeta.masterLabour || [];
       } else {
-        masterParts = state.masterParts || [];
-        masterLabour = state.masterLabour || [];
+        partsList = state.partsList || state.masterParts || [];
+        labourList = state.labourList || state.masterLabour || [];
       }
 
       if (state.appConfig) {
@@ -223,6 +211,9 @@ const loadLocalState = () => {
   // Sync UI
   if (DOM.projectNameInput) DOM.projectNameInput.value = projectName;
   if (typeof renderTrialSelect === "function") renderTrialSelect();
+
+  if (typeof renderPartsList === "function") renderPartsList();
+  if (typeof renderLabourList === "function") renderLabourList();
 };
 
 const exportToJSON = async (isSaveAs = false) => {
@@ -319,8 +310,10 @@ const importFromJSON = (jsonText) => {
       activeTrialIndex = data.activeTrialIndex || 0;
       projectName = data.projectMeta?.projectName || "";
       projectComments = data.projectMeta?.projectComments || "";
-      masterParts = data.projectMeta?.masterParts || [];
-      masterLabour = data.projectMeta?.masterLabour || [];
+      partsList =
+        data.projectMeta?.partsList || data.projectMeta?.masterParts || data.partsList || data.masterParts || [];
+      labourList =
+        data.projectMeta?.labourList || data.projectMeta?.masterLabour || data.labourList || data.masterLabour || [];
     } else if (data.operations || data.appState?.operations) {
       // Graceful fallback for older single-trial formats
       trials = [
@@ -344,8 +337,10 @@ const importFromJSON = (jsonText) => {
       activeTrialIndex = 0;
       projectName = data.projectName || data.projectMeta?.projectName || "";
       projectComments = data.projectComments || data.projectMeta?.projectComments || "";
-      masterParts = data.masterParts || data.projectMeta?.masterParts || [];
-      masterLabour = data.masterLabour || data.projectMeta?.masterLabour || [];
+      partsList =
+        data.partsList || data.projectMeta?.partsList || data.masterParts || data.projectMeta?.masterParts || [];
+      labourList =
+        data.labourList || data.projectMeta?.labourList || data.masterLabour || data.projectMeta?.masterLabour || [];
     } else {
       alert("Invalid project file format.");
       return;
@@ -399,6 +394,9 @@ const importFromJSON = (jsonText) => {
     saveLocalState();
     if (typeof drawTable === "function") drawTable();
     if (typeof updateLoadButtonColor === "function") updateLoadButtonColor();
+
+    if (typeof renderPartsList === "function") renderPartsList();
+    if (typeof renderLabourList === "function") renderLabourList();
 
     toConsole("Project imported successfully", `Loaded Trial: ${currentTrial.trialName}`, debuggin);
     showToast("Project loaded successfully.", "success");

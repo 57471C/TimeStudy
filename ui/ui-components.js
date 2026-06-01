@@ -68,42 +68,48 @@ const removeTag = (target, opIndex, taskIndex, tagType, tagIdx) => {
   updateTaskList();
 };
 
-const deleteMasterDataTag = async (type, index) => {
-  const arr = type === "part" ? masterParts : masterLabour;
-  const title = type === "part" ? "Part Numbers" : "Labour Codes";
+const deleteProjectTag = async (type, index) => {
+  const arr = type === "part" ? partsList : labourList;
   const tag = arr[index];
 
-  if (await asyncConfirm(`Are you sure you want to delete "${tag}" from the master list?`, "Delete Master Tag")) {
+  if (await asyncConfirm(`Are you sure you want to delete "${tag}" from the project?`, "Delete Tag")) {
     arr.splice(index, 1);
     saveLocalState();
-    showMasterDataModal(title, arr, type);
+    if (type === "part") renderPartsList();
+    else renderLabourList();
   }
 };
 
-const clearMasterData = async (type) => {
-  const title = type === "part" ? "Part Numbers" : "Labour Codes";
-  if (await asyncConfirm(`Are you sure you want to clear ALL ${title}? This action cannot be undone.`, "Clear All")) {
-    if (type === "part") masterParts = [];
-    else masterLabour = [];
-    saveLocalState();
-    showMasterDataModal(title, type === "part" ? masterParts : masterLabour, type);
-  }
-};
-
-const showMasterDataModal = (title, dataArray, type) => {
-  DOM.masterDataModalTitle.textContent = `${title} (${dataArray.length})`;
-  DOM.masterDataList.innerHTML = dataArray.length
-    ? dataArray
+const renderPartsList = () => {
+  const list = document.getElementById("inlinePartsList");
+  if (!list) return;
+  list.innerHTML = partsList.length
+    ? partsList
         .map(
           (item, idx) =>
-            `<li class="px-4 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex justify-between items-center group"><span>${escapeHTML(item)}</span><button type="button" onclick="deleteMasterDataTag('${type}', ${idx})" class="text-zinc-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none transition-colors opacity-0 group-hover:opacity-100" title="Delete Tag">${ICONS.trash}</button></li>`,
+            `<li class="px-2 py-1 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors flex justify-between items-center group rounded">
+          <span class="truncate pr-2">${escapeHTML(item)}</span>
+          <button type="button" onclick="deleteProjectTag('part', ${idx})" class="text-zinc-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none transition-colors opacity-0 group-hover:opacity-100 shrink-0" title="Delete Tag">${ICONS.trash}</button>
+        </li>`,
         )
         .join("")
-    : `<li class="px-4 py-4 text-sm text-zinc-500 italic text-center">No data loaded.</li>`;
+    : `<li class="px-2 py-2 text-xs text-zinc-500 italic text-center">No parts loaded.</li>`;
+};
 
-  DOM.clearMasterDataBtn.onclick = () => clearMasterData(type);
-  DOM.clearMasterDataBtn.style.display = dataArray.length ? "inline-block" : "none";
-  if (!DOM.masterDataModal.open) DOM.masterDataModal.showModal();
+const renderLabourList = () => {
+  const list = document.getElementById("inlineLabourList");
+  if (!list) return;
+  list.innerHTML = labourList.length
+    ? labourList
+        .map(
+          (item, idx) =>
+            `<li class="px-2 py-1 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors flex justify-between items-center group rounded">
+          <span class="truncate pr-2">${escapeHTML(item)}</span>
+          <button type="button" onclick="deleteProjectTag('labour', ${idx})" class="text-zinc-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none transition-colors opacity-0 group-hover:opacity-100 shrink-0" title="Delete Tag">${ICONS.trash}</button>
+        </li>`,
+        )
+        .join("")
+    : `<li class="px-2 py-2 text-xs text-zinc-500 italic text-center">No labour codes loaded.</li>`;
 };
 
 const openOpPartDropdown = (e, opIndex) => {
@@ -133,7 +139,7 @@ const openOpPartDropdown = (e, opIndex) => {
       const idx = t.indexOf(" x ");
       return idx !== -1 ? t.substring(idx + 3) : t;
     });
-    const filtered = masterParts.filter(
+    const filtered = partsList.filter(
       (p) => p.toLowerCase().includes(filter.toLowerCase()) && !currentParts.includes(p),
     );
     if (filtered.length === 0 && filter.trim() === "") {
@@ -177,18 +183,19 @@ const openOpPartDropdown = (e, opIndex) => {
     const qtyValue = qtyInput ? qtyInput.value.trim() : "01";
     const finalQty = qtyValue === "" ? "01" : qtyValue;
 
-    let addedNewMaster = false;
-    if (!masterParts.includes(newTag)) {
-      masterParts.push(newTag);
-      addedNewMaster = true;
+    let addedNewProjectTag = false;
+    if (!partsList.includes(newTag)) {
+      partsList.push(newTag);
+      addedNewProjectTag = true;
     }
 
     const displayTag = `${finalQty} x ${newTag}`;
     if (!operations[opIndex].partTags.includes(displayTag)) {
       operations[opIndex].partTags.push(displayTag);
     }
-    if (addedNewMaster) {
-      showToast("New part number added to Master Data.", "success");
+    if (addedNewProjectTag) {
+      showToast("New part number added to Project Data.", "success");
+      renderPartsList();
     }
     saveLocalState();
     updateTaskList();
@@ -250,7 +257,7 @@ const openTaskLabourDropdown = (e, opIndex, taskIndex) => {
 
   const renderList = (filter = "") => {
     const currentTags = operations[opIndex].tasks[taskIndex].labourTags ?? [];
-    const filtered = masterLabour.filter(
+    const filtered = labourList.filter(
       (p) => p.toLowerCase().includes(filter.toLowerCase()) && !currentTags.includes(p),
     );
     if (filtered.length === 0 && filter.trim() === "") {
@@ -289,17 +296,18 @@ const openTaskLabourDropdown = (e, opIndex, taskIndex) => {
   const addTag = (newTag) => {
     if (!newTag) return;
 
-    let addedNewMaster = false;
-    if (!masterLabour.includes(newTag)) {
-      masterLabour.push(newTag);
-      addedNewMaster = true;
+    let addedNewProjectTag = false;
+    if (!labourList.includes(newTag)) {
+      labourList.push(newTag);
+      addedNewProjectTag = true;
     }
 
     if (!operations[opIndex].tasks[taskIndex].labourTags.includes(newTag)) {
       operations[opIndex].tasks[taskIndex].labourTags.push(newTag);
     }
-    if (addedNewMaster) {
-      showToast("New labour code added to Master Data.", "success");
+    if (addedNewProjectTag) {
+      showToast("New labour code added to Project Data.", "success");
+      renderLabourList();
     }
     saveLocalState();
     updateTaskList();
@@ -351,11 +359,11 @@ const openOpBulkLabourDropdown = (e, opIndex) => {
 
   const renderList = (filter = "") => {
     const tasks = operations[opIndex]?.tasks ?? [];
-    const commonTags = masterLabour.filter(
+    const commonTags = labourList.filter(
       (tag) => tasks.length > 0 && tasks.every((task) => (task.labourTags ?? []).includes(tag)),
     );
 
-    const filtered = masterLabour.filter(
+    const filtered = labourList.filter(
       (p) => p.toLowerCase().includes(filter.toLowerCase()) && !commonTags.includes(p),
     );
     if (filtered.length === 0 && filter.trim() === "") {
@@ -394,10 +402,10 @@ const openOpBulkLabourDropdown = (e, opIndex) => {
   const addTag = (newTag) => {
     if (!newTag) return;
 
-    let addedNewMaster = false;
-    if (!masterLabour.includes(newTag)) {
-      masterLabour.push(newTag);
-      addedNewMaster = true;
+    let addedNewProjectTag = false;
+    if (!labourList.includes(newTag)) {
+      labourList.push(newTag);
+      addedNewProjectTag = true;
     }
 
     const tasks = operations[opIndex]?.tasks ?? [];
@@ -413,8 +421,9 @@ const openOpBulkLabourDropdown = (e, opIndex) => {
       }
     }
 
-    if (addedNewMaster) {
-      showToast("New labour code added to Master Data.", "success");
+    if (addedNewProjectTag) {
+      showToast("New labour code added to Project Data.", "success");
+      renderLabourList();
     }
     if (tasksUpdated) {
       saveLocalState();
@@ -656,7 +665,7 @@ const updateTaskList = () => {
     }
     rows.push(`
       </table>
-      <div id="taskTableFoot" class="sticky z-20 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_-2px_4px_rgba(0,0,0,0.05)] mt-[-1px] rounded-b-md"></div>
+      <div id="taskTableFoot" class="sticky z-20 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_-2px_4px_rgba(0,0,0,0.05)] -mt-px rounded-b-md"></div>
     `);
     DOM.taskList.innerHTML = rows.join("");
 
