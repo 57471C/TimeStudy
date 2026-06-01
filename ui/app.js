@@ -126,7 +126,7 @@ const addTrial = async () => {
         processStartTime: 0,
         processEndTime: 0,
         taktTime,
-        costingConfig: { hourlyRate, shiftLength, targetEfficiency },
+        costingConfig: { hourlyRate, shiftLength, targetEfficiency, unitsPerCycle },
         appState: { operations: [] },
       };
 
@@ -828,7 +828,7 @@ const initializePlayer = () => {
         if (packageText) packageText.textContent = "Extracting Workspace...";
         if (packageBar) packageBar.style.width = "100%";
         if (packagePct) packagePct.textContent = "";
-        packageModal.showModal();
+        if (!packageModal.open) packageModal.showModal();
       }
 
       try {

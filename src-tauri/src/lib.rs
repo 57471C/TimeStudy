@@ -126,7 +126,7 @@ async fn abort_ffmpeg(state: tauri::State<'_, FfmpegState>) -> Result<(), String
 }
 
 #[tauri::command]
-async fn extract_temp_workspace(
+fn extract_temp_workspace(
     temp_video_paths: Vec<String>,
     destination_folder: String,
 ) -> Result<Vec<String>, String> {
