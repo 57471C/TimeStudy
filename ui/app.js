@@ -691,15 +691,68 @@ const initializePlayer = () => {
   });
   projectExportButton.addEventListener("click", () => exportToJSON(false), false);
 
+  const executePackageSave = async (path, jsonState, videoPaths) => {
+    const packageModal = document.getElementById("packageProgressModal");
+    const packageBar = document.getElementById("packageProgressBar");
+    const packageText = document.getElementById("packageProgressFilename");
+    const packagePct = document.getElementById("packageProgressPercentage");
+
+    packageModal.showModal();
+    let unlisten;
+    try {
+      unlisten = await window.__TAURI__.event.listen("bundle-progress", (event) => {
+        const payload = event.payload;
+        packageBar.style.width = `${payload.percentage}%`;
+        packagePct.textContent = `${Math.round(payload.percentage)}%`;
+        packageText.textContent = payload.current_file;
+      });
+
+      await window.__TAURI__.core.invoke("save_tspz_bundle", {
+        jsonState,
+        videoPaths,
+        savePath: path,
+      });
+      showToast("Package saved successfully.", "success");
+    } catch (e) {
+      toConsole("Error packaging project", e, debuggin);
+      alert(`Tauri Error (Project Package): ${e.message || JSON.stringify(e)}`);
+    } finally {
+      if (unlisten) unlisten();
+      packageModal.close();
+      packageBar.style.width = "0%";
+      packagePct.textContent = "0%";
+      packageText.textContent = "Preparing...";
+    }
+  };
+
   const handleProjectSave = async (isPackage) => {
     const isTauri = window.__TAURI__ !== undefined;
     if (isTauri) {
       try {
+        const videoPaths = [...new Set(trials.map((t) => t.videoFilePath).filter((p) => p && p.trim() !== ""))];
+
+        if (isPackage) {
+          let totalSize = 0;
+          for (const vp of videoPaths) {
+            try {
+              const stat = await window.__TAURI__.fs.stat(vp);
+              totalSize += stat.size;
+            } catch (e) {
+              console.warn("Failed to stat video file", vp, e);
+            }
+          }
+
+          if (totalSize > 500 * 1024 * 1024) {
+            const proceed = await window.__TAURI__.dialog.confirm(
+              "Warning: Your video files are very large. Packaging may take a long time and result in a massive file. It is highly recommended to Trim your videos first. Do you want to continue?",
+              { title: "Large Files Detected", kind: "warning" },
+            );
+            if (!proceed) return;
+          }
+        }
+
         const filters = isPackage
-          ? [
-              { name: "TimeStudy Archive", extensions: ["tspz"] },
-              { name: "TimeStudy Project", extensions: ["tsp"] },
-            ]
+          ? [{ name: "TimeStudy Archive", extensions: ["tspz"] }]
           : [
               { name: "TimeStudy Project", extensions: ["tsp"] },
               { name: "TimeStudy Archive", extensions: ["tspz"] },
@@ -727,13 +780,7 @@ const initializePlayer = () => {
           });
 
           if (path.endsWith(".tspz")) {
-            const videoPaths = [...new Set(trials.map((t) => t.videoFilePath).filter((p) => p && p.trim() !== ""))];
-            await window.__TAURI__.core.invoke("save_tspz_bundle", {
-              jsonState,
-              videoPaths,
-              savePath: path,
-            });
-            showToast("Package saved successfully.", "success");
+            await executePackageSave(path, jsonState, videoPaths);
           } else {
             await window.__TAURI__.fs.writeTextFile(path, jsonState);
             showToast("Project saved successfully.", "success");

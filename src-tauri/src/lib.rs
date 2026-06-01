@@ -2,6 +2,7 @@
 use std::sync::Mutex;
 use tauri::Manager;
 use tauri::Emitter;
+use tauri::Window;
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::CommandEvent;
 use std::fs::{self, File};
@@ -180,8 +181,14 @@ fn load_tspz_bundle(archive_path: String) -> Result<TspzPayload, String> {
     })
 }
 
+#[derive(Clone, Serialize)]
+struct ProgressPayload {
+    percentage: f64,
+    current_file: String,
+}
+
 #[tauri::command]
-fn save_tspz_bundle(json_state: String, video_paths: Vec<String>, save_path: String) -> Result<(), String> {
+async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<String>, save_path: String) -> Result<(), String> {
     let file = File::create(&save_path).map_err(|e| e.to_string())?;
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::default()
@@ -191,15 +198,43 @@ fn save_tspz_bundle(json_state: String, video_paths: Vec<String>, save_path: Str
     zip.start_file("project.tsp", options).map_err(|e| e.to_string())?;
     zip.write_all(json_state.as_bytes()).map_err(|e| e.to_string())?;
 
+    let mut total_bytes: u64 = 0;
+    for path in &video_paths {
+        if let Ok(meta) = fs::metadata(path) {
+            total_bytes += meta.len();
+        }
+    }
+
+    let mut bytes_written: u64 = 0;
+    let mut buffer = vec![0; 4 * 1024 * 1024]; // 4MB Buffer Chunk
+
     for video_path in video_paths {
         let path = Path::new(&video_path);
         if let Some(filename) = path.file_name() {
+            let filename_str = filename.to_string_lossy().to_string();
             let mut f = File::open(path).map_err(|e| e.to_string())?;
-            let mut buffer = Vec::new();
-            f.read_to_end(&mut buffer).map_err(|e| e.to_string())?;
 
-            zip.start_file(filename.to_string_lossy(), options).map_err(|e| e.to_string())?;
-            zip.write_all(&buffer).map_err(|e| e.to_string())?;
+            zip.start_file(filename_str.clone(), options).map_err(|e| e.to_string())?;
+
+            loop {
+                let bytes_read = f.read(&mut buffer).map_err(|e| e.to_string())?;
+                if bytes_read == 0 {
+                    break;
+                }
+                zip.write_all(&buffer[..bytes_read]).map_err(|e| e.to_string())?;
+                bytes_written += bytes_read as u64;
+
+                let percentage = if total_bytes > 0 {
+                    (bytes_written as f64 / total_bytes as f64) * 100.0
+                } else {
+                    100.0
+                };
+
+                let _ = window.emit("bundle-progress", ProgressPayload {
+                    percentage,
+                    current_file: filename_str.clone(),
+                });
+            }
         }
     }
 

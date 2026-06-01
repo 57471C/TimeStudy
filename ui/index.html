@@ -55,15 +55,11 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.5l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
             <span class="hidden md:inline">Save As</span>
           </button>
+          <button type="button" id="projectPackageButton" class="btn btn-sm btn-outline-secondary flex items-center gap-1 sm:gap-1.5 shadow-sm" title="Package Project">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            <span class="hidden md:inline">Package</span>
+          </button>
         <input type="file" id="projectFileInput" accept=".tsp" style="display: none" />
-        <button id="projectPackageButton" class="text-gray-200 hover:text-white hover:bg-slate-700 px-3 py-2 rounded-md text-sm font-medium flex items-center transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-            </svg>
-            Package
-        </button>
         
         </div>
 
@@ -555,6 +551,25 @@
             <div id="tetrisOverlayButtons" class="flex flex-col gap-2 w-full max-w-40">
               <!-- Dynamic buttons will be inserted here -->
             </div>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Package Progress Modal -->
+    <dialog id="packageProgressModal" class="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-700 p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm w-full max-w-sm fixed inset-0 m-auto transition-all duration-300 ease-in-out transform opacity-100 scale-100">
+      <div class="p-5 space-y-4">
+        <h5 class="text-lg font-semibold flex items-center gap-2">
+          <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          Packaging Project...
+        </h5>
+        <div>
+          <div class="flex justify-between items-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+            <span id="packageProgressFilename" class="truncate max-w-[80%]">Preparing...</span>
+            <span id="packageProgressPercentage">0%</span>
+          </div>
+          <div class="w-full bg-zinc-200 dark:bg-zinc-700 h-2.5 rounded-full overflow-hidden">
+            <div id="packageProgressBar" class="bg-blue-600 h-full rounded-full transition-all duration-150" style="width: 0%"></div>
           </div>
         </div>
       </div>
