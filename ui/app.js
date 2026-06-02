@@ -1149,7 +1149,7 @@ const initializePlayer = () => {
       }
       try {
         // Resolve the absolute path to the bundled resource
-        const resourcePath = await window.__TAURI__.path.resolveResource("demo/Example.tspz");
+        const resourcePath = await window.__TAURI__.path.resolveResource("_up_/demo/Example.tspz");
 
         projectFilePath = resourcePath;
         localStorage.setItem("projectFilePath", projectFilePath);
@@ -1276,7 +1276,7 @@ const initializePlayer = () => {
     updateZoom();
   });
   DOM.zoomOut.addEventListener("click", () => {
-    zoomLevel = Math.max(0.1, zoomLevel - 0.1);
+    zoomLevel = Math.max(0.1, zoomLevel - 0.2);
     updateZoom();
   });
   DOM.resetZoom.addEventListener("click", () => {
@@ -1395,7 +1395,7 @@ const initializePlayer = () => {
         break;
       case "-":
         e.preventDefault();
-        zoomLevel = Math.max(0.1, zoomLevel - 0.1);
+        zoomLevel = Math.max(0.1, zoomLevel - 0.2);
         updateZoom();
         break;
       case "Backspace":

@@ -97,20 +97,20 @@
                 <track kind="captions" />
                 Your browser does not support the video tag.
               </video>
-              <div class="absolute top-2.5 right-2.5 z-15 hidden group-hover:block">
-                <button type="button" id="zoomIn" class="btn btn-sm btn-dark-gray">+</button>
-                <button type="button" id="zoomOut" class="btn btn-sm btn-dark-gray">-</button>
-                <button type="button" id="resetZoom" class="btn btn-sm btn-dark-gray">Reset</button>
-                <button type="button" id="takeSnapshotBtn" class="btn btn-sm btn-dark-gray" title="Take Snapshot (S)">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <div class="absolute top-2.5 right-2.5 zoom-controls flex gap-1.5 items-center" style="z-index: 50;">
+                <button type="button" id="zoomIn" class="btn btn-sm btn-outline-secondary shadow-sm bg-white/90 dark:bg-zinc-800/90 backdrop-blur" title="Zoom In (+)">+</button>
+                <button type="button" id="zoomOut" class="btn btn-sm btn-outline-secondary shadow-sm bg-white/90 dark:bg-zinc-800/90 backdrop-blur" title="Zoom Out (-)">-</button>
+                <button type="button" id="resetZoom" class="btn btn-sm btn-outline-secondary shadow-sm bg-white/90 dark:bg-zinc-800/90 backdrop-blur" title="Reset Zoom (Backspace)">Reset</button>
+                <button type="button" id="takeSnapshotBtn" class="btn btn-sm btn-outline-secondary shadow-sm bg-white/90 dark:bg-zinc-800/90 backdrop-blur" title="Take Snapshot (S)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
                   </svg>
                 </button>
-              <button type="button" id="cinemaModeBtn" class="btn btn-sm btn-dark-gray" title="Toggle Cinema Mode (\)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-                </svg>
-              </button>
+                <button type="button" id="cinemaModeBtn" class="btn btn-sm btn-outline-secondary shadow-sm bg-white/90 dark:bg-zinc-800/90 backdrop-blur" title="Toggle Cinema Mode (\)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
