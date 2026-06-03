@@ -1364,16 +1364,19 @@ const initializePlayer = () => {
         toConsole("Forward 5s (Up Arrow)", player.currentTime, debuggin);
         break;
       case "t":
+      case "T":
         e.preventDefault();
         if (!player.src) return;
         if (!addTaskButton.disabled) addTask();
         break;
       case "o":
+      case "O":
         e.preventDefault();
         if (!player.src) return;
         addOp();
         break;
       case "m":
+      case "M":
         e.preventDefault();
         if (!player.src) return;
         player.muted = !player.muted;
