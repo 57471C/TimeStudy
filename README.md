@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.6.7-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.6.8-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -26,6 +26,10 @@
 7. **Export**: Use "Export" to save data as CSV or XLSX formats.
 8. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 9. **Dark Mode**: Click the sun/moon icon to toggle themes.
+
+## Version 0.6.8 Updates
+- **Added Closed Caption Loading**: Load closed captions (.srt) or (.vtt) files into the video window.
+- **Added Closed Caption Generation**: Added an option to auto-generate closed captions (.srt) from the video file. This is done by leveraging the Whisper API for speech-to-text transcription.
 
 ## Version 0.6.7 Updates
 - **Fixed background task spawning**: Added Tokio to offload the heavey I/O operations.
