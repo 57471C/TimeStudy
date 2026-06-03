@@ -105,6 +105,7 @@ const DOM = {
   opContextMenu: document.getElementById("opContextMenu"),
   opRenameBtn: document.getElementById("opRenameBtn"),
   opDeleteBtn: document.getElementById("opDeleteBtn"),
+  ccButton: document.getElementById("ccButton"),
 };
 
 const saveLocalState = () => {

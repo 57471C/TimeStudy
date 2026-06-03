@@ -219,6 +219,152 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
   updateLoadButtonColor();
 };
 
+let subtitleBlobUrl = null;
+
+const convertSrtToVtt = (srtText) => {
+  let vttText = "WEBVTT\n\n";
+  const normalizedSrt = srtText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const vttConverted = normalizedSrt.replace(
+    /(\d{2}:\d{2}:\d{2}),(\d+)\s*-->\s*(\d{2}:\d{2}:\d{2}),(\d+)/g,
+    "$1.$2 --> $3.$4"
+  );
+  vttText += vttConverted;
+  return vttText;
+};
+
+const disableCCButton = () => {
+  const tracks = player?.querySelectorAll("track");
+  tracks?.forEach((track) => track.remove());
+
+  if (subtitleBlobUrl) {
+    URL.revokeObjectURL(subtitleBlobUrl);
+    subtitleBlobUrl = null;
+  }
+
+  if (DOM.ccButton) {
+    DOM.ccButton.setAttribute("disabled", "true");
+    DOM.ccButton.className = "btn-icon opacity-50 cursor-default";
+  }
+};
+
+const attachSubtitleFile = async (filePath, isVtt) => {
+  try {
+    const tracks = player.querySelectorAll("track");
+    tracks.forEach((track) => track.remove());
+
+    if (subtitleBlobUrl) {
+      URL.revokeObjectURL(subtitleBlobUrl);
+      subtitleBlobUrl = null;
+    }
+
+    let subtitleSrc = "";
+    const fileText = await window.__TAURI__.fs.readTextFile(filePath);
+
+    if (isVtt) {
+      const blob = new Blob([fileText], { type: "text/vtt" });
+      subtitleBlobUrl = URL.createObjectURL(blob);
+      subtitleSrc = subtitleBlobUrl;
+    } else {
+      const vttText = convertSrtToVtt(fileText);
+      const blob = new Blob([vttText], { type: "text/vtt" });
+      subtitleBlobUrl = URL.createObjectURL(blob);
+      subtitleSrc = subtitleBlobUrl;
+    }
+
+    const track = document.createElement("track");
+    track.kind = "subtitles";
+    track.label = "Subtitles";
+    track.srclang = "en";
+    track.src = subtitleSrc;
+    track.default = true;
+    player.appendChild(track);
+
+    if (DOM.ccButton) {
+      DOM.ccButton.removeAttribute("disabled");
+      DOM.ccButton.className = "btn-icon text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300";
+    }
+
+    track.addEventListener("load", () => {
+      track.track.mode = "showing";
+    });
+  } catch (err) {
+    toConsole("Error attaching subtitles", err, debuggin);
+  }
+};
+
+const checkAndLoadSubtitles = async () => {
+  if (!videoFilePath || window.__TAURI__ === undefined) {
+    disableCCButton();
+    return;
+  }
+
+  const dotIndex = videoFilePath.lastIndexOf(".");
+  if (dotIndex === -1) {
+    disableCCButton();
+    return;
+  }
+
+  const basePath = videoFilePath.substring(0, dotIndex);
+  const vttPath = `${basePath}.vtt`;
+  const srtPath = `${basePath}.srt`;
+
+  let hasSubtitles = false;
+  let subtitlePath = "";
+  let isVtt = true;
+
+  try {
+    const vttExists = await window.__TAURI__.fs.exists(vttPath);
+    if (vttExists) {
+      hasSubtitles = true;
+      subtitlePath = vttPath;
+      isVtt = true;
+    } else {
+      const srtExists = await window.__TAURI__.fs.exists(srtPath);
+      if (srtExists) {
+        hasSubtitles = true;
+        subtitlePath = srtPath;
+        isVtt = false;
+      }
+    }
+  } catch (e) {
+    try {
+      await window.__TAURI__.fs.stat(vttPath);
+      hasSubtitles = true;
+      subtitlePath = vttPath;
+      isVtt = true;
+    } catch (e2) {
+      try {
+        await window.__TAURI__.fs.stat(srtPath);
+        hasSubtitles = true;
+        subtitlePath = srtPath;
+        isVtt = false;
+      } catch (e3) {}
+    }
+  }
+
+  if (hasSubtitles) {
+    await attachSubtitleFile(subtitlePath, isVtt);
+  } else {
+    disableCCButton();
+  }
+};
+
+const toggleCC = () => {
+  if (!player || !player.textTracks || player.textTracks.length === 0) return;
+  const track = player.textTracks[0];
+  if (track.mode === "showing") {
+    track.mode = "hidden";
+    if (DOM.ccButton) {
+      DOM.ccButton.className = "btn-icon text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300";
+    }
+  } else {
+    track.mode = "showing";
+    if (DOM.ccButton) {
+      DOM.ccButton.className = "btn-icon text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300";
+    }
+  }
+};
+
 const initializePlayer = () => {
   player = DOM.video;
   playerReady = true;
@@ -512,6 +658,7 @@ const initializePlayer = () => {
     volumeSlider.value = 0;
     DOM.volumeValue.textContent = "0";
     toConsole("Video muted on load", "Success", debuggin);
+    checkAndLoadSubtitles();
   });
   player.addEventListener("play", () => {
     DOM.playIcon.classList.add("hidden");
@@ -1439,6 +1586,7 @@ const initializePlayer = () => {
     }
   });
 
+  DOM.ccButton?.addEventListener("click", toggleCC);
   updateLoadButtonColor();
 };
 
@@ -1824,6 +1972,7 @@ const toggleVideoPlaceholder = (show) => {
       toConsole("Showing placeholder, hiding video wrapper", null, debuggin);
       DOM.videoPlaceholder.style.display = "flex";
       DOM.videoWrapper.style.display = "none";
+      disableCCButton();
     } else {
       toConsole("Hiding placeholder, showing video wrapper", null, debuggin);
       DOM.videoPlaceholder.style.display = "none";
