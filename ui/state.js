@@ -33,6 +33,8 @@ let playbackSpeed = 1;
 let volumeLevel = 1;
 // biome-ignore lint/style/useConst: Global state modified in other scripts
 let groupingMode = "lean";
+let autoGenerateSRT = true;
+let autoLoadSRT = true;
 
 const APP_VERSION = "0.6.7";
 
@@ -106,6 +108,8 @@ const DOM = {
   opRenameBtn: document.getElementById("opRenameBtn"),
   opDeleteBtn: document.getElementById("opDeleteBtn"),
   ccButton: document.getElementById("ccButton"),
+  autoGenerateSRTInput: document.getElementById("autoGenerateSRTInput"),
+  autoLoadSRTInput: document.getElementById("autoLoadSRTInput"),
 };
 
 const saveLocalState = () => {
@@ -139,6 +143,8 @@ const saveLocalState = () => {
     appConfig: {
       playbackSpeed,
       volumeLevel,
+      autoGenerateSRT,
+      autoLoadSRT,
     },
     trials,
     activeTrialIndex,
@@ -164,9 +170,13 @@ const loadLocalState = () => {
       if (state.appConfig) {
         playbackSpeed = state.appConfig.playbackSpeed !== undefined ? state.appConfig.playbackSpeed : 1;
         volumeLevel = state.appConfig.volumeLevel !== undefined ? state.appConfig.volumeLevel : 1;
+        autoGenerateSRT = state.appConfig.autoGenerateSRT !== undefined ? state.appConfig.autoGenerateSRT : true;
+        autoLoadSRT = state.appConfig.autoLoadSRT !== undefined ? state.appConfig.autoLoadSRT : true;
       } else {
         playbackSpeed = state.playbackSpeed !== undefined ? state.playbackSpeed : 1;
         volumeLevel = state.volumeLevel !== undefined ? state.volumeLevel : 1;
+        autoGenerateSRT = true;
+        autoLoadSRT = true;
       }
 
       toConsole("Global settings and master data restored", "Success", debuggin);
@@ -211,6 +221,8 @@ const loadLocalState = () => {
 
   // Sync UI
   if (DOM.projectNameInput) DOM.projectNameInput.value = projectName;
+  if (DOM.autoGenerateSRTInput) DOM.autoGenerateSRTInput.checked = autoGenerateSRT;
+  if (DOM.autoLoadSRTInput) DOM.autoLoadSRTInput.checked = autoLoadSRT;
   if (typeof renderTrialSelect === "function") renderTrialSelect();
 
   if (typeof renderPartsList === "function") renderPartsList();
@@ -247,10 +259,12 @@ const exportToJSON = async (isSaveAs = false) => {
           projectFilePath = typeof filePath === "object" ? filePath.path : filePath;
           localStorage.setItem("projectFilePath", projectFilePath);
           await window.__TAURI__.fs.writeTextFile(projectFilePath, formattedDataStr);
+          await writeSrtNextToTsp(projectFilePath, formattedDataStr);
           showToast("Project saved successfully.", "success");
         }
       } else {
         await window.__TAURI__.fs.writeTextFile(projectFilePath, formattedDataStr);
+        await writeSrtNextToTsp(projectFilePath, formattedDataStr);
         showToast("Project saved successfully.", "success");
       }
     } catch (e) {
@@ -302,6 +316,7 @@ const exportToJSON = async (isSaveAs = false) => {
 
 const importFromJSON = (jsonText) => {
   try {
+    clearExistingCaptions();
     preserveProcessTimes = true;
     const data = JSON.parse(jsonText);
 
@@ -768,5 +783,34 @@ const exportToXLSX = async () => {
       toConsole("Error exporting XLSX via Browser", e, debuggin);
       showToast("Error exporting XLSX file.", "error");
     }
+  }
+};
+
+const writeSrtNextToTsp = async (tspPath, jsonState) => {
+  if (!autoGenerateSRT) return;
+  try {
+    const isTauri = window.__TAURI__ !== undefined;
+    if (!isTauri || !tspPath) return;
+
+    const lastSlash = Math.max(tspPath.lastIndexOf("/"), tspPath.lastIndexOf("\\"));
+    const dir = lastSlash !== -1 ? tspPath.substring(0, lastSlash + 1) : "";
+
+    const projectData = JSON.parse(jsonState);
+    if (!projectData || !projectData.trials) return;
+
+    for (const trial of projectData.trials) {
+      if (trial.videoFileName && trial.videoFileName.trim() !== "") {
+        const lastDot = trial.videoFileName.lastIndexOf(".");
+        const baseName = lastDot !== -1 ? trial.videoFileName.substring(0, lastDot) : trial.videoFileName;
+        const srtPath = `${dir}${baseName}.srt`;
+
+        const srtContent = buildSRTContent(projectData, trial.videoFileName);
+        if (srtContent && srtContent.trim() !== "") {
+          await window.__TAURI__.fs.writeTextFile(srtPath, srtContent, { append: false });
+        }
+      }
+    }
+  } catch (e) {
+    toConsole("Error writing srt next to tsp", e, debuggin);
   }
 };

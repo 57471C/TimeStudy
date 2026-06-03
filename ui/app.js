@@ -53,6 +53,7 @@ const renderTrialSelect = () => {
 const switchTrial = async (index) => {
   if (index === activeTrialIndex) return;
 
+  clearExistingCaptions();
   preserveProcessTimes = true;
   saveLocalState();
 
@@ -146,6 +147,7 @@ const editTrial = async () => {
 };
 
 const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
+  clearExistingCaptions();
   const currentSrc = player.getAttribute("src");
   const hasExistingVideo = currentSrc && currentSrc !== "";
 
@@ -233,6 +235,12 @@ const convertSrtToVtt = (srtText) => {
 };
 
 const disableCCButton = () => {
+  if (player && player.textTracks) {
+    for (let i = 0; i < player.textTracks.length; i++) {
+      player.textTracks[i].mode = "disabled";
+    }
+  }
+
   const tracks = player?.querySelectorAll("track");
   tracks?.forEach((track) => track.remove());
 
@@ -243,11 +251,15 @@ const disableCCButton = () => {
 
   if (DOM.ccButton) {
     DOM.ccButton.setAttribute("disabled", "true");
-    DOM.ccButton.className = "btn-icon opacity-50 cursor-default";
+    DOM.ccButton.className = "btn-icon mr-4 opacity-50 cursor-default";
   }
 };
 
-const attachSubtitleFile = async (filePath, isVtt) => {
+const clearExistingCaptions = () => {
+  disableCCButton();
+};
+
+const loadAndAttachSubtitles = async (videoPath) => {
   try {
     const tracks = player.querySelectorAll("track");
     tracks.forEach((track) => track.remove());
@@ -257,111 +269,86 @@ const attachSubtitleFile = async (filePath, isVtt) => {
       subtitleBlobUrl = null;
     }
 
-    let subtitleSrc = "";
-    const fileText = await window.__TAURI__.fs.readTextFile(filePath);
+    const dotIndex = videoPath.lastIndexOf(".");
+    if (dotIndex === -1) return;
+    const srtPath = videoPath.substring(0, dotIndex) + ".srt";
 
-    if (isVtt) {
-      const blob = new Blob([fileText], { type: "text/vtt" });
-      subtitleBlobUrl = URL.createObjectURL(blob);
-      subtitleSrc = subtitleBlobUrl;
-    } else {
-      const vttText = convertSrtToVtt(fileText);
-      const blob = new Blob([vttText], { type: "text/vtt" });
-      subtitleBlobUrl = URL.createObjectURL(blob);
-      subtitleSrc = subtitleBlobUrl;
-    }
+    const srtText = await window.__TAURI__.fs.readTextFile(srtPath);
+    const vttText = convertSrtToVtt(srtText);
+    const blob = new Blob([vttText], { type: "text/vtt" });
+    subtitleBlobUrl = URL.createObjectURL(blob);
 
     const track = document.createElement("track");
     track.kind = "subtitles";
     track.label = "Subtitles";
     track.srclang = "en";
-    track.src = subtitleSrc;
+    track.src = subtitleBlobUrl;
     track.default = true;
     player.appendChild(track);
-
-    if (DOM.ccButton) {
-      DOM.ccButton.removeAttribute("disabled");
-      DOM.ccButton.className = "btn-icon text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300";
-    }
 
     track.addEventListener("load", () => {
       track.track.mode = "showing";
     });
+
+    if (DOM.ccButton) {
+      DOM.ccButton.className = "btn-icon mr-4 text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300";
+    }
   } catch (err) {
-    toConsole("Error attaching subtitles", err, debuggin);
+    toConsole("Error loading and attaching subtitles", err, debuggin);
   }
 };
 
-const checkAndLoadSubtitles = async () => {
+const autoLoadSubtitlesFlow = async () => {
   if (!videoFilePath || window.__TAURI__ === undefined) {
-    disableCCButton();
+    clearExistingCaptions();
     return;
   }
-
-  const dotIndex = videoFilePath.lastIndexOf(".");
-  if (dotIndex === -1) {
-    disableCCButton();
-    return;
-  }
-
-  const basePath = videoFilePath.substring(0, dotIndex);
-  const vttPath = `${basePath}.vtt`;
-  const srtPath = `${basePath}.srt`;
-
-  let hasSubtitles = false;
-  let subtitlePath = "";
-  let isVtt = true;
 
   try {
-    const vttExists = await window.__TAURI__.fs.exists(vttPath);
-    if (vttExists) {
-      hasSubtitles = true;
-      subtitlePath = vttPath;
-      isVtt = true;
+    const srtExists = await window.__TAURI__.core.invoke("check_srt_exists", {
+      videoPath: videoFilePath,
+    });
+
+    if (!srtExists) {
+      clearExistingCaptions();
+      return;
+    }
+
+    if (DOM.ccButton) {
+      DOM.ccButton.removeAttribute("disabled");
+    }
+
+    if (autoLoadSRT) {
+      await loadAndAttachSubtitles(videoFilePath);
     } else {
-      const srtExists = await window.__TAURI__.fs.exists(srtPath);
-      if (srtExists) {
-        hasSubtitles = true;
-        subtitlePath = srtPath;
-        isVtt = false;
+      if (DOM.ccButton) {
+        DOM.ccButton.className = "btn-icon mr-4 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100";
       }
     }
-  } catch (e) {
-    try {
-      await window.__TAURI__.fs.stat(vttPath);
-      hasSubtitles = true;
-      subtitlePath = vttPath;
-      isVtt = true;
-    } catch (e2) {
-      try {
-        await window.__TAURI__.fs.stat(srtPath);
-        hasSubtitles = true;
-        subtitlePath = srtPath;
-        isVtt = false;
-      } catch (e3) {}
-    }
-  }
-
-  if (hasSubtitles) {
-    await attachSubtitleFile(subtitlePath, isVtt);
-  } else {
-    disableCCButton();
+  } catch (err) {
+    toConsole("Error in autoLoadSubtitlesFlow", err, debuggin);
+    clearExistingCaptions();
   }
 };
 
-const toggleCC = () => {
-  if (!player || !player.textTracks || player.textTracks.length === 0) return;
-  const track = player.textTracks[0];
-  if (track.mode === "showing") {
-    track.mode = "hidden";
-    if (DOM.ccButton) {
-      DOM.ccButton.className = "btn-icon text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300";
+const toggleCC = async () => {
+  if (!player) return;
+
+  const track = player.querySelector("track");
+  if (track) {
+    if (track.track.mode === "showing") {
+      track.track.mode = "hidden";
+      if (DOM.ccButton) {
+        DOM.ccButton.className = "btn-icon mr-4 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100";
+      }
+    } else {
+      track.track.mode = "showing";
+      if (DOM.ccButton) {
+        DOM.ccButton.className = "btn-icon mr-4 text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300";
+      }
     }
   } else {
-    track.mode = "showing";
-    if (DOM.ccButton) {
-      DOM.ccButton.className = "btn-icon text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300";
-    }
+    await loadAndAttachSubtitles(videoFilePath);
   }
 };
 
@@ -461,6 +448,8 @@ const initializePlayer = () => {
         }
       }
       if (DOM.projectCommentsInput) projectComments = DOM.projectCommentsInput.value;
+      if (DOM.autoGenerateSRTInput) autoGenerateSRT = DOM.autoGenerateSRTInput.checked;
+      if (DOM.autoLoadSRTInput) autoLoadSRT = DOM.autoLoadSRTInput.checked;
       saveLocalState();
       // Redraw charts and update UI to reflect new Takt Time
       if (typeof updateProcessTimes === "function") updateProcessTimes();
@@ -658,7 +647,7 @@ const initializePlayer = () => {
     volumeSlider.value = 0;
     DOM.volumeValue.textContent = "0";
     toConsole("Video muted on load", "Success", debuggin);
-    checkAndLoadSubtitles();
+    autoLoadSubtitlesFlow();
   });
   player.addEventListener("play", () => {
     DOM.playIcon.classList.add("hidden");
@@ -859,10 +848,24 @@ const initializePlayer = () => {
         packageText.textContent = payload.current_file;
       });
 
+      let srtData = [];
+      if (autoGenerateSRT) {
+        try {
+          const parsed = JSON.parse(jsonState);
+          srtData = videoPaths.map((vPath) => {
+            const filename = vPath.split(/[/\\]/).pop();
+            return buildSRTContent(parsed, filename);
+          });
+        } catch (e) {
+          toConsole("Error preparing srtData for package save", e, debuggin);
+        }
+      }
+
       await window.__TAURI__.core.invoke("save_tspz_bundle", {
         jsonState,
         videoPaths,
         savePath: path,
+        srtData,
       });
       showToast("Package saved successfully.", "success");
     } catch (e) {
@@ -935,6 +938,7 @@ const initializePlayer = () => {
             await executePackageSave(path, jsonState, videoPaths);
           } else {
             await window.__TAURI__.fs.writeTextFile(path, jsonState);
+            await writeSrtNextToTsp(path, jsonState);
             showToast("Project saved successfully.", "success");
           }
           projectFilePath = path;
@@ -1027,6 +1031,7 @@ const initializePlayer = () => {
         });
 
         await window.__TAURI__.fs.writeTextFile(newProjectPath, jsonState);
+        await writeSrtNextToTsp(newProjectPath, jsonState);
 
         projectFilePath = newProjectPath;
         localStorage.setItem("projectFilePath", projectFilePath);
@@ -1062,6 +1067,7 @@ const initializePlayer = () => {
           trials,
         });
         await window.__TAURI__.fs.writeTextFile(projectFilePath, jsonState);
+        await writeSrtNextToTsp(projectFilePath, jsonState);
         showToast("Project saved successfully.", "success");
       } catch (e) {
         toConsole("Error saving project via Tauri", e, debuggin);
@@ -1604,6 +1610,7 @@ window.onload = () => {
       .invoke("get_startup_file")
       .then(async (startupFile) => {
         if (startupFile) {
+          clearExistingCaptions();
           try {
             projectFilePath = startupFile;
             localStorage.setItem("projectFilePath", projectFilePath);

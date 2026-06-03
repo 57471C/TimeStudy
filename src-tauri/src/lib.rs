@@ -126,6 +126,13 @@ async fn abort_ffmpeg(state: tauri::State<'_, FfmpegState>) -> Result<(), String
 }
 
 #[tauri::command]
+fn check_srt_exists(video_path: String) -> bool {
+    let mut path = std::path::PathBuf::from(video_path);
+    path.set_extension("srt");
+    path.exists()
+}
+
+#[tauri::command]
 fn extract_temp_workspace(
     temp_video_paths: Vec<String>,
     destination_folder: String,
@@ -217,7 +224,7 @@ struct ProgressPayload {
 }
 
 #[tauri::command]
-async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<String>, save_path: String) -> Result<(), String> {
+async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<String>, save_path: String, srt_data: Vec<String>) -> Result<(), String> {
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         let file = File::create(&save_path).map_err(|e| e.to_string())?;
         let mut zip = ZipWriter::new(file);
@@ -238,8 +245,8 @@ async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<S
         let mut bytes_written: u64 = 0;
         let mut buffer = vec![0; 4 * 1024 * 1024]; // 4MB Buffer Chunk
 
-        for video_path in video_paths {
-            let path = Path::new(&video_path);
+        for (idx, video_path) in video_paths.iter().enumerate() {
+            let path = Path::new(video_path);
             if let Some(filename) = path.file_name() {
                 let filename_str = filename.to_string_lossy().to_string();
                 let mut f = File::open(path).map_err(|e| e.to_string())?;
@@ -264,6 +271,19 @@ async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<S
                         percentage,
                         current_file: filename_str.clone(),
                     });
+                }
+
+                // If matching srt content is provided, write it next to the video in zip
+                if let Some(srt_content) = srt_data.get(idx) {
+                    if !srt_content.is_empty() {
+                        let mut srt_filename = filename_str.clone();
+                        if let Some(dot_idx) = srt_filename.rfind('.') {
+                            srt_filename.truncate(dot_idx);
+                        }
+                        srt_filename.push_str(".srt");
+                        zip.start_file(&srt_filename, options).map_err(|e| e.to_string())?;
+                        zip.write_all(srt_content.as_bytes()).map_err(|e| e.to_string())?;
+                    }
                 }
             }
         }
@@ -302,6 +322,7 @@ pub fn run() {
         load_tspz_bundle,
         save_tspz_bundle,
         extract_temp_workspace,
+        check_srt_exists,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
