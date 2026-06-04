@@ -12,6 +12,18 @@
     <!-- Custom styles -->
     <link rel="stylesheet" href="styles.css" />
       
+    <!-- WebVTT Custom Styling -->
+    <style>
+      video::cue {
+        font-size: 80%;
+        line-height: 1.25;
+        background-color: rgba(0, 0, 0, 0.75);
+      }
+      video::cue(.yellow), video::cue(c.yellow) {
+        color: #fbbf24 !important;
+      }
+    </style>
+
     <!-- ApexCharts -->
      <script src="libs/apexcharts.js" defer></script>
 

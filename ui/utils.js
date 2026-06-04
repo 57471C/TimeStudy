@@ -138,34 +138,50 @@ const buildVTTContent = (projectData, videoId) => {
     return `${pad(hrs, 2)}:${pad(mins, 2)}:${pad(secs, 2)}.${pad(ms, 3)}`;
   };
 
+  const events = [];
   for (const op of trial.appState.operations) {
     const opStart = op.startTime || 0;
-
-    // Operation Start block
-    vttBlocks.push({
-      time: opStart,
-      vttTimeRange: `${formatVTTTime(opStart)} --> ${formatVTTTime(opStart + 2)}`,
-      text: `O: <font color="yellow">${op.name}</font> start`,
-    });
+    events.push({ time: opStart, text: `O: <c.yellow>${escapeHTML(op.name)}</c>` });
 
     // Process tasks under this operation
     let currentTaskStart = opStart;
     for (const task of op.tasks || []) {
       const taskDurationSec = (task.duration || 0) / 1000;
-
-      // Task Start block
-      vttBlocks.push({
-        time: currentTaskStart,
-        vttTimeRange: `${formatVTTTime(currentTaskStart)} --> ${formatVTTTime(currentTaskStart + 2)}`,
-        text: `T: <font color="yellow">${task.name}</font> start`,
-      });
-
+      events.push({ time: currentTaskStart, text: `T: <c.yellow>${escapeHTML(task.name)}</c>` });
       currentTaskStart += taskDurationSec;
     }
   }
 
   // Sort chronologically by time
-  vttBlocks.sort((a, b) => a.time - b.time);
+  events.sort((a, b) => a.time - b.time);
+
+  // Group overlapping events with exact same times together
+  const groups = [];
+  for (const ev of events) {
+    if (groups.length > 0 && Math.abs(groups[groups.length - 1].time - ev.time) < 0.001) {
+      groups[groups.length - 1].texts.push(ev.text);
+    } else {
+      groups.push({ time: ev.time, texts: [ev.text] });
+    }
+  }
+
+  for (let i = 0; i < groups.length; i++) {
+    const g = groups[i];
+    const startTime = g.time;
+    let endTime = startTime + 2;
+
+    // Prevent overlapping cues by capping endTime to the next cue's startTime
+    if (i < groups.length - 1 && groups[i + 1].time < endTime) {
+      endTime = groups[i + 1].time;
+    }
+
+    if (endTime > startTime) {
+      vttBlocks.push({
+        vttTimeRange: `${formatVTTTime(startTime)} --> ${formatVTTTime(endTime)}`,
+        text: g.texts.join("\n"),
+      });
+    }
+  }
 
   // Map to VTT blocks and join
   return (
