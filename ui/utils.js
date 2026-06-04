@@ -117,19 +117,17 @@ const parseTwoColumnCSV = (csvText) => {
   return results;
 };
 
-const buildSRTContent = (projectData, videoId) => {
-  let srtBlocks = [];
-  let srtIndex = 1;
+const buildVTTContent = (projectData, videoId) => {
+  let vttBlocks = [];
+  let vttIndex = 1;
 
   if (!projectData || !projectData.trials) return "";
 
   // Find the trial matching the videoId (filename or full path)
-  const trial = projectData.trials.find(
-    (t) => t.videoFileName === videoId || t.videoFilePath === videoId
-  );
+  const trial = projectData.trials.find((t) => t.videoFileName === videoId || t.videoFilePath === videoId);
   if (!trial || !trial.appState || !trial.appState.operations) return "";
 
-  const formatSRTTime = (seconds) => {
+  const formatVTTTime = (seconds) => {
     if (seconds < 0) seconds = 0;
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -137,61 +135,47 @@ const buildSRTContent = (projectData, videoId) => {
     const ms = Math.round((seconds % 1) * 1000);
 
     const pad = (num, size) => String(num).padStart(size, "0");
-    return `${pad(hrs, 2)}:${pad(mins, 2)}:${pad(secs, 2)},${pad(ms, 3)}`;
+    return `${pad(hrs, 2)}:${pad(mins, 2)}:${pad(secs, 2)}.${pad(ms, 3)}`;
   };
 
   for (const op of trial.appState.operations) {
     const opStart = op.startTime || 0;
-    const totalTasksDurationMs = (op.tasks || []).reduce((sum, t) => sum + (t.duration || 0), 0);
-    const opEnd = opStart + totalTasksDurationMs / 1000;
 
     // Operation Start block
-    srtBlocks.push({
+    vttBlocks.push({
       time: opStart,
-      srtTimeRange: `${formatSRTTime(opStart)} --> ${formatSRTTime(opStart + 2)}`,
-      text: `O: <font color="yellow">${op.name}</font> start`
-    });
-
-    // Operation End block
-    srtBlocks.push({
-      time: opEnd,
-      srtTimeRange: `${formatSRTTime(opEnd)} --> ${formatSRTTime(opEnd + 2)}`,
-      text: `O: <font color="yellow">${op.name}</font> end`
+      vttTimeRange: `${formatVTTTime(opStart)} --> ${formatVTTTime(opStart + 2)}`,
+      text: `O: <font color="yellow">${op.name}</font> start`,
     });
 
     // Process tasks under this operation
     let currentTaskStart = opStart;
     for (const task of op.tasks || []) {
       const taskDurationSec = (task.duration || 0) / 1000;
-      const taskEnd = currentTaskStart + taskDurationSec;
 
       // Task Start block
-      srtBlocks.push({
+      vttBlocks.push({
         time: currentTaskStart,
-        srtTimeRange: `${formatSRTTime(currentTaskStart)} --> ${formatSRTTime(currentTaskStart + 2)}`,
-        text: `T: <font color="yellow">${task.name}</font> start`
+        vttTimeRange: `${formatVTTTime(currentTaskStart)} --> ${formatVTTTime(currentTaskStart + 2)}`,
+        text: `T: <font color="yellow">${task.name}</font> start`,
       });
 
-      // Task End block
-      srtBlocks.push({
-        time: taskEnd,
-        srtTimeRange: `${formatSRTTime(taskEnd)} --> ${formatSRTTime(taskEnd + 2)}`,
-        text: `T: <font color="yellow">${task.name}</font> end`
-      });
-
-      currentTaskStart = taskEnd;
+      currentTaskStart += taskDurationSec;
     }
   }
 
   // Sort chronologically by time
-  srtBlocks.sort((a, b) => a.time - b.time);
+  vttBlocks.sort((a, b) => a.time - b.time);
 
-  // Map to SRT blocks and join
-  return srtBlocks
-    .map((block) => {
-      const srtLine = `${srtIndex}\n${block.srtTimeRange}\n${block.text}`;
-      srtIndex += 1;
-      return srtLine;
-    })
-    .join("\n\n");
+  // Map to VTT blocks and join
+  return (
+    "WEBVTT\n\n" +
+    vttBlocks
+      .map((block) => {
+        const vttLine = `${vttIndex}\n${block.vttTimeRange}\n${block.text}`;
+        vttIndex += 1;
+        return vttLine;
+      })
+      .join("\n\n")
+  );
 };

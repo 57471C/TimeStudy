@@ -200,6 +200,23 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
 
   player.load();
 
+  const isTauri = window.__TAURI__ !== undefined;
+  if (isTauri && videoFilePath) {
+    window.__TAURI__.core
+      .invoke("get_waveform_data", { path: videoFilePath })
+      .then((data) => {
+        if (window.drawCustomAudioWaveform) window.drawCustomAudioWaveform(data);
+      })
+      .catch((e) => console.warn("Waveform data not available yet", e));
+
+    window.__TAURI__.core
+      .invoke("generate_timeline_thumbnails", { path: videoFilePath })
+      .then((data) => {
+        // Future route to timeline thumbnails handler
+      })
+      .catch((e) => console.warn("Thumbnails not available yet", e));
+  }
+
   if (!isRelinking) {
     operations = [];
     projectName = "";
@@ -222,17 +239,6 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
 };
 
 let subtitleBlobUrl = null;
-
-const convertSrtToVtt = (srtText) => {
-  let vttText = "WEBVTT\n\n";
-  const normalizedSrt = srtText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  const vttConverted = normalizedSrt.replace(
-    /(\d{2}:\d{2}:\d{2}),(\d+)\s*-->\s*(\d{2}:\d{2}:\d{2}),(\d+)/g,
-    "$1.$2 --> $3.$4"
-  );
-  vttText += vttConverted;
-  return vttText;
-};
 
 const disableCCButton = () => {
   if (player && player.textTracks) {
@@ -271,10 +277,9 @@ const loadAndAttachSubtitles = async (videoPath) => {
 
     const dotIndex = videoPath.lastIndexOf(".");
     if (dotIndex === -1) return;
-    const srtPath = videoPath.substring(0, dotIndex) + ".srt";
+    const vttPath = videoPath.substring(0, dotIndex) + ".vtt";
 
-    const srtText = await window.__TAURI__.fs.readTextFile(srtPath);
-    const vttText = convertSrtToVtt(srtText);
+    const vttText = await window.__TAURI__.fs.readTextFile(vttPath);
     const blob = new Blob([vttText], { type: "text/vtt" });
     subtitleBlobUrl = URL.createObjectURL(blob);
 
@@ -291,7 +296,8 @@ const loadAndAttachSubtitles = async (videoPath) => {
     });
 
     if (DOM.ccButton) {
-      DOM.ccButton.className = "btn-icon mr-4 text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300";
+      DOM.ccButton.className =
+        "btn-icon mr-4 text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300";
     }
   } catch (err) {
     toConsole("Error loading and attaching subtitles", err, debuggin);
@@ -305,11 +311,13 @@ const autoLoadSubtitlesFlow = async () => {
   }
 
   try {
-    const srtExists = await window.__TAURI__.core.invoke("check_srt_exists", {
-      videoPath: videoFilePath,
-    });
+    const dotIndex = videoFilePath.lastIndexOf(".");
+    if (dotIndex === -1) return;
+    const vttPath = videoFilePath.substring(0, dotIndex) + ".vtt";
 
-    if (!srtExists) {
+    const vttExists = await window.__TAURI__.fs.exists(vttPath).catch(() => false);
+
+    if (!vttExists) {
       clearExistingCaptions();
       return;
     }
@@ -318,11 +326,12 @@ const autoLoadSubtitlesFlow = async () => {
       DOM.ccButton.removeAttribute("disabled");
     }
 
-    if (autoLoadSRT) {
+    if (autoLoadVTT) {
       await loadAndAttachSubtitles(videoFilePath);
     } else {
       if (DOM.ccButton) {
-        DOM.ccButton.className = "btn-icon mr-4 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100";
+        DOM.ccButton.className =
+          "btn-icon mr-4 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100";
       }
     }
   } catch (err) {
@@ -339,12 +348,14 @@ const toggleCC = async () => {
     if (track.track.mode === "showing") {
       track.track.mode = "hidden";
       if (DOM.ccButton) {
-        DOM.ccButton.className = "btn-icon mr-4 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100";
+        DOM.ccButton.className =
+          "btn-icon mr-4 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100";
       }
     } else {
       track.track.mode = "showing";
       if (DOM.ccButton) {
-        DOM.ccButton.className = "btn-icon mr-4 text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300";
+        DOM.ccButton.className =
+          "btn-icon mr-4 text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300";
       }
     }
   } else {
@@ -448,8 +459,8 @@ const initializePlayer = () => {
         }
       }
       if (DOM.projectCommentsInput) projectComments = DOM.projectCommentsInput.value;
-      if (DOM.autoGenerateSRTInput) autoGenerateSRT = DOM.autoGenerateSRTInput.checked;
-      if (DOM.autoLoadSRTInput) autoLoadSRT = DOM.autoLoadSRTInput.checked;
+      if (DOM.autoGenerateVTTInput) autoGenerateVTT = DOM.autoGenerateVTTInput.checked;
+      if (DOM.autoLoadVTTInput) autoLoadVTT = DOM.autoLoadVTTInput.checked;
       saveLocalState();
       // Redraw charts and update UI to reflect new Takt Time
       if (typeof updateProcessTimes === "function") updateProcessTimes();
@@ -635,6 +646,13 @@ const initializePlayer = () => {
     updateSliderTicks();
     updateProcessTimes();
 
+    if (window.paintTimelineRuler) {
+      window.paintTimelineRuler(duration);
+    }
+    if (window.paintTimelineMarkersAndShading) {
+      window.paintTimelineMarkersAndShading();
+    }
+
     player.playbackRate = playbackSpeed;
     speedSlider.value = playbackSpeed;
     DOM.speedValue.textContent = `${playbackSpeed.toFixed(1)}x`;
@@ -652,11 +670,13 @@ const initializePlayer = () => {
   player.addEventListener("play", () => {
     DOM.playIcon.classList.add("hidden");
     DOM.pauseIcon.classList.remove("hidden");
+    if (window.syncTimelinePlayheadSmoothly) window.syncTimelinePlayheadSmoothly();
     handleCinemaMouseMove();
   });
   player.addEventListener("pause", () => {
     DOM.playIcon.classList.remove("hidden");
     DOM.pauseIcon.classList.add("hidden");
+    if (window.cancelAnimationFrame && window.playheadAnimationId) cancelAnimationFrame(window.playheadAnimationId);
     handleCinemaMouseMove();
   });
   player.addEventListener("error", () => {
@@ -849,15 +869,15 @@ const initializePlayer = () => {
       });
 
       let srtData = [];
-      if (autoGenerateSRT) {
+      if (autoGenerateVTT) {
         try {
           const parsed = JSON.parse(jsonState);
           srtData = videoPaths.map((vPath) => {
             const filename = vPath.split(/[/\\]/).pop();
-            return buildSRTContent(parsed, filename);
+            return buildVTTContent(parsed, filename);
           });
         } catch (e) {
-          toConsole("Error preparing srtData for package save", e, debuggin);
+          toConsole("Error preparing vttData for package save", e, debuggin);
         }
       }
 
@@ -865,7 +885,7 @@ const initializePlayer = () => {
         jsonState,
         videoPaths,
         savePath: path,
-        srtData,
+        srtData, // Variable is passed unchanged to respect expected Rust struct bindings
       });
       showToast("Package saved successfully.", "success");
     } catch (e) {
@@ -938,7 +958,7 @@ const initializePlayer = () => {
             await executePackageSave(path, jsonState, videoPaths);
           } else {
             await window.__TAURI__.fs.writeTextFile(path, jsonState);
-            await writeSrtNextToTsp(path, jsonState);
+            await writeVttNextToTsp(path, jsonState);
             showToast("Project saved successfully.", "success");
           }
           projectFilePath = path;
@@ -1031,7 +1051,7 @@ const initializePlayer = () => {
         });
 
         await window.__TAURI__.fs.writeTextFile(newProjectPath, jsonState);
-        await writeSrtNextToTsp(newProjectPath, jsonState);
+        await writeVttNextToTsp(newProjectPath, jsonState);
 
         projectFilePath = newProjectPath;
         localStorage.setItem("projectFilePath", projectFilePath);
@@ -1067,7 +1087,7 @@ const initializePlayer = () => {
           trials,
         });
         await window.__TAURI__.fs.writeTextFile(projectFilePath, jsonState);
-        await writeSrtNextToTsp(projectFilePath, jsonState);
+        await writeVttNextToTsp(projectFilePath, jsonState);
         showToast("Project saved successfully.", "success");
       } catch (e) {
         toConsole("Error saving project via Tauri", e, debuggin);
