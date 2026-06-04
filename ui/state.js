@@ -36,7 +36,7 @@ let groupingMode = "lean";
 let autoGenerateVTT = false;
 let autoLoadVTT = true;
 
-const APP_VERSION = "0.6.8";
+const APP_VERSION = "0.6.9";
 
 // biome-ignore lint/style/useConst: Global state modified in other scripts
 let isDrawing = false;

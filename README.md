@@ -1,7 +1,7 @@
 # TimeStudy
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/57471C/TimeStudy/actions)
-[![Version](https://img.shields.io/badge/version-0.6.8-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
+[![Version](https://img.shields.io/badge/version-0.6.9-brightgreen)](https://github.com/57471C/TimeStudy/blob/main/LICENSE)
 
 
 ## Features
@@ -26,6 +26,9 @@
 7. **Export**: Use "Export" to save data as CSV or XLSX formats.
 8. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 9. **Dark Mode**: Click the sun/moon icon to toggle themes.
+
+## Version 0.6.9 Updates
+- **Coloured Closed Captions**: Closed captions are now VTT by default and the Operation names and Tasks are in yellow.
 
 ## Version 0.6.8 Updates
 - **Added Closed Caption Loading**: Load closed captions (.srt) or (.vtt) files into the video window.
