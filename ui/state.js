@@ -36,7 +36,7 @@ let groupingMode = "lean";
 let autoGenerateVTT = false;
 let autoLoadVTT = true;
 
-const APP_VERSION = "0.6.9";
+const APP_VERSION = "0.7.0";
 
 // biome-ignore lint/style/useConst: Global state modified in other scripts
 let isDrawing = false;
@@ -645,11 +645,11 @@ const exportToXLSX = async () => {
     const videoCellVal =
       trialVideoFileName && trialVideoFilePath
         ? {
-            text: trialVideoFileName,
-            hyperlink: trialVideoFilePath.startsWith("file://")
-              ? trialVideoFilePath
-              : `file:///${trialVideoFilePath.replace(/\\/g, "/")}`,
-          }
+          text: trialVideoFileName,
+          hyperlink: trialVideoFilePath.startsWith("file://")
+            ? trialVideoFilePath
+            : `file:///${trialVideoFilePath.replace(/\\/g, "/")}`,
+        }
         : trialVideoFileName;
 
     // Metadata titles & values
