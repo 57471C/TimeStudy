@@ -186,3 +186,7 @@ body.cinema-active #videoContainer .z-15:hover {
   opacity: 1 !important;
   pointer-events: auto !important;
 }
+
+video {
+  transition: none !important;
+}
