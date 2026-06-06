@@ -215,10 +215,9 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
   }
 
   DOM.videoPlaceholder.textContent = "Load a video to get started";
-  saveLocalState();
   updateSliderTicks();
-
   updateLoadButtonColor();
+  saveLocalState();
 };
 
 let subtitleBlobUrl = null;
@@ -653,6 +652,8 @@ const initializePlayer = () => {
     DOM.volumeValue.textContent = "0";
     toConsole("Video muted on load", "Success", debuggin);
     autoLoadSubtitlesFlow();
+    updateTaskList();
+    drawTable();
   });
   player.addEventListener("play", () => {
     DOM.playIcon.classList.add("hidden");
@@ -715,13 +716,39 @@ const initializePlayer = () => {
   muteButton = document.getElementById("muteButton");
   volumeSlider = document.getElementById("volumeSlider");
 
-  loadLocalState();
+  const restored = loadLocalState();
   if (!taktTime) {
     taktTime = 60000;
   }
-  if (operations.length > 0) {
-    updateTaskList();
-    drawTable();
+
+  if (restored) {
+    const isTauri = window.__TAURI__ !== undefined;
+    if (isTauri && videoFilePath) {
+      const tauriAssetUrl = window.__TAURI__.core.convertFileSrc(videoFilePath);
+      player.src = tauriAssetUrl;
+      player.preload = "auto";
+      toggleVideoPlaceholder(false);
+      player.load();
+    } else if (videoFileName && videoBlobCache[videoFileName]) {
+      player.src = videoBlobCache[videoFileName];
+      player.preload = "metadata";
+      toggleVideoPlaceholder(false);
+      player.load();
+    } else {
+      player.src = "";
+      player.removeAttribute("src");
+      if (videoFileName) {
+        DOM.videoPlaceholder.textContent = `Session restored. Click here to locate video: ${videoFileName}`;
+      } else {
+        DOM.videoPlaceholder.textContent = "Load a video to get started";
+      }
+      toggleVideoPlaceholder(true);
+    }
+  } else {
+    if (operations.length > 0) {
+      updateTaskList();
+      drawTable();
+    }
   }
 
   // Setup Context Menu for Current Time
@@ -1130,6 +1157,7 @@ const initializePlayer = () => {
             const jsonText = await window.__TAURI__.fs.readTextFile(projectFilePath);
             importFromJSON(jsonText);
           }
+          saveLocalState();
         }
       } catch (e) {
         toConsole("Error loading project via Tauri", e, debuggin);
@@ -1332,6 +1360,7 @@ const initializePlayer = () => {
           }
         }
 
+        saveLocalState();
         closeModal();
         showToast("Example project loaded", "success");
       } catch (err) {
@@ -1670,13 +1699,27 @@ window.onload = () => {
   document.body.style.overflowX = "hidden";
 
   initializePlayer();
-  toggleVideoPlaceholder(true);
+  
+  // Wrap empty state layouts or placeholder visibilities in a conditional check
+  const hasActiveWorkspace = videoFilePath || videoFileName || (operations && operations.length > 0);
+  if (!hasActiveWorkspace) {
+    toggleVideoPlaceholder(true);
+  }
 
   const isTauri = window.__TAURI__ !== undefined;
   if (isTauri) {
     window.__TAURI__.core
       .invoke("get_startup_file")
       .then(async (startupFile) => {
+        if (!startupFile) {
+          // Guard clause: if session is already active from local storage bootstrapper, abort reset
+          const sessionActive = videoFilePath || videoFileName || (operations && operations.length > 0) || projectName !== "";
+          if (sessionActive) {
+            toConsole("Startup file empty/null but session is active. Aborting clean workspace reset.", null, debuggin);
+            return;
+          }
+          return;
+        }
         if (startupFile) {
           clearExistingCaptions();
           try {
@@ -1703,6 +1746,7 @@ window.onload = () => {
               const jsonText = await window.__TAURI__.fs.readTextFile(startupFile);
               importFromJSON(jsonText);
             }
+            saveLocalState();
             toConsole("Auto-loaded project from file association", startupFile, debuggin);
           } catch (e) {
             toConsole("Error auto-loading startup file", e, debuggin);

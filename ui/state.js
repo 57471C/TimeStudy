@@ -137,6 +137,7 @@ const saveLocalState = () => {
       projectComments,
       partsList,
       labourList,
+      projectFilePath,
       lastSaved: new Date().toISOString(),
       appVersion: APP_VERSION,
     },
@@ -155,6 +156,7 @@ const saveLocalState = () => {
 
 const loadLocalState = () => {
   const data = localStorage.getItem("timeStudyData");
+  let restored = false;
   if (data) {
     try {
       const state = JSON.parse(data);
@@ -162,9 +164,15 @@ const loadLocalState = () => {
       if (state.projectMeta) {
         partsList = state.projectMeta.partsList || state.projectMeta.masterParts || [];
         labourList = state.projectMeta.labourList || state.projectMeta.masterLabour || [];
+        projectName = state.projectMeta.projectName || "";
+        projectComments = state.projectMeta.projectComments || "";
+        projectFilePath = state.projectMeta.projectFilePath || "";
       } else {
         partsList = state.partsList || state.masterParts || [];
         labourList = state.labourList || state.masterLabour || [];
+        projectName = state.projectName || "";
+        projectComments = state.projectComments || "";
+        projectFilePath = state.projectFilePath || "";
       }
 
       if (state.appConfig) {
@@ -184,45 +192,70 @@ const loadLocalState = () => {
         autoLoadVTT = true;
       }
 
+      if (state.trials && state.trials.length > 0) {
+        trials = state.trials;
+        activeTrialIndex = state.activeTrialIndex !== undefined ? state.activeTrialIndex : 0;
+        
+        // Hydrate memory with the active trial data
+        const currentTrial = trials[activeTrialIndex];
+        if (currentTrial) {
+          videoFileName = currentTrial.videoFileName || "";
+          videoFilePath = currentTrial.videoFilePath || "";
+          processStartTime = currentTrial.processStartTime || 0;
+          processEndTime = currentTrial.processEndTime || 0;
+          taktTime = currentTrial.taktTime || 60000;
+
+          hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
+          shiftLength = currentTrial.costingConfig?.shiftLength || 480;
+          targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
+          unitsPerCycle = currentTrial.costingConfig?.unitsPerCycle || 1;
+
+          operations = currentTrial.appState?.operations || [];
+          restored = true;
+        }
+      }
+
       toConsole("Global settings and master data restored", "Success", debuggin);
     } catch (e) {
       toConsole("Error parsing local state", e, debuggin);
     }
   }
 
-  // Always initialize a blank trial for a fresh project
-  projectFilePath = "";
-  projectName = "";
-  projectComments = "";
-  trials = [
-    {
-      trialId: 1,
-      trialName: "Current State",
-      videoFileName: "",
-      videoFilePath: "",
-      processStartTime: 0,
-      processEndTime: 0,
-      taktTime: 60000,
-      costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
-      appState: { operations: [] },
-    },
-  ];
-  activeTrialIndex = 0;
+  if (!restored) {
+    // Fallback: Always initialize a blank trial for a fresh project
+    projectFilePath = "";
+    projectName = "";
+    projectComments = "";
+    trials = [
+      {
+        trialId: 1,
+        trialName: "Current State",
+        videoFileName: "",
+        videoFilePath: "",
+        processStartTime: 0,
+        processEndTime: 0,
+        taktTime: 60000,
+        costingConfig: { hourlyRate: 0, shiftLength: 480, targetEfficiency: 100, unitsPerCycle: 1 },
+        appState: { operations: [] },
+      },
+    ];
+    activeTrialIndex = 0;
 
-  // Hydrate memory with the active trial data (the blank one)
-  const currentTrial = trials[activeTrialIndex];
-  videoFileName = currentTrial.videoFileName || "";
-  videoFilePath = currentTrial.videoFilePath || "";
-  processStartTime = currentTrial.processStartTime || 0;
-  processEndTime = currentTrial.processEndTime || 0;
-  taktTime = currentTrial.taktTime || 60000;
+    // Hydrate memory with the active trial data (the blank one)
+    const currentTrial = trials[activeTrialIndex];
+    videoFileName = currentTrial.videoFileName || "";
+    videoFilePath = currentTrial.videoFilePath || "";
+    processStartTime = currentTrial.processStartTime || 0;
+    processEndTime = currentTrial.processEndTime || 0;
+    taktTime = currentTrial.taktTime || 60000;
 
-  hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
-  shiftLength = currentTrial.costingConfig?.shiftLength || 480;
-  targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
-  unitsPerCycle = currentTrial.costingConfig?.unitsPerCycle || 1;
+    hourlyRate = currentTrial.costingConfig?.hourlyRate || 0;
+    shiftLength = currentTrial.costingConfig?.shiftLength || 480;
+    targetEfficiency = currentTrial.costingConfig?.targetEfficiency || 100;
+    unitsPerCycle = currentTrial.costingConfig?.unitsPerCycle || 1;
 
-  operations = currentTrial.appState?.operations || [];
+    operations = currentTrial.appState?.operations || [];
+  }
 
   // Sync UI
   if (DOM.projectNameInput) DOM.projectNameInput.value = projectName;
@@ -232,6 +265,8 @@ const loadLocalState = () => {
 
   if (typeof renderPartsList === "function") renderPartsList();
   if (typeof renderLabourList === "function") renderLabourList();
+
+  return restored;
 };
 
 const exportToJSON = async (isSaveAs = false) => {

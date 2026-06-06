@@ -4,7 +4,10 @@ window.translateY = 0;
 
 window.initializeVideoViewportZoomPan = (videoElement, container) => {
 	if (!videoElement) return;
-	const containerElement = container || document.getElementById("videoWrapper") || videoElement.parentElement;
+	const containerElement =
+		container ||
+		document.getElementById("videoWrapper") ||
+		videoElement.parentElement;
 	if (!containerElement) return;
 
 	let isPanningVideo = false;
@@ -83,8 +86,10 @@ window.initializeVideoViewportZoomPan = (videoElement, container) => {
 			} else {
 				const scaleRatio = targetZoom / oldZoom;
 				window.zoomLevel = targetZoom;
-				window.translateX = mouseX - (mouseX - (window.translateX || 0)) * scaleRatio;
-				window.translateY = mouseY - (mouseY - (window.translateY || 0)) * scaleRatio;
+				window.translateX =
+					mouseX - (mouseX - (window.translateX || 0)) * scaleRatio;
+				window.translateY =
+					mouseY - (mouseY - (window.translateY || 0)) * scaleRatio;
 				translateX = window.translateX;
 				translateY = window.translateY;
 			}
