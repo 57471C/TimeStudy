@@ -724,11 +724,17 @@ const initializePlayer = () => {
 
 	takeSnapshotBtn = document.getElementById("takeSnapshotBtn");
 	if (takeSnapshotBtn) {
-		takeSnapshotBtn.addEventListener("click", takeSnapshot);
+		takeSnapshotBtn.addEventListener("click", (e) => {
+			e.currentTarget.blur();
+			takeSnapshot();
+		});
 	}
 	cinemaModeBtn = document.getElementById("cinemaModeBtn");
 	if (cinemaModeBtn) {
-		cinemaModeBtn.addEventListener("click", toggleCinemaMode);
+		cinemaModeBtn.addEventListener("click", (e) => {
+			e.currentTarget.blur();
+			toggleCinemaMode();
+		});
 	}
 	addTaskButton = document.getElementById("addTaskButton");
 	addOpButton = document.getElementById("addOpButton");
@@ -1389,7 +1395,8 @@ const initializePlayer = () => {
 		}
 	});
 
-	toggleFormatButton.addEventListener("click", () => {
+	toggleFormatButton.addEventListener("click", (e) => {
+		e.currentTarget.blur();
 		if (durationMode === "hhmmssms") {
 			durationMode = "ms";
 		} else if (durationMode === "ms") {
@@ -1407,7 +1414,8 @@ const initializePlayer = () => {
 		updateTaskList();
 		drawTable();
 	});
-	playPauseButton.addEventListener("click", () => {
+	playPauseButton.addEventListener("click", (e) => {
+		e.currentTarget.blur();
 		if (player.paused) {
 			player.play();
 		} else {
@@ -1415,30 +1423,35 @@ const initializePlayer = () => {
 		}
 	});
 
-	jumpToStartButton.addEventListener("click", () => {
+	jumpToStartButton.addEventListener("click", (e) => {
+		e.currentTarget.blur();
 		player.currentTime = processStartTime || 0;
 		toConsole("Jumped to Start", player.currentTime, debuggin);
 	});
 
-	rewind5sButton.addEventListener("click", () => {
+	rewind5sButton.addEventListener("click", (e) => {
+		e.currentTarget.blur();
 		player.currentTime = Math.max(
 			processStartTime || 0,
 			player.currentTime - 5,
 		);
 		toConsole("Rewind 5s", player.currentTime, debuggin);
 	});
-	rewind1sButton.addEventListener("click", () => {
+	rewind1sButton.addEventListener("click", (e) => {
+		e.currentTarget.blur();
 		player.currentTime = Math.max(
 			processStartTime || 0,
 			player.currentTime - 1,
 		);
 		toConsole("Rewind 1s", player.currentTime, debuggin);
 	});
-	forward1sButton.addEventListener("click", () => {
+	forward1sButton.addEventListener("click", (e) => {
+		e.currentTarget.blur();
 		player.currentTime = Math.min(player.duration, player.currentTime + 1);
 		toConsole("Forward 1s", player.currentTime, debuggin);
 	});
-	forward5sButton.addEventListener("click", () => {
+	forward5sButton.addEventListener("click", (e) => {
+		e.currentTarget.blur();
 		player.currentTime = Math.min(player.duration, player.currentTime + 5);
 		toConsole("Forward 5s", player.currentTime, debuggin);
 	});
@@ -1507,7 +1520,8 @@ const initializePlayer = () => {
 		});
 	}
 
-	muteButton.addEventListener("click", () => {
+	muteButton.addEventListener("click", (e) => {
+		e.currentTarget.blur();
 		player.muted = !player.muted;
 		DOM.volumeOnIcon.classList.toggle("hidden", player.muted);
 		DOM.volumeOffIcon.classList.toggle("hidden", !player.muted);
@@ -1648,6 +1662,20 @@ const initializePlayer = () => {
 	marqueeOverlay.addEventListener("mousedown", startMarquee);
 	marqueeOverlay.addEventListener("mousemove", drawMarquee);
 	marqueeOverlay.addEventListener("mouseup", endMarquee);
+
+	// Prevent sliders from trapping keyboard focus
+	document.addEventListener("mouseup", (event) => {
+		if (event.target.tagName === "INPUT" && event.target.type === "range") {
+			event.target.blur();
+		}
+	});
+
+	// Catch touch interactions for touchscreen devices
+	document.addEventListener("touchend", (event) => {
+		if (event.target.tagName === "INPUT" && event.target.type === "range") {
+			event.target.blur();
+		}
+	});
 
 	document.addEventListener("keydown", (e) => {
 		// Disable shortcuts while Tetris is active to prevent key conflicts (e.g. arrows/spacebar seeking video)
@@ -1844,7 +1872,10 @@ const initializePlayer = () => {
 		}
 	});
 
-	DOM.ccButton?.addEventListener("click", toggleCC);
+	DOM.ccButton?.addEventListener("click", (e) => {
+		e.currentTarget.blur();
+		toggleCC();
+	});
 	updateLoadButtonColor();
 };
 
