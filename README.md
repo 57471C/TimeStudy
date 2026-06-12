@@ -27,6 +27,15 @@
 8. **Toggle Format**: Switch between MM:SS:MS, milliseconds, or decimal minutes.
 9. **Dark Mode**: Click the sun/moon icon to toggle themes.
 
+## Version 0.7.2 Updates
+- **Play from Task**: Tasks now have a handy "Play from Here" button to start playing the video from the start time of that task.
+- **Fixed kb-shortcuts work after slide**: Keyboard shortcuts now work after moving the play head/volume and speed sliders (again!).
+
+## Version 0.7.0 Updates
+- **Fixed Zoom aspect**: Zoom aspect ratio is now the same as the parent video frame.
+- **Added Zoom via mouse-wheel**: Zoom in and out via mouse-wheel at the pointer location.
+- **Fixed snapshot after zoom**: After zooming, snapshots are the correct zoom level.
+
 ## Version 0.6.9 Updates
 - **Coloured Closed Captions**: Closed captions are now VTT by default and the Operation names and Tasks are in yellow.
 
