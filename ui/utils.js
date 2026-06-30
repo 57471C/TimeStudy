@@ -6,14 +6,21 @@ const debounce = (func, wait) => {
   };
 };
 
+const HTML_ENTITIES = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#039;",
+};
+
+// ⚡ Bolt: Performance optimization
+// Replaced 5 chained .replace() calls with a single regex pass and lookup table.
+// Impact: O(N) instead of 5 * O(N) traversals, preventing the allocation of 5 intermediate strings in memory per call.
+// This function is heavily used during UI rendering, reducing GC pressure and blocking time.
 const escapeHTML = (str) => {
   if (typeof str !== "string") return str;
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+  return str.replace(/[&<>"']/g, (match) => HTML_ENTITIES[match]);
 };
 
 const sanitizeFilename = (name) => {
