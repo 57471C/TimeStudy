@@ -622,8 +622,9 @@
           setTimeout(() => {
             modal.close();
             // Restore normal dialog contents for future runs
-            document.getElementById("tetrisContainer").style.display = "none";
-            document.getElementById("tetrisContainer").classList.add("hidden");
+            const container = document.getElementById("tetrisContainer");
+            container.style.display = "none";
+            container.classList.add("hidden");
             document.getElementById("trimNormalContent").classList.remove("hidden");
             document.getElementById("trimNormalFooter").classList.remove("hidden");
 
