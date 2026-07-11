@@ -732,40 +732,46 @@ const updateTaskList = () => {
 
 		requestAnimationFrame(updateStickyOffsets);
 
-		for (let i = 0; i < operations.length; i += 1) {
-			const opTimeInput = document.getElementById(`opTimeInput-${i}`);
-			if (!opTimeInput)
-				throw new Error(`Operation time input opTimeInput-${i} not found`);
-			opTimeInput.addEventListener("change", (event) => {
-				const newTime = parseTimeFromHHMMSSMS(event.target.value);
-				if (newTime !== null) {
-					operations[i].startTime = newTime;
-					toConsole(
-						`Operation ${i} start time updated`,
-						operations[i].startTime,
-						debuggin,
+		if (!DOM.taskList._hasDelegatedOpTimeEvent) {
+			DOM.taskList.addEventListener("change", (event) => {
+				if (event.target?.id?.startsWith("opTimeInput-")) {
+					const i = parseInt(
+						event.target.id.substring("opTimeInput-".length),
+						10,
 					);
-					if (newTime < processStartTime) {
-						showToast(
-							`Operation "${operations[i].name}" starts before Process Start Time.`,
-							"error",
+					if (Number.isNaN(i) || !operations[i]) return;
+
+					const newTime = parseTimeFromHHMMSSMS(event.target.value);
+					if (newTime !== null) {
+						operations[i].startTime = newTime;
+						toConsole(
+							`Operation ${i} start time updated`,
+							operations[i].startTime,
+							debuggin,
 						);
-					} else if (processEndTime > 0 && newTime > processEndTime) {
-						showToast(
-							`Operation "${operations[i].name}" starts after Process End Time.`,
-							"error",
+						if (newTime < processStartTime) {
+							showToast(
+								`Operation "${operations[i].name}" starts before Process Start Time.`,
+								"error",
+							);
+						} else if (processEndTime > 0 && newTime > processEndTime) {
+							showToast(
+								`Operation "${operations[i].name}" starts after Process End Time.`,
+								"error",
+							);
+						}
+						saveLocalState();
+						updateProcessTimes();
+						updateTaskList();
+					} else {
+						alert(
+							"Invalid time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).",
 						);
+						event.target.value = formatTimeToHHMMSSMS(operations[i].startTime);
 					}
-					saveLocalState();
-					updateProcessTimes();
-					updateTaskList();
-				} else {
-					alert(
-						"Invalid time format. Please use HH:MM:SS.MS (e.g., 00:01:00.00).",
-					);
-					opTimeInput.value = formatTimeToHHMMSSMS(operations[i].startTime);
 				}
 			});
+			DOM.taskList._hasDelegatedOpTimeEvent = true;
 		}
 
 		if (typeof updateSliderTicks === "function") updateSliderTicks();
