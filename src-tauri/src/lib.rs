@@ -235,12 +235,13 @@ async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<S
         zip.start_file("project.tsp", options).map_err(|e| e.to_string())?;
         zip.write_all(json_state.as_bytes()).map_err(|e| e.to_string())?;
 
-        let mut total_bytes: u64 = 0;
-        for path in &video_paths {
-            if let Ok(meta) = fs::metadata(path) {
-                total_bytes += meta.len();
+        let total_bytes: u64 = std::thread::scope(|s| {
+            let mut handles = Vec::with_capacity(video_paths.len());
+            for path in &video_paths {
+                handles.push(s.spawn(move || fs::metadata(path).map(|m| m.len()).unwrap_or(0)));
             }
-        }
+            handles.into_iter().map(|h| h.join().unwrap_or(0)).sum()
+        });
 
         let mut bytes_written: u64 = 0;
         let mut buffer = vec![0; 4 * 1024 * 1024]; // 4MB Buffer Chunk
