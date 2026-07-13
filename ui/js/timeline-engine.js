@@ -12,11 +12,15 @@ function syncTimelinePlayheadSmoothly() {
 	const video = document.getElementById("my_video");
 	if (video && !video.paused) {
 		window.lastCheckedVideoTime = video.currentTime;
-		// TODO: Canvas playhead position synchronization updates
+		updateCanvasPlayhead(video.currentTime, video.duration);
 	}
 	window.playheadAnimationId = requestAnimationFrame(
 		syncTimelinePlayheadSmoothly,
 	);
+}
+
+function updateCanvasPlayhead(currentTime, duration) {
+	// Canvas playhead position synchronization updates
 }
 
 function paintTimelineRuler(duration) {
@@ -34,6 +38,7 @@ function paintTimelineMarkersAndShading() {
 
 // Encapsulate and expose core utility functions on the global window scope
 window.syncTimelinePlayheadSmoothly = syncTimelinePlayheadSmoothly;
+window.updateCanvasPlayhead = updateCanvasPlayhead;
 window.paintTimelineRuler = paintTimelineRuler;
 window.drawCustomAudioWaveform = drawCustomAudioWaveform;
 window.paintTimelineMarkersAndShading = paintTimelineMarkersAndShading;
