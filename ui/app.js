@@ -586,20 +586,21 @@ const initializePlayer = () => {
 	setupInlineDataManagement();
 
 	if (DOM.statusModal) {
-		for (const btn of DOM.statusModal.querySelectorAll(".status-btn")) {
-			btn.addEventListener("click", (e) => {
+		DOM.statusModal.addEventListener("click", (e) => {
+			const btn = e.target.closest(".status-btn");
+			if (btn) {
 				if (currentStatusEdit) {
 					handleInlineStatusEdit(
 						currentStatusEdit.opIndex,
 						currentStatusEdit.taskIndex,
-						e.target.getAttribute("data-status"),
+						btn.getAttribute("data-status"),
 					);
 				}
 				DOM.statusModal.close();
 				currentStatusEdit = null;
-			});
-		}
-		DOM.statusModal.addEventListener("click", (e) => {
+				return;
+			}
+
 			if (e.target === DOM.statusModal) {
 				DOM.statusModal.close();
 				currentStatusEdit = null;
