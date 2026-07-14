@@ -549,13 +549,11 @@ const exportToCSV = async () => {
     if (partTags.length === 0) {
       csvContent += `${escapeCSV(op.name)},,,,${formatTimeToHHMMSSMS(op.startTime)},${formatDecimalMinutes(opTotalTime)}\n`;
     } else {
-      for (let pIdx = 0; pIdx < partTags.length; pIdx += 1) {
+      const { qty, partNumber, partDescription } = parsePartTag(partTags[0]);
+      csvContent += `${escapeCSV(op.name)},${escapeCSV(qty)},${escapeCSV(partNumber)},${escapeCSV(partDescription)},${formatTimeToHHMMSSMS(op.startTime)},${formatDecimalMinutes(opTotalTime)}\n`;
+      for (let pIdx = 1; pIdx < partTags.length; pIdx += 1) {
         const { qty, partNumber, partDescription } = parsePartTag(partTags[pIdx]);
-        if (pIdx === 0) {
-          csvContent += `${escapeCSV(op.name)},${escapeCSV(qty)},${escapeCSV(partNumber)},${escapeCSV(partDescription)},${formatTimeToHHMMSSMS(op.startTime)},${formatDecimalMinutes(opTotalTime)}\n`;
-        } else {
-          csvContent += `,${escapeCSV(qty)},${escapeCSV(partNumber)},${escapeCSV(partDescription)},,\n`;
-        }
+        csvContent += `,${escapeCSV(qty)},${escapeCSV(partNumber)},${escapeCSV(partDescription)},,\n`;
       }
     }
 
@@ -576,13 +574,11 @@ const exportToCSV = async () => {
       if (laborTags.length === 0) {
         csvContent += `${escapeCSV(task.name)},,,${valVA},${valNVA},${valW},${valTotal}\n`;
       } else {
-        for (let lIdx = 0; lIdx < laborTags.length; lIdx += 1) {
+        const { code, description } = parseLabourTag(laborTags[0]);
+        csvContent += `${escapeCSV(task.name)},${escapeCSV(code)},${escapeCSV(description)},${valVA},${valNVA},${valW},${valTotal}\n`;
+        for (let lIdx = 1; lIdx < laborTags.length; lIdx += 1) {
           const { code, description } = parseLabourTag(laborTags[lIdx]);
-          if (lIdx === 0) {
-            csvContent += `${escapeCSV(task.name)},${escapeCSV(code)},${escapeCSV(description)},${valVA},${valNVA},${valW},${valTotal}\n`;
-          } else {
-            csvContent += `,${escapeCSV(code)},${escapeCSV(description)},,,,\n`;
-          }
+          csvContent += `,${escapeCSV(code)},${escapeCSV(description)},,,,\n`;
         }
       }
     }
