@@ -1,16 +1,15 @@
-
-use std::sync::Mutex;
-use tauri::Manager;
-use tauri::Emitter;
-use tauri::Window;
-use tauri_plugin_shell::ShellExt;
-use tauri_plugin_shell::process::CommandEvent;
+use serde::Serialize;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::Path;
+use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
-use zip::{ZipArchive, ZipWriter, write::FileOptions};
-use serde::Serialize;
+use tauri::Emitter;
+use tauri::Manager;
+use tauri::Window;
+use tauri_plugin_shell::process::CommandEvent;
+use tauri_plugin_shell::ShellExt;
+use zip::{write::FileOptions, ZipArchive, ZipWriter};
 
 #[derive(Default)]
 pub struct FfmpegState(pub Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
@@ -101,18 +100,20 @@ async fn run_ffmpeg(
     });
 
     // Wait for the process to complete or fail
-    let exit_code = join_handle.await
+    let exit_code = join_handle
+        .await
         .map_err(|e| format!("Background thread panicked: {}", e))?;
 
     match exit_code {
         Some(0) => Ok("Success".to_string()),
         Some(code) => {
             let logs = stderr_logs.lock().unwrap().join("\n");
-            Err(format!("FFmpeg failed with exit status code {}.\n\nLogs:\n{}", code, logs))
+            Err(format!(
+                "FFmpeg failed with exit status code {}.\n\nLogs:\n{}",
+                code, logs
+            ))
         }
-        None => {
-            Err("FFmpeg process ended unexpectedly or was terminated by signal.".to_string())
-        }
+        None => Err("FFmpeg process ended unexpectedly or was terminated by signal.".to_string()),
     }
 }
 
@@ -133,29 +134,43 @@ fn check_srt_exists(video_path: String) -> bool {
 }
 
 #[tauri::command]
-fn extract_temp_workspace(
+async fn extract_temp_workspace(
     temp_video_paths: Vec<String>,
     destination_folder: String,
 ) -> Result<Vec<String>, String> {
-    use std::path::Path;
+    use std::path::PathBuf;
 
-    let dest_dir = Path::new(&destination_folder);
-    let mut new_paths = Vec::new();
+    let dest_dir = PathBuf::from(destination_folder);
+    let mut handles = Vec::with_capacity(temp_video_paths.len());
 
     for temp_path in temp_video_paths {
-        let path = Path::new(&temp_path);
-        
-        if let Some(file_name) = path.file_name() {
-            let dest_path = dest_dir.join(file_name);
-            
-            // Execute the standard fs copy
-            std::fs::copy(&path, &dest_path)
-                .map_err(|e| format!("Failed to copy file {:?}: {}", path, e))?;
-            
-            new_paths.push(dest_path.to_string_lossy().to_string());
-        } else {
-            return Err(format!("Invalid file path: {}", temp_path));
-        }
+        let dest_dir_clone = dest_dir.clone();
+
+        let handle = tokio::task::spawn_blocking(move || -> Result<String, String> {
+            let path = std::path::Path::new(&temp_path);
+
+            if let Some(file_name) = path.file_name() {
+                let dest_path = dest_dir_clone.join(file_name);
+
+                // Execute the standard fs copy in a blocking task
+                std::fs::copy(path, &dest_path)
+                    .map_err(|e| format!("Failed to copy file {:?}: {}", path, e))?;
+
+                Ok(dest_path.to_string_lossy().to_string())
+            } else {
+                Err(format!("Invalid file path: {}", temp_path))
+            }
+        });
+
+        handles.push(handle);
+    }
+
+    let mut new_paths = Vec::with_capacity(handles.len());
+    for handle in handles {
+        let result = handle
+            .await
+            .map_err(|e| format!("Blocking task panicked: {}", e))??;
+        new_paths.push(result);
     }
 
     Ok(new_paths)
@@ -172,7 +187,10 @@ fn load_tspz_bundle(archive_path: String) -> Result<TspzPayload, String> {
     let archive_file = File::open(&archive_path).map_err(|e| e.to_string())?;
     let mut archive = ZipArchive::new(archive_file).map_err(|e| e.to_string())?;
 
-    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
     let temp_dir = std::env::temp_dir().join(format!("tspz_{}", timestamp));
     fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
 
@@ -197,7 +215,8 @@ fn load_tspz_bundle(archive_path: String) -> Result<TspzPayload, String> {
 
             if file.name() == "project.tsp" {
                 let mut f = File::open(&outpath).map_err(|e| e.to_string())?;
-                f.read_to_string(&mut json_state).map_err(|e| e.to_string())?;
+                f.read_to_string(&mut json_state)
+                    .map_err(|e| e.to_string())?;
             } else if let Some(ext) = outpath.extension() {
                 let ext_str = ext.to_string_lossy().to_lowercase();
                 if ["mp4", "mov", "webm", "avi", "ogg"].contains(&ext_str.as_str()) {
@@ -224,7 +243,13 @@ struct ProgressPayload {
 }
 
 #[tauri::command]
-async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<String>, save_path: String, srt_data: Vec<String>) -> Result<(), String> {
+async fn save_tspz_bundle(
+    window: Window,
+    json_state: String,
+    video_paths: Vec<String>,
+    save_path: String,
+    srt_data: Vec<String>,
+) -> Result<(), String> {
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         let file = File::create(&save_path).map_err(|e| e.to_string())?;
         let mut zip = ZipWriter::new(file);
@@ -232,8 +257,10 @@ async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<S
             .compression_method(zip::CompressionMethod::Deflated)
             .unix_permissions(0o755);
 
-        zip.start_file("project.tsp", options).map_err(|e| e.to_string())?;
-        zip.write_all(json_state.as_bytes()).map_err(|e| e.to_string())?;
+        zip.start_file("project.tsp", options)
+            .map_err(|e| e.to_string())?;
+        zip.write_all(json_state.as_bytes())
+            .map_err(|e| e.to_string())?;
 
         let total_bytes: u64 = std::thread::scope(|s| {
             let mut handles = Vec::with_capacity(video_paths.len());
@@ -252,14 +279,16 @@ async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<S
                 let filename_str = filename.to_string_lossy().to_string();
                 let mut f = File::open(path).map_err(|e| e.to_string())?;
 
-                zip.start_file(filename_str.clone(), options).map_err(|e| e.to_string())?;
+                zip.start_file(filename_str.clone(), options)
+                    .map_err(|e| e.to_string())?;
 
                 loop {
                     let bytes_read = f.read(&mut buffer).map_err(|e| e.to_string())?;
                     if bytes_read == 0 {
                         break;
                     }
-                    zip.write_all(&buffer[..bytes_read]).map_err(|e| e.to_string())?;
+                    zip.write_all(&buffer[..bytes_read])
+                        .map_err(|e| e.to_string())?;
                     bytes_written += bytes_read as u64;
 
                     let percentage = if total_bytes > 0 {
@@ -268,10 +297,13 @@ async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<S
                         100.0
                     };
 
-                    let _ = window.emit("bundle-progress", ProgressPayload {
-                        percentage,
-                        current_file: filename_str.clone(),
-                    });
+                    let _ = window.emit(
+                        "bundle-progress",
+                        ProgressPayload {
+                            percentage,
+                            current_file: filename_str.clone(),
+                        },
+                    );
                 }
 
                 // If matching srt content is provided, write it next to the video in zip
@@ -282,8 +314,10 @@ async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<S
                             srt_filename.truncate(dot_idx);
                         }
                         srt_filename.push_str(".srt");
-                        zip.start_file(&srt_filename, options).map_err(|e| e.to_string())?;
-                        zip.write_all(srt_content.as_bytes()).map_err(|e| e.to_string())?;
+                        zip.start_file(&srt_filename, options)
+                            .map_err(|e| e.to_string())?;
+                        zip.write_all(srt_content.as_bytes())
+                            .map_err(|e| e.to_string())?;
                     }
                 }
             }
@@ -300,31 +334,31 @@ async fn save_tspz_bundle(window: Window, json_state: String, video_paths: Vec<S
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  tauri::Builder::default()
-    .manage(FfmpegState(Mutex::new(None)))
-    .plugin(tauri_plugin_fs::init())
-    .plugin(tauri_plugin_dialog::init())
-    .plugin(tauri_plugin_shell::init())
-    .setup(|app| {
-      if cfg!(debug_assertions) {
-        app.handle().plugin(
-          tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .build(),
-        )?;
-      }
-      Ok(())
-    })
-     // Add this line to register your new commands:
-    .invoke_handler(tauri::generate_handler![
-        get_startup_file,
-        run_ffmpeg,
-        abort_ffmpeg,
-        load_tspz_bundle,
-        save_tspz_bundle,
-        extract_temp_workspace,
-        check_srt_exists,
-    ])
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    tauri::Builder::default()
+        .manage(FfmpegState(Mutex::new(None)))
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
+        .setup(|app| {
+            if cfg!(debug_assertions) {
+                app.handle().plugin(
+                    tauri_plugin_log::Builder::default()
+                        .level(log::LevelFilter::Info)
+                        .build(),
+                )?;
+            }
+            Ok(())
+        })
+        // Add this line to register your new commands:
+        .invoke_handler(tauri::generate_handler![
+            get_startup_file,
+            run_ffmpeg,
+            abort_ffmpeg,
+            load_tspz_bundle,
+            save_tspz_bundle,
+            extract_temp_workspace,
+            check_srt_exists,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }
