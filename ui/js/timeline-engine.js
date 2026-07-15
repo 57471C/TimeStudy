@@ -43,4 +43,20 @@ window.paintTimelineRuler = paintTimelineRuler;
 window.drawCustomAudioWaveform = drawCustomAudioWaveform;
 window.paintTimelineMarkersAndShading = paintTimelineMarkersAndShading;
 
-// TODO: Attach interactive track mousedown/click event listeners mapping pixel coordinate x-offsets to videoElement.currentTime here.
+document.addEventListener("DOMContentLoaded", () => {
+	const track = document.getElementById("seekBar");
+	const videoElement = document.getElementById("my_video");
+
+	if (track && videoElement) {
+		const updateTimeFromEvent = (e) => {
+			const rect = track.getBoundingClientRect();
+			const x = e.clientX - rect.left;
+			const percentage = Math.max(0, Math.min(1, x / rect.width));
+			if (videoElement.duration) {
+				videoElement.currentTime = percentage * videoElement.duration;
+			}
+		};
+
+		track.addEventListener("mousedown", updateTimeFromEvent);
+	}
+});
