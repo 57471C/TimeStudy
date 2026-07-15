@@ -19,16 +19,12 @@ function syncTimelinePlayheadSmoothly() {
 	);
 }
 
-function updateCanvasPlayhead(currentTime, duration) {
+function updateCanvasPlayhead(_currentTime, _duration) {
 	// Canvas playhead position synchronization updates
 }
 
-function paintTimelineRuler(duration) {
+function paintTimelineRuler(_duration) {
 	// Continuous time axis ruler tick layout generator
-}
-
-function drawCustomAudioWaveform(waveformData) {
-	// Lightweight canvas audio waveform rendering algorithms
 }
 
 function paintTimelineMarkersAndShading() {
@@ -40,7 +36,6 @@ function paintTimelineMarkersAndShading() {
 window.syncTimelinePlayheadSmoothly = syncTimelinePlayheadSmoothly;
 window.updateCanvasPlayhead = updateCanvasPlayhead;
 window.paintTimelineRuler = paintTimelineRuler;
-window.drawCustomAudioWaveform = drawCustomAudioWaveform;
 window.paintTimelineMarkersAndShading = paintTimelineMarkersAndShading;
 
 document.addEventListener("DOMContentLoaded", () => {
