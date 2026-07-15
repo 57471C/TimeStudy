@@ -998,15 +998,17 @@ const initializePlayer = () => {
 				];
 
 				if (isPackage) {
-					let totalSize = 0;
-					for (const vp of videoPaths) {
+					const statPromises = videoPaths.map(async (vp) => {
 						try {
 							const stat = await window.__TAURI__.fs.stat(vp);
-							totalSize += stat.size;
+							return stat.size;
 						} catch (e) {
 							console.warn("Failed to stat video file", vp, e);
+							return 0;
 						}
-					}
+					});
+					const sizes = await Promise.all(statPromises);
+					const totalSize = sizes.reduce((acc, size) => acc + size, 0);
 
 					if (totalSize > 500 * 1024 * 1024) {
 						const proceed = await asyncConfirm(
