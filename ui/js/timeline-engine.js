@@ -39,19 +39,39 @@ window.paintTimelineRuler = paintTimelineRuler;
 window.paintTimelineMarkersAndShading = paintTimelineMarkersAndShading;
 
 document.addEventListener("DOMContentLoaded", () => {
-	const track = document.getElementById("seekBar");
+	const trackContainer =
+		document.getElementById("opTicksContainer")?.parentElement;
 	const videoElement = document.getElementById("my_video");
 
-	if (track && videoElement) {
+	if (trackContainer && videoElement) {
 		const updateTimeFromEvent = (e) => {
-			const rect = track.getBoundingClientRect();
+			const rect = trackContainer.getBoundingClientRect();
 			const x = e.clientX - rect.left;
 			const percentage = Math.max(0, Math.min(1, x / rect.width));
+
 			if (videoElement.duration) {
-				videoElement.currentTime = percentage * videoElement.duration;
+				let time = percentage * videoElement.duration;
+
+				// Apply bounds checking from global variables (defined in state.js)
+				const start =
+					typeof processStartTime !== "undefined" ? processStartTime : 0;
+				const end = typeof processEndTime !== "undefined" ? processEndTime : 0;
+
+				if (start > 0 && time < start) {
+					time = start;
+				}
+				if (end > 0 && time > end) {
+					time = end;
+				}
+
+				videoElement.currentTime = time;
 			}
 		};
 
-		track.addEventListener("mousedown", updateTimeFromEvent);
+		trackContainer.addEventListener("pointerdown", (e) => {
+			// Do not override if clicking directly on the input range or its thumb
+			if (e.target.tagName === "INPUT") return;
+			updateTimeFromEvent(e);
+		});
 	}
 });

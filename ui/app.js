@@ -1582,10 +1582,6 @@ const initializePlayer = () => {
 			debounce((event) => {
 				let time = Number.parseFloat(event.target.value);
 				if (!Number.isNaN(time)) {
-					if (processStartTime > 0 && time < processStartTime)
-						time = processStartTime;
-					if (processEndTime > 0 && time > processEndTime)
-						time = processEndTime;
 					player.currentTime = time;
 					toConsole("Seek bar input event fired", time, debuggin);
 					toConsole("Video seeked to", time, debuggin);
