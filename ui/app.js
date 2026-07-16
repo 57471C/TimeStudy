@@ -1002,8 +1002,7 @@ const initializePlayer = () => {
 						try {
 							const stat = await window.__TAURI__.fs.stat(vp);
 							return stat.size;
-						} catch (e) {
-							console.warn("Failed to stat video file", vp, e);
+						} catch (_e) {
 							return 0;
 						}
 					});
