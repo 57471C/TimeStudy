@@ -1580,7 +1580,7 @@ const initializePlayer = () => {
 		seekBar.addEventListener(
 			"input",
 			debounce((event) => {
-				let time = Number.parseFloat(event.target.value);
+				const time = Number.parseFloat(event.target.value);
 				if (!Number.isNaN(time)) {
 					player.currentTime = time;
 					toConsole("Seek bar input event fired", time, debuggin);
@@ -2462,7 +2462,6 @@ const addTask = async () => {
 	drawTable();
 };
 
-/* eslint-disable no-unused-vars */
 const insertTask = async (opIndex, taskIndex) => {
 	player.pause();
 	toConsole("playPause", "play paused to insert task", debuggin);
@@ -2528,7 +2527,6 @@ const insertTask = async (opIndex, taskIndex) => {
 	drawTable();
 };
 
-/* eslint-disable no-unused-vars */
 const splitOperationAt = async (opIndex, taskIndex) => {
 	if (typeof player !== "undefined" && player) player.pause();
 	const originalOp = operations[opIndex];
@@ -3260,3 +3258,12 @@ const processVideo = async (start, end, qualityMode, isCompression) => {
 		unlistenStderr?.();
 	}
 };
+
+// Make functions globally available for inline event handlers in ui-components.js
+window.splitOperationAt = splitOperationAt;
+window.insertTask = insertTask;
+window.handleInlineNameEdit = handleInlineNameEdit;
+window.handleInlineDurationEdit = handleInlineDurationEdit;
+window.deleteTask = deleteTask;
+window.jumpToOperationTime = jumpToOperationTime;
+window.jumpToTaskTime = jumpToTaskTime;
