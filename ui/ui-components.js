@@ -11,7 +11,7 @@ const ICONS = {
 	split: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>`,
 };
 
-const openStatusModal = (e, opIndex, taskIndex) => {
+window.openStatusModal = (e, opIndex, taskIndex) => {
 	currentStatusEdit = { opIndex, taskIndex };
 	const dialog = DOM.statusModal;
 
@@ -32,7 +32,7 @@ const openStatusModal = (e, opIndex, taskIndex) => {
 	dialog.style.top = `${top}px`;
 };
 
-const openOpContextMenu = (e, opIndex) => {
+window.openOpContextMenu = (e, opIndex) => {
 	e.stopPropagation();
 	currentOpContextIndex = opIndex;
 
@@ -55,7 +55,7 @@ const openOpContextMenu = (e, opIndex) => {
 	menu.style.top = `${top}px`;
 };
 
-const removeTag = (target, opIndex, taskIndex, tagType, tagIdx) => {
+window.removeTag = (target, opIndex, taskIndex, tagType, tagIdx) => {
 	if (target === "op") {
 		operations[opIndex].partTags.splice(tagIdx, 1);
 	} else if (target === "task") {
@@ -70,7 +70,7 @@ const removeTag = (target, opIndex, taskIndex, tagType, tagIdx) => {
 	updateTaskList();
 };
 
-const deleteProjectTag = async (type, index) => {
+window.deleteProjectTag = async (type, index) => {
 	const arr = type === "part" ? partsList : labourList;
 	const tag = arr[index];
 
@@ -119,7 +119,7 @@ const renderLabourList = () => {
 		: `<li class="px-2 py-2 text-xs text-zinc-500 italic text-center">No labour codes loaded.</li>`;
 };
 
-const openOpPartDropdown = (e, opIndex) => {
+window.openOpPartDropdown = (e, opIndex) => {
 	e.stopPropagation();
 	let dropdown = document.getElementById("op-part-dropdown");
 	if (!dropdown) {
@@ -246,7 +246,7 @@ const openOpPartDropdown = (e, opIndex) => {
 	attachListEvents();
 };
 
-const openTaskLabourDropdown = (e, opIndex, taskIndex) => {
+window.openTaskLabourDropdown = (e, opIndex, taskIndex) => {
 	e.stopPropagation();
 	let dropdown = document.getElementById("task-labour-dropdown");
 	if (!dropdown) {
@@ -279,8 +279,11 @@ const openTaskLabourDropdown = (e, opIndex, taskIndex) => {
 				p.toLowerCase().includes(filter.toLowerCase()) &&
 				!currentTags.includes(p),
 		);
-		if (filtered.length === 0 && filter.trim() === "") {
-			return `<li class="px-2 py-1 text-sm text-zinc-500 italic">No labour codes available. Type to add one.</li>`;
+		if (filtered.length === 0) {
+			if (filter.trim() === "") {
+				return `<li class="px-2 py-1 text-sm text-zinc-500 italic">No labour codes available. Type to add one.</li>`;
+			}
+			return `<li class="px-2 py-1 text-sm text-zinc-500 italic">Press Enter to add "${escapeHTML(filter)}"</li>`;
 		}
 		return filtered
 			.map(
@@ -354,7 +357,7 @@ const openTaskLabourDropdown = (e, opIndex, taskIndex) => {
 	attachListEvents();
 };
 
-const openOpBulkLabourDropdown = (e, opIndex) => {
+window.openOpBulkLabourDropdown = (e, opIndex) => {
 	e.stopPropagation();
 	let dropdown = document.getElementById("op-bulk-labour-dropdown");
 	if (!dropdown) {
@@ -393,8 +396,11 @@ const openOpBulkLabourDropdown = (e, opIndex) => {
 				p.toLowerCase().includes(filter.toLowerCase()) &&
 				!commonTags.includes(p),
 		);
-		if (filtered.length === 0 && filter.trim() === "") {
-			return `<li class="px-2 py-1 text-sm text-zinc-500 italic">No labour codes available. Type to add one.</li>`;
+		if (filtered.length === 0) {
+			if (filter.trim() === "") {
+				return `<li class="px-2 py-1 text-sm text-zinc-500 italic">No labour codes available. Type to add one.</li>`;
+			}
+			return `<li class="px-2 py-1 text-sm text-zinc-500 italic">Press Enter to add "${escapeHTML(filter)}"</li>`;
 		}
 		return filtered
 			.map(
