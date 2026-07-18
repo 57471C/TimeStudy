@@ -35,7 +35,7 @@ const getAppWindow = () => {
 			window.__TAURI__?.window?.appWindow ??
 			null
 		);
-	} catch (e) {}
+	} catch (_e) {}
 	return null;
 };
 
@@ -251,14 +251,16 @@ const processNewVideoFile = async (fileOrPath, isTauriPath = false) => {
 let subtitleBlobUrl = null;
 
 const disableCCButton = () => {
-	if (player && player.textTracks) {
+	if (player?.textTracks) {
 		for (let i = 0; i < player.textTracks.length; i++) {
 			player.textTracks[i].mode = "disabled";
 		}
 	}
 
 	const tracks = player?.querySelectorAll("track");
-	tracks?.forEach((track) => track.remove());
+	tracks?.forEach((track) => {
+		track.remove();
+	});
 
 	if (subtitleBlobUrl) {
 		URL.revokeObjectURL(subtitleBlobUrl);
@@ -278,7 +280,9 @@ const clearExistingCaptions = () => {
 const loadAndAttachSubtitles = async (videoPath) => {
 	try {
 		const tracks = player.querySelectorAll("track");
-		tracks.forEach((track) => track.remove());
+		tracks.forEach((track) => {
+			track.remove();
+		});
 
 		if (subtitleBlobUrl) {
 			URL.revokeObjectURL(subtitleBlobUrl);
@@ -287,7 +291,7 @@ const loadAndAttachSubtitles = async (videoPath) => {
 
 		const dotIndex = videoPath.lastIndexOf(".");
 		if (dotIndex === -1) return;
-		const vttPath = videoPath.substring(0, dotIndex) + ".vtt";
+		const vttPath = `${videoPath.substring(0, dotIndex)}.vtt`;
 
 		const vttText = await window.__TAURI__.fs.readTextFile(vttPath);
 		const blob = new Blob([vttText], { type: "text/vtt" });
@@ -323,7 +327,7 @@ const autoLoadSubtitlesFlow = async () => {
 	try {
 		const dotIndex = videoFilePath.lastIndexOf(".");
 		if (dotIndex === -1) return;
-		const vttPath = videoFilePath.substring(0, dotIndex) + ".vtt";
+		const vttPath = `${videoFilePath.substring(0, dotIndex)}.vtt`;
 
 		const vttExists = await window.__TAURI__.fs
 			.exists(vttPath)
@@ -1072,7 +1076,7 @@ const initializePlayer = () => {
 			return;
 		}
 
-		if (projectFilePath && projectFilePath.endsWith(".tspz")) {
+		if (projectFilePath?.endsWith(".tspz")) {
 			await window.__TAURI__.dialog.message(
 				"You are currently viewing a packaged archive. To save your edits, you must extract this project to a permanent folder.",
 				{ title: "Archive Opened", kind: "info" },
@@ -1178,7 +1182,7 @@ const initializePlayer = () => {
 			return;
 		}
 
-		if (projectFilePath && projectFilePath.endsWith(".tsp")) {
+		if (projectFilePath?.endsWith(".tsp")) {
 			try {
 				const jsonState = JSON.stringify({
 					version: APP_VERSION,
